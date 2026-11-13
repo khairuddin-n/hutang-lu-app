@@ -393,6 +393,7 @@
 <div id="vHome">
   <div class="hero"><div class="wrap">
     <div class="bar"><h1><i class="ms f" aria-hidden="true" style="font-size:18px">handshake</i>Hutang Lu</h1>
+      <button class="ib" id="eyeBtn" aria-label="Sembunyikan nominal"><span class="ms" aria-hidden="true">visibility</span></button>
       <button class="ib" id="meBtn" aria-label="Ganti pengguna"></button></div>
     <div class="who" id="who"><div class="sk" style="width:170px"></div></div>
     <div class="big n" id="bigAmt"><div class="sk" style="width:180px;height:36px"></div></div>
@@ -592,8 +593,13 @@
 <script>
   const $ = id => document.getElementById(id);
   const fmtN = n => Math.round(n).toLocaleString('id-ID');
-  const fmt = n => 'Rp' + fmtN(n);
-  const jt = n => n >= 1e6 ? 'Rp' + (n/1e6).toLocaleString('id-ID',{maximumFractionDigits:1}) + ' jt' : 'Rp' + Math.round(n/1e3) + ' rb';
+  const fmtR = n => 'Rp' + fmtN(n);
+  const jtR = n => n >= 1e6 ? 'Rp' + (n/1e6).toLocaleString('id-ID',{maximumFractionDigits:1}) + ' jt' : 'Rp' + Math.round(n/1e3) + ' rb';
+  // Mode sembunyi nominal (ikon mata): semua angka tampil "Rp•••••", kecuali di form isian & teks yang dibagikan
+  let HIDE = false; try { HIDE = localStorage.getItem('hl_hide') === '1'; } catch (e) {}
+  const MASK = 'Rp•••••';
+  const fmt = n => HIDE && view !== 'form' ? MASK : fmtR(n);
+  const jt = n => HIDE && view !== 'form' ? MASK : jtR(n);
   const store = {
     get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } },
     set(k,v){ try { localStorage.setItem(k,v); } catch(e){} }
@@ -673,6 +679,20 @@
     if (cb) cb(); else if (lastInfo) { renderInfo(lastInfo); if (view === 'pay') renderPay(); }
   });
   $('meBtn').onclick = () => askMe(null);
+  function paintEye(){
+    $('eyeBtn').innerHTML = `<span class="ms" aria-hidden="true">${HIDE ? 'visibility_off' : 'visibility'}</span>`;
+    $('eyeBtn').setAttribute('aria-label', HIDE ? 'Tampilkan nominal' : 'Sembunyikan nominal');
+  }
+  $('eyeBtn').onclick = () => {
+    HIDE = !HIDE; try { localStorage.setItem('hl_hide', HIDE ? '1' : '0'); } catch (e) {}
+    paintEye();
+    if (lastInfo) renderInfo(lastInfo);              // gambar ulang semua yang sudah tampil
+    if (S) renderStats(S);
+    if (HS.all.length) filterHist();
+    if (P.rows.length || P.log.length) renderPay();
+    snack(HIDE ? 'Nominal disembunyikan' : 'Nominal ditampilkan');
+  };
+  paintEye();
   function applyMe(){
     $('meBtn').innerHTML = av(ME, 32);
     $('meBtn').style.pointerEvents = window.__PWA ? 'none' : '';
@@ -1126,7 +1146,7 @@
           <i style="height:${Math.max(3, m.del/maxM*130)}px;background:#C2410C"></i>
           <i style="height:${Math.max(3, m.dim/maxM*130)}px;background:#3949AB"></i></div>`).join('')}</div>
         <div class="cl n">${s.months.map(m => `<span style="${m.key===s.ym?'color:var(--on);font-weight:500':''}">${esc(m.label)}<br>${jt(m.del+m.dim)}</span>`).join('')}</div>
-        <div style="display:flex;gap:16px;justify-content:center;margin-top:12px;font-size:12px;color:var(--on2)"><span><span class="dot" style="background:#C2410C"></span>Delpus bayar</span><span><span class="dot" style="background:#3949AB"></span>Dimbo bayar</span></div>
+        <div style="display:flex;gap:16px;justify-content:center;margin-top:12px;font-size:12px;color:var(--on2)"><span><span class="dot" style="background:#C2410C"></span>${nm('Delpus')} bayar</span><span><span class="dot" style="background:#3949AB"></span>${nm('Dimbo')} bayar</span></div>
       </section>
 
       <section class="card">
@@ -1346,7 +1366,7 @@
         <div class="inp big"><span class="pre">Rp</span><input id="payAmt" class="n" inputmode="decimal" placeholder="0"></div>
         <div class="amts">
           <button class="chip" data-a="${P.total}">Semua</button>
-          ${chips.map(x => `<button class="chip" data-a="${x}">${jt(x)}</button>`).join('')}
+          ${chips.map(x => `<button class="chip" data-a="${x}">${jtR(x)}</button>`).join('')}
         </div>
         ${ends.length > 1 ? `<div class="lbl" style="margin:14px 0 0 2px">Atau lunasi sampai akhir bulan</div>
         <div class="amts">${ends.map(e => `<button class="chip ${e.k===k && Math.abs(P.amount-e.c)<1 ? 'on' : ''}" data-mk="${e.k}" ${e.c<0 || e.c>P.total ? 'data-off="1" style="opacity:.4"' : ''}>${e.name}</button>`).join('')}</div>` : ''}
@@ -1503,6 +1523,7 @@
 
   // Tagihan: total, per bulan, rencana bayar (kalau sebagian), rincian opsional
   function billText(detail){
+    const fmt = fmtR, jt = jtR;            // teks WA selalu pakai angka asli
     const n = P.rows.length, first = P.rows[0], last = P.rows[n-1];
     const owes = v => Math.abs(v) < 1 ? 'impas' : `${v > 0 ? P.payer : P.to} utang ${fmt(Math.abs(v))}`;
     const L = [`*Hutang Lu* · ${todayLbl()}`, `*${P.payer} utang ke ${P.to} ${fmt(P.total)}*`,
@@ -1538,6 +1559,7 @@
 
   // Bukti setelah pembayaran dicatat
   function proofText(payer, amount, k, until, diff, sum){
+    const fmt = fmtR;
     const left = payer === 'Dimbo' ? digits(sum.netDimbo) : digits(sum.netDelpus);
     const owesBack = payer === 'Dimbo' ? digits(sum.netDelpus) : digits(sum.netDimbo);
     const L = [`*Pembayaran Hutang Lu* · ${todayLbl()}`, `${payer} bayar *${fmt(amount)}* ke ${other(payer)}`];
