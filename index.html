@@ -43,13 +43,24 @@
   }
   window.google = { script: {
     get run() { return runner(); },
-    url: { getLocation: function (cb) { call('whoami', []).then(function (d) { cb({ parameter: { u: d.me } }); }, function () { cb({ parameter: {} }); }); } }
+    url: { getLocation: function (cb) {
+      var last = null; try { last = localStorage.getItem('hl_me'); } catch (e) {}
+      call('whoami', []).then(function (d) {
+        try { localStorage.setItem('hl_me', d.me); } catch (e) {}
+        cb({ parameter: { u: d.me } });
+      }, function (e) {
+        if (/Link tidak valid/.test(e.message)) { try { localStorage.removeItem(KEY); localStorage.removeItem('hl_me'); } catch (x) {} return gate('Link ini tidak berlaku. Minta link pribadi yang baru ke Dimbo.'); }
+        cb({ parameter: { u: last } });                   // offline: pakai identitas terakhir
+      });
+    } }
   } };
 
-  if (!tok) document.addEventListener('DOMContentLoaded', function () {
-    document.body.innerHTML = '<div style="font:16px/1.5 Roboto,system-ui,sans-serif;max-width:420px;margin:18vh auto;padding:0 24px;text-align:center">' +
-      '<h2 style="font-weight:500;margin:0 0 8px">Hutang Lu</h2><p style="color:#62666D">Buka lewat link pribadi dari Dimbo dulu, baru pasang ke layar utama HP.</p></div>';
-  });
+  function gate(msg) {
+    var show = function () { document.body.innerHTML = '<div style="font:16px/1.5 Roboto,system-ui,sans-serif;max-width:420px;margin:18vh auto;padding:0 24px;text-align:center">' +
+      '<h2 style="font-weight:500;margin:0 0 8px">Hutang Lu</h2><p style="color:#62666D">' + msg + '</p></div>'; };
+    if (document.body) show(); else document.addEventListener('DOMContentLoaded', show);
+  }
+  if (!tok) gate('Buka lewat link pribadi dari Dimbo dulu, baru pasang ke layar utama HP.');
   if ('serviceWorker' in navigator) window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js'); });
 })();
 </script>
