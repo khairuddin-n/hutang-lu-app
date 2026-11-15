@@ -181,6 +181,7 @@
   .k-dir{ background:var(--dimsoft); color:var(--dim); } .k-split{ background:var(--delsoft); color:var(--del); } .k-scan{ background:var(--brandsoft); color:var(--onbrandsoft); }
 
   #meBtn .av{ border:2px solid rgba(255,255,255,.6); }
+  .who .av, .mini .av, .split2l .av, .flow .av, .lg2 .av{ cursor:pointer; }
   .tagih{ display:flex; gap:12px; align-items:center; }
   .tagih .m{ flex:1; min-width:0; font-size:13px; color:var(--on2); }
   .tagih .m b{ display:block; font-size:15px; font-weight:500; color:var(--on); margin-bottom:2px; }
@@ -575,11 +576,11 @@
 <div class="sheet" id="photoSheet" role="dialog" aria-modal="true" aria-label="Foto profil"><div class="in">
   <div class="grab"></div>
   <div style="display:flex;justify-content:center;margin-bottom:18px" id="phAv"></div>
-  <div class="act" style="margin-top:0">
+  <div id="phEdit"><div class="act" style="margin-top:0">
     <button class="btn fill" id="phCam" data-src="phCamIn"><span class="ms" aria-hidden="true" style="font-size:20px">photo_camera</span>Kamera</button>
     <button class="btn fill" id="phPick" data-src="phFile"><span class="ms" aria-hidden="true" style="font-size:20px">image</span>Galeri</button>
   </div>
-  <button class="btn tonal" id="phDel" style="width:100%;margin-top:10px"><span class="ms" aria-hidden="true" style="font-size:20px">delete</span>Hapus foto</button>
+  <button class="btn tonal" id="phDel" style="width:100%;margin-top:10px"><span class="ms" aria-hidden="true" style="font-size:20px">delete</span>Hapus foto</button></div>
   <input type="file" id="phCamIn" accept="image/*" capture="user" class="hide">
   <input type="file" id="phFile" accept="image/*" class="hide">
 </div></div>
@@ -740,9 +741,20 @@
     if (cb) cb(); else if (lastInfo) { renderInfo(lastInfo); if (view === 'pay') renderPay(); }
   });
   $('meBtn').onclick = () => window.__PWA ? openPhoto() : askMe(null);
-  // ---------- Foto profil (PWA: tap avatar sendiri) ----------
-  function openPhoto(){
-    $('phAv').innerHTML = av(ME, 96);
+  // tap avatar di beranda, halaman Bayar, statistik → lihat foto (avatar di dalam baris transaksi tidak ikut)
+  document.addEventListener('click', e => {
+    const a = e.target.closest && e.target.closest('.who .av, .mini .av, .split2l .av, .flow .av, .lg2 .av');
+    if (!a) return;
+    e.stopPropagation();
+    openPhoto(a.classList.contains('Dimbo') ? 'Dimbo' : 'Delpus');
+  }, true);
+  // ---------- Foto profil ----------
+  // Avatar sendiri = bisa ganti/hapus (PWA); avatar orang lain = lihat saja
+  function openPhoto(p){
+    p = p || ME;
+    const mine = p === ME && window.__PWA;
+    $('phAv').innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;gap:10px">${av(p, mine ? 96 : 200)}<b style="font-size:17px;font-weight:500">${esc(p)}</b></div>`;
+    $('phEdit').classList.toggle('hide', !mine);
     $('phDel').disabled = !PHOTOS[ME];
     $('scrim').classList.add('show'); $('photoSheet').classList.add('show');
   }
