@@ -1057,7 +1057,7 @@
     const dt = d ? d[2]+' '+MON[d[1]-1]+(showDate && d[0]!==new Date().getFullYear() ? ' '+d[0] : '') : '';
     return `<button class="tx ${r.paid?'paid':''}" data-i="${i}" ${r.paid?'tabindex="-1"':''} aria-label="${esc(r.desc)}, ${r.by} bayar">
       ${cicBy(r.desc, r.by)}
-      <div class="m"><div class="t1">${esc(r.desc)}</div><div class="t2 n">${[dt, w.G>0 ? 'total '+fmt(w.G) : ''].filter(Boolean).join(' · ')}</div></div>
+      <div class="m"><div class="t1">${esc(r.desc)}</div><div class="t2 n">${dt}</div></div>
       <div class="e n"><b class="${r.paid?'':'c-'+r.by}">${fmt(owed)}</b>${r.paid ? '<small style="color:var(--green);display:flex;justify-content:flex-end"><span class="ms" aria-label="Lunas" style="font-size:16px">check_circle</span></small>' : ''}</div>
     </button>`;
   }
