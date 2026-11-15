@@ -83,7 +83,7 @@
     tok = localStorage.getItem(KEY);
   } catch (e) {}
   window.__PWA = true;
-  window.__VER = '16-11-2026 00:04';
+  window.__VER = '16-11-2026 00:12';
 
   function call(fn, args) {
     return fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -449,7 +449,8 @@
   .ur:not(.in){ opacity:.55; }
   .ur.ro{ cursor:default; opacity:1 !important; } .ur.ro .ck{ display:none; }
   .assistnote{ display:flex; gap:8px; align-items:center; background:var(--brandsoft); color:var(--onbrandsoft); border-radius:14px; padding:10px 12px; margin-bottom:12px; font-size:13px; }
-  .cut{ font-size:12px; color:var(--on2); text-align:center; padding:6px 0; border-top:1px dashed var(--outline); border-bottom:1px dashed var(--outline); margin:2px 0; }
+  .cut{ border-top:1.5px dashed var(--outline); margin:4px 0; }
+  .shimg{ display:block; width:100%; max-height:56vh; object-fit:contain; border-radius:16px; background:var(--tile); min-height:120px; }
   .lg{ display:flex; align-items:center; gap:12px; padding:10px 0; }
   .lg + .lg{ border-top:1px solid var(--line); }
   .lg .m{ flex:1; min-width:0; } .lg .t2{ font-size:12px; color:var(--on2); margin-top:2px; }
@@ -705,10 +706,10 @@
   <div class="grab"></div>
   <div class="ch" style="margin-bottom:12px"><h2 id="shTitle" style="font-size:18px">Bagikan</h2>
     <button class="chip hide" id="shDetail"><span class="ms" aria-hidden="true" style="font-size:18px">list</span>Rincian</button></div>
-  <textarea id="shText" class="sharetext n" readonly rows="10"></textarea>
+  <img id="shImg" class="shimg" alt="Pratinjau gambar">
   <div class="act">
-    <button class="btn tonal" id="shCopy"><span class="ms" aria-hidden="true" style="font-size:20px">content_copy</span>Salin</button>
-    <a class="btn wa" id="shWa" target="_blank" rel="noopener"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.2 2.2 2.2 0 0 0 .1-1.3c0-.1-.2-.2-.4-.3z"/></svg>WhatsApp</a>
+    <button class="btn tonal" id="shCopy"><span class="ms" aria-hidden="true" style="font-size:20px">content_copy</span>Salin teks</button>
+    <button class="btn fill" id="shGo"><span class="ms" aria-hidden="true" style="font-size:20px">share</span>Bagikan</button>
   </div>
 </div></div>
 
@@ -1747,9 +1748,7 @@
   }
   const untilLabel = k => k ? P.rows[k-1].label : '';
   // batas yang tidak masuk akal: justru pihak lain yang utang, atau lebih mahal dari lunasi semua
-  const offMsg = k => P.cum[k] < 0
-    ? `Sampai sini justru ${nml(P.to)} yang utang. Geser lebih jauh.`
-    : `Sampai sini ${fmt(P.cum[k])}, lebih besar dari lunasi semua (${fmt(P.total)}), karena setelahnya ${nml(P.to)} yang lebih banyak ditalangin. Pilih Semua saja.`;
+  const offMsg = k => P.cum[k] < 0 ? 'Tidak bisa berhenti di sini' : 'Lebih dari total, pilih Semua';
 
   function setAmount(v){
     P.amount = Math.max(0, Math.round(v || 0));
@@ -1763,7 +1762,7 @@
     if (!P.payer){
       $('assistBtn').classList.add('hide');
       $('payTitle').textContent = 'Bayar';
-      body.innerHTML = `<section class="card"><div class="empty">Tidak ada utang. Semua sudah impas.</div></section>` + logCard();
+      body.innerHTML = `<section class="card"><div class="empty">Lunas semua</div></section>` + logCard();
       bindLog(); return;
     }
     const k = P.k, cover = P.cum[k], diff = P.amount - cover, opts = P.amount > 0 ? payOptions(P.amount) : [];
@@ -1788,49 +1787,38 @@
       <section class="card">
         <div class="flow" aria-label="${P.payer} bayar ke ${P.to}">${av(P.payer, 40)}<span class="ms arr" aria-hidden="true">arrow_forward</span>${av(P.to, 40)}
           <b class="n" style="margin:0 0 0 auto">${fmt(P.total)}</b></div>
-        <div class="help">${P.rows.length} transaksi${first ? ' sejak ' + esc(first.label) : ''}</div>
+        <div class="help">${P.rows.length} transaksi</div>
       </section>
-      ${P.assist ? `<div class="assistnote"><span class="ms" aria-hidden="true" style="font-size:18px">edit_note</span>Catat transfer dari ${esc(P.payer)}. Cukup sekali.</div>` : ''}
       ${ro ? `<button class="btn wa" id="billWa" style="width:100%;margin-bottom:12px"><span class="ms" aria-hidden="true" style="font-size:20px">send</span>Kirim tagihan</button>` : ''}
 
       ${ro ? '' : `<section class="card">
-        <div class="lbl"><label for="payAmt">Nominal transfer</label></div>
         <div class="inp big"><span class="pre">Rp</span><input id="payAmt" class="n" inputmode="text" enterkeyhint="done" autocomplete="off" data-calc placeholder="0"></div>
         <div class="amts">
           <button class="chip" data-a="${P.total}">Semua</button>
           ${chips.map(x => `<button class="chip" data-a="${x}">${jtR(x)}</button>`).join('')}
         </div>
-        ${ends.length > 1 ? `<div class="lbl" style="margin:14px 0 0 2px">Atau lunasi sampai akhir bulan</div>
-        <div class="amts">${ends.map(e => `<button class="chip ${e.k===k && Math.abs(P.amount-e.c)<1 ? 'on' : ''}" data-mk="${e.k}" ${e.c<0 || e.c>P.total ? 'data-off="1" style="opacity:.4"' : ''}>${e.name}</button>`).join('')}</div>` : ''}
-        ${opts.length ? `<div style="margin-top:6px">${opts.map(o => `
+        ${ends.length > 1 ? `<div class="amts" style="margin-top:8px"><span class="ms" aria-hidden="true" style="font-size:18px;color:var(--on2);align-self:center">calendar_month</span>${ends.map(e => `<button class="chip ${e.k===k && Math.abs(P.amount-e.c)<1 ? 'on' : ''}" data-mk="${e.k}" ${e.c<0 || e.c>P.total ? 'data-off="1" style="opacity:.4"' : ''}>${e.name}</button>`).join('')}</div>` : ''}
+        ${opts.length && opts[0].tag !== 'pas' ? `<div style="margin-top:6px">${opts.map(o => `
           <button class="opt ${o.k===k?'on':''}" data-k="${o.k}">
             <span class="rd"></span>
-            <div class="m"><div class="t1 n">${fmt(o.c)}</div>
-              <div class="t2">${o.k ? `${o.k} transaksi · lunas s.d. ${esc(untilLabel(o.k))}` : 'Belum menutup transaksi apa pun'}</div></div>
-            <span class="tag">${o.tag}</span>
+            <div class="m"><div class="t1 n">${fmt(o.c)}</div><div class="t2">${o.k} transaksi</div></div>
           </button>`).join('')}</div>` : ''}
       </section>
 
       ${P.amount > 0 ? `<section class="card">
-        <div class="ch"><h2>Ringkasan</h2></div>
         <div class="sum n">
-          <div><span>Ditransfer</span><span>${fmt(P.amount)}</span></div>
-          <div><span>Menutup</span><span>${k} transaksi · ${fmt(cover)}</span></div>
-          ${Math.abs(diff) >= 1 ? `<div><span>${diff>0?'Kelebihan':'Kekurangan'}</span><span class="${diff>0?'':'c-'+P.payer}">${fmt(Math.abs(diff))}</span></div>` : ''}
-          <div><span>Sisa utang ${nml(P.payer)}</span><span style="font-weight:500">${fmt(Math.max(0, P.total - P.amount))}</span></div>
+          <div><span>Lunas</span><span>${k} transaksi</span></div>
+          ${Math.abs(diff) >= 1 ? `<div><span>${diff>0?'Lebih':'Kurang'}</span><span>${fmt(Math.abs(diff))}</span></div>` : ''}
+          <div><span>Sisa</span><span style="font-weight:500">${fmt(Math.max(0, P.total - P.amount))}</span></div>
         </div>
-        ${Math.abs(diff) >= 1 ? `<div class="diffnote"><span class="ms" aria-hidden="true">info</span><div>${diff>0
-          ? `Kelebihan ${fmt(diff)} dicatat sebagai <b>Kelebihan bayar</b>, jadi utang ${nml(P.payer)} berikutnya berkurang segitu.`
-          : `Kekurangan ${fmt(-diff)} dicatat sebagai <b>Sisa pelunasan</b>, tetap jadi utang ${nml(P.payer)}.`}
-          <br><button class="linkbtn" id="payExact">Transfer pas ${fmt(cover)} saja</button></div></div>` : ''}
       </section>` : ''}
       <button class="btn fill" id="payGo" style="width:100%;margin-bottom:12px"></button>`}
 
       <section class="card">
-        <div class="ch"><h2>Transaksi</h2><span>${ro ? 'belum lunas' : 'tap untuk geser batas'}</span></div>
+        <div class="ch"><h2>Transaksi</h2></div>
         ${P.rows.slice(0, P.all ? P.rows.length : Math.max(kk + 5, 12)).map((r, i) => {
           const inn = i < kk, sign = r.by !== P.payer ? 1 : -1;
-          return (i === kk && kk > 0 ? '<div class="cut">batas pelunasan</div>' : '') + `
+          return (i === kk && kk > 0 ? '<div class="cut"></div>' : '') + `
           <button class="ur ${inn?'in':''} ${ro?'ro':''}" data-i="${i}" ${ro?'tabindex="-1"':''}>
             <span class="ck">${inn ? '<span class="ms" aria-hidden="true">check</span>' : ''}</span>
             ${cicBy(r.desc, r.by, 32)}
@@ -1857,7 +1845,8 @@
       P.k = nk; P.amount = P.cum[nk]; P.typed = fmtN(P.amount); renderPay();
     });
     body.querySelectorAll('.chip[data-a]').forEach(b => b.onclick = () => { P.typed = fmtN(+b.dataset.a); setAmount(+b.dataset.a); });
-    body.querySelectorAll('.opt').forEach(b => b.onclick = () => { P.k = +b.dataset.k; renderPay(); });
+    // pilih salah satu = transfer pas sebesar itu
+    body.querySelectorAll('.opt').forEach(b => b.onclick = () => { P.k = +b.dataset.k; P.amount = P.cum[P.k]; P.typed = fmtN(P.amount); renderPay(); });
     body.querySelectorAll('.ur:not(.ro)').forEach(b => b.onclick = () => {
       const i = +b.dataset.i, nk = (i + 1 === P.k) ? i : i + 1;   // tap baris terakhir yang tercentang = mundur satu
       if (P.cum[nk] < 0 || P.cum[nk] > P.total) return snack(offMsg(nk));
@@ -1865,8 +1854,7 @@
       renderPay();
     });
     const all = $('payAll'); if (all) all.onclick = () => { P.all = true; renderPay(); };
-    const bw = $('billWa'); if (bw) bw.onclick = () => openShare('Kirim tagihan', billText, true);
-    const ex = $('payExact'); if (ex) ex.onclick = () => { P.amount = cover; P.typed = fmtN(cover); renderPay(); };
+    const bw = $('billWa'); if (bw) bw.onclick = () => openShare('Tagihan', billText, billCard, true);
     bindLog();
 
     const go = $('payGo');
@@ -1883,7 +1871,7 @@
       ${P.log.map((l, i) => `<div class="lg">
         ${av(l.payer, 32)}
         <div class="m"><div class="n">${fmt(l.paid)}</div>
-          <div class="t2 n">${esc(l.when)} · ${l.n} transaksi${l.until ? ' s.d. ' + esc(l.until) : ''}${Math.abs(l.diff)>=1 ? ' · ' + (l.diff>0?'lebih ':'kurang ') + fmt(Math.abs(l.diff)) : ''}</div></div>
+          <div class="t2 n">${esc(l.when)} · ${l.n} transaksi</div></div>
         ${i===0 ? `<button class="undo" data-row="${l.row}">Batalkan</button>` : ''}
       </div>`).join('')}</section>`;
   }
@@ -1904,7 +1892,7 @@
     if (!(P.amount > 0) || go.disabled) return;
     if (!go.classList.contains('arm')){
       go.classList.add('arm');
-      go.textContent = `Yakin? ${P.k} transaksi jadi lunas`;
+      go.textContent = 'Yakin?';
       return;
     }
     go.disabled = true; go.innerHTML = '<span class="spin"></span>';
@@ -1914,8 +1902,12 @@
         renderInfo(res.info);
         setPay(res.settle, true);
         setView('home');
-        snack(`Tercatat: ${nm(payer)} bayar ${fmt(amount)}. Bisa dibatalkan di tab ini.`);
-        openShare(payer === ME ? 'Kirim bukti bayar' : 'Kirim konfirmasi terima', () => proofText(payer, amount, nk, until, res.diff, res.info.summary), false);
+        const id = res.settle.log[0] && res.settle.log[0].row;
+        snack(`Tercatat ${fmt(amount)}`, 'Batalkan', () => google.script.run
+          .withSuccessHandler(x => { closeSheet(); renderInfo(x.info); setPay(x.settle, true); snack('Pelunasan dibatalkan'); }).withFailureHandler(failSnack)
+          .undoSettle(id));
+        openShare(payer === ME ? 'Bukti bayar' : 'Konfirmasi terima', () => proofText(payer, amount, nk, until, res.diff, res.info.summary),
+          () => proofCard(payer, amount, nk, res.info.summary), false);
       })
       .withFailureHandler(e => { go.disabled = false; go.classList.remove('arm'); snack('Gagal: ' + e.message); renderPay(); })
       .settle({ payer, amount, rows: P.rows.slice(0, P.k).map(r => ({ row: r.row, key: r.key })), cover: P.cum[P.k] });
@@ -1931,78 +1923,155 @@
   const todayLbl = () => { const t = new Date(); return `${t.getDate()} ${MON[t.getMonth()]} ${t.getFullYear()}`; };
   const rp = n => (n < 0 ? '−' : '') + fmt(Math.abs(n));
 
-  let shareBuild = null, shareDetail = false;
-  function openShare(title, build, canDetail){
-    shareBuild = build; shareDetail = false;
+  // Sheet bagikan: pratinjau gambar → menu share HP (gambar + teks), atau salin teks
+  let shareBuild = null, shareCard = null, shareDetail = false, shareBlob = null;
+  function openShare(title, build, card, canDetail){
+    shareBuild = build; shareCard = card; shareDetail = false;
     $('shTitle').textContent = title;
     $('shDetail').classList.toggle('hide', !canDetail);
     $('shDetail').classList.remove('on');
     renderShare();
     $('scrim').classList.add('show'); $('shareSheet').classList.add('show');
   }
-  function renderShare(){
-    const t = shareBuild(shareDetail);
-    $('shText').value = t;
-    $('shText').rows = Math.min(14, t.split('\n').length + 1);
-    $('shWa').href = 'https://wa.me/?text=' + encodeURIComponent(t);
+  async function renderShare(){
+    const tok = (renderShare.t = (renderShare.t || 0) + 1);
+    shareBlob = null; $('shGo').disabled = true; $('shImg').removeAttribute('src');
+    const cv = await drawCard(shareCard(shareDetail));
+    if (tok !== renderShare.t) return;
+    $('shImg').src = cv.toDataURL('image/png');
+    cv.toBlob(bl => { if (tok === renderShare.t) { shareBlob = bl; $('shGo').disabled = false; } }, 'image/png');
   }
   $('shDetail').onclick = () => { shareDetail = !shareDetail; $('shDetail').classList.toggle('on', shareDetail); renderShare(); };
-  $('shCopy').onclick = async () => {
-    const t = $('shText').value;
-    let ok = false;
-    try { await navigator.clipboard.writeText(t); ok = true; } catch (e) {}
-    if (!ok){ const a = $('shText'); a.removeAttribute('readonly'); a.select(); try { ok = document.execCommand('copy'); } catch (e) {} a.setAttribute('readonly', ''); a.blur(); }
-    snack(ok ? 'Teks disalin' : 'Gagal menyalin, tekan lama teksnya lalu salin');
+  async function copyText(t){
+    try { await navigator.clipboard.writeText(t); return true; } catch (e) {}
+    const a = document.createElement('textarea'); a.value = t; a.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(a); a.select();
+    let ok = false; try { ok = document.execCommand('copy'); } catch (e) {} a.remove(); return ok;
+  }
+  $('shCopy').onclick = async () => snack(await copyText(shareBuild(shareDetail)) ? 'Teks disalin' : 'Gagal menyalin');
+  $('shGo').onclick = async () => {
+    if (!shareBlob) return;
+    const file = new File([shareBlob], `hutang-lu-${todayIso()}.png`, { type: 'image/png' });
+    try {
+      if (navigator.canShare && navigator.canShare({ files: [file] })) return await navigator.share({ files: [file] });
+      if (navigator.share) return await navigator.share({ text: shareBuild(shareDetail) });
+    } catch (e) { if (e && e.name === 'AbortError') return; }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(shareBlob); a.download = file.name; a.click();   // cadangan: unduh gambar
   };
-  $('shareBtn').onclick = () => openShare('Bagikan tagihan', billText, true);
+  $('shareBtn').onclick = () => openShare('Tagihan', billText, billCard, true);
 
-  // Tagihan: total, per bulan, rencana bayar (kalau sebagian), rincian opsional
+  // ---------- Gambar (canvas) ----------
+  const PCOL = { Dimbo: '#3949AB', Delpus: '#C2410C' };
+  function faceImg(p){
+    return new Promise(res => {
+      const img = new Image();
+      img.onload = () => res(img); img.onerror = () => res(null);
+      img.src = PHOTOS[p] || 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(FACE[p].replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" '));
+    });
+  }
+  // c = { title, date, from, to, amount, sub, sections:[{ head, rows:[{ l, r, col }] }] }
+  async function drawCard(c){
+    const S = 3, W = 360, P = 20, RH = 30;
+    const secH = sc => 44 + sc.rows.length * RH;
+    let H = 192 + c.sections.reduce((a, sc) => a + secH(sc) + 12, 0) + 30;
+    const cv = document.createElement('canvas'); cv.width = W * S; cv.height = H * S;
+    const g = cv.getContext('2d'); g.scale(S, S);
+    const F = (sz, w) => `${w || 400} ${sz}px Roboto, system-ui, -apple-system, "Segoe UI", sans-serif`;
+    const rr = (x, y, w, h, r) => { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); };
+    const fit = (t, w) => { t = String(t); if (g.measureText(t).width <= w) return t; while (t.length > 1 && g.measureText(t + '…').width > w) t = t.slice(0, -1); return t + '…'; };
+    try { await document.fonts.load("20px 'Material Symbols Outlined'", 'handshake'); } catch (e) {}
+    const [fa, fb] = await Promise.all([faceImg(c.from), faceImg(c.to)]);
+    // latar & pita warna aplikasi
+    g.fillStyle = '#F3F4F6'; g.fillRect(0, 0, W, H);
+    g.fillStyle = accentLight(); g.fillRect(0, 0, W, 176);
+    g.fillStyle = 'rgba(255,255,255,.18)'; rr(P, 18, 28, 28, 8); g.fill();
+    g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.font = "18px 'Material Symbols Outlined'"; g.fillText('handshake', P + 14, 33);
+    g.textAlign = 'left'; g.font = F(17, 500); g.fillText('Hutang Lu', P + 38, 33);
+    g.textAlign = 'right'; g.font = F(12); g.fillStyle = 'rgba(255,255,255,.85)'; g.fillText(c.date, W - P, 33);
+    // avatar → avatar
+    const avDraw = (img, p, x, y, d) => {
+      g.save(); g.beginPath(); g.arc(x + d/2, y + d/2, d/2, 0, Math.PI * 2); g.closePath(); g.fillStyle = PCOL[p]; g.fill(); g.clip();
+      if (img) g.drawImage(img, x, y, d, d); g.restore();
+      g.beginPath(); g.arc(x + d/2, y + d/2, d/2, 0, Math.PI * 2); g.lineWidth = 2.5; g.strokeStyle = PCOL[p]; g.stroke();
+    };
+    avDraw(fa, c.from, P, 62, 36);
+    g.fillStyle = 'rgba(255,255,255,.85)'; g.textAlign = 'center'; g.font = "20px 'Material Symbols Outlined'"; g.fillText('arrow_forward', P + 52, 80);
+    avDraw(fb, c.to, P + 68, 62, 36);
+    g.fillStyle = '#fff'; g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+    g.font = F(32, 500); g.fillText(fmtR(c.amount), P, 138);
+    g.font = F(13); g.fillStyle = 'rgba(255,255,255,.85)'; g.fillText(c.sub, P, 160);
+    // kartu-kartu
+    let y = 192;
+    c.sections.forEach(sc => {
+      const h = secH(sc);
+      g.fillStyle = '#fff'; rr(P, y, W - 2 * P, h, 16); g.fill();
+      g.fillStyle = '#62666D'; g.font = F(12.5, 500); g.textAlign = 'left'; g.fillText(sc.head, P + 14, y + 26);
+      sc.rows.forEach((r, i) => {
+        const by = y + 50 + i * RH;
+        if (i) { g.fillStyle = '#ECECEC'; g.fillRect(P + 14, by - 20, W - 2 * P - 28, 1); }
+        g.font = F(14, 500); g.textAlign = 'right'; g.fillStyle = r.col || '#1B1B1B';
+        const rt = r.r || '', rw = g.measureText(rt).width; g.fillText(rt, W - P - 14, by);
+        g.font = F(14); g.textAlign = 'left'; g.fillStyle = r.dim ? '#62666D' : '#1B1B1B';
+        g.fillText(fit(r.l, W - 2 * P - 40 - rw), P + 14, by);
+      });
+      y += h + 12;
+    });
+    g.fillStyle = '#9AA0A6'; g.font = F(11); g.textAlign = 'center'; g.fillText('Hutang Lu', W / 2, y + 10);
+    return cv;
+  }
+
+  // gambar tagihan: total, per bulan, rencana bayar, rincian (opsional)
+  function billCard(detail){
+    const n = P.rows.length, first = P.rows[0], last = P.rows[n-1], sections = [];
+    const months = [];
+    P.rows.forEach(r => {
+      const x = parseLbl(r.label), key = x.y * 12 + x.m;
+      let g = months[months.length-1];
+      if (!g || g.key !== key){ g = { key, name: `${MONF[x.m]} ${x.y}`, v: 0 }; months.push(g); }
+      g.v += r.by !== P.payer ? r.amt : -r.amt;
+    });
+    if (months.length > 1) sections.push({ head: 'Per bulan', rows: months.map(m => ({ l: m.name, r: (m.v < 0 ? '−' : '') + fmtR(Math.abs(m.v)), col: m.v < 0 ? '#137333' : null })) });
+    const partial = P.amount > 0 && (P.k < n || Math.abs(P.amount - P.total) >= 1);
+    if (partial) sections.push({ head: 'Rencana bayar', rows: [{ l: `Bayar · ${P.k} transaksi`, r: fmtR(P.amount) }, { l: 'Sisa', r: fmtR(Math.max(0, P.total - P.amount)) }] });
+    if (detail){
+      const rows = P.rows.slice(0, 40).map(r => ({ l: `${shortLbl(r.label)}  ${r.desc}`, r: (r.by === P.payer ? '−' : '') + fmtR(r.amt), col: PCOL[r.by] }));
+      if (n > 40) rows.push({ l: `+${n - 40} transaksi lagi`, r: '', dim: true });
+      sections.push({ head: 'Rincian', rows });
+    }
+    return { date: todayLbl(), from: P.payer, to: P.to, amount: P.total, sections,
+             sub: `${n} transaksi · ${shortLbl(first.label)} – ${shortLbl(last.label)}` };
+  }
+  // gambar bukti bayar
+  function proofCard(payer, amount, k, sum){
+    const left = payer === 'Dimbo' ? digits(sum.netDimbo) : digits(sum.netDelpus);
+    const back = payer === 'Dimbo' ? digits(sum.netDelpus) : digits(sum.netDimbo);
+    const row = back > 0 ? { l: `Sisa utang ${other(payer)}`, r: fmtR(back) } : left > 0 ? { l: `Sisa utang ${payer}`, r: fmtR(left) } : { l: 'Semua lunas', r: '✓', col: '#137333' };
+    return { date: todayLbl(), from: payer, to: other(payer), amount, sub: `Pembayaran · ${k} transaksi lunas`, sections: [{ head: 'Status', rows: [row] }] };
+  }
+
+  // Teks (untuk Salin teks): ringkas
   function billText(detail){
-    const fmt = fmtR, jt = jtR;            // teks WA selalu pakai angka asli
-    const n = P.rows.length, first = P.rows[0], last = P.rows[n-1];
-    const owes = v => Math.abs(v) < 1 ? 'impas' : `${v > 0 ? P.payer : P.to} utang ${fmt(Math.abs(v))}`;
-    const L = [`*Hutang Lu* · ${todayLbl()}`, `*${P.payer} utang ke ${P.to} ${fmt(P.total)}*`,
-      `dari ${n} transaksi belum lunas (${shortLbl(first.label)} – ${shortLbl(last.label)})`, ''];
+    const fmt = fmtR, n = P.rows.length, first = P.rows[0], last = P.rows[n-1];
+    const L = [`*Hutang Lu* · ${todayLbl()}`, `${P.payer} → ${P.to}: *${fmt(P.total)}*`, `${n} transaksi · ${shortLbl(first.label)} – ${shortLbl(last.label)}`];
     const months = [];
     P.rows.forEach(r => {
       const x = parseLbl(r.label), key = x.y * 12 + x.m;
       let g = months[months.length-1];
       if (!g || g.key !== key){ g = { key, name: `${MON[x.m]} ${x.y}`, v: 0 }; months.push(g); }
-      g.v += r.by !== P.payer ? r.amt : -r.amt;     // + = utang si pembayar
+      g.v += r.by !== P.payer ? r.amt : -r.amt;
     });
-    if (months.length > 1){
-      L.push('Per bulan (sudah saling potong):');
-      months.forEach(g => L.push(`• ${g.name}: ${owes(g.v)}`));
-      L.push(`Total: ${owes(P.total)}`, '');
-    }
+    if (months.length > 1){ L.push(''); months.forEach(g => L.push(`${g.name}: ${g.v < 0 ? '−' : ''}${fmt(Math.abs(g.v))}`)); }
     const partial = P.amount > 0 && (P.k < n || Math.abs(P.amount - P.total) >= 1);
-    if (partial){
-      L.push(`Rencana bayar ${P.payer}: *${fmt(P.amount)}*`);
-      if (P.k) L.push(`→ melunasi transaksi s.d. ${longLbl(untilLabel(P.k))} (${P.k} transaksi)`);
-      L.push(`→ sisa utang ${P.payer} ${fmt(Math.max(0, P.total - P.amount))}`);
-      L.push('');
-    }
-    if (detail){
-      L.push('Rincian:');
-      P.rows.forEach((r, i) => {
-        if (partial && i === P.k && P.k > 0) L.push('— batas pelunasan —');
-        L.push(`${shortLbl(r.label)} · ${r.desc} · ${other(r.by)} utang ${fmtN(r.amt)}`);
-      });
-    }
+    if (partial) L.push('', `Bayar ${fmt(P.amount)} · sisa ${fmt(Math.max(0, P.total - P.amount))}`);
+    if (detail){ L.push(''); P.rows.forEach(r => L.push(`${shortLbl(r.label)} · ${r.desc} · ${r.by === P.payer ? '−' : ''}${fmtN(r.amt)}`)); }
     return L.join('\n').trim();
   }
-
-  // Bukti setelah pembayaran dicatat
   function proofText(payer, amount, k, until, diff, sum){
     const fmt = fmtR;
     const left = payer === 'Dimbo' ? digits(sum.netDimbo) : digits(sum.netDelpus);
-    const owesBack = payer === 'Dimbo' ? digits(sum.netDelpus) : digits(sum.netDimbo);
-    const L = [`*Pembayaran Hutang Lu* · ${todayLbl()}`, `${payer} bayar *${fmt(amount)}* ke ${other(payer)}`];
-    if (k) L.push(`Menutup ${k} transaksi s.d. ${longLbl(until)}`);
-    if (diff >= 1) L.push(`Kelebihan ${fmt(diff)} jadi pengurang utang berikutnya`);
-    if (diff <= -1) L.push(`Kurang ${fmt(-diff)}, tetap tercatat sebagai utang`);
-    L.push(owesBack > 0 ? `Sekarang ${other(payer)} yang utang ${fmt(owesBack)}` : left > 0 ? `Sisa utang ${payer}: ${fmt(left)}` : 'Semua lunas ✅');
-    return L.join('\n');
+    const back = payer === 'Dimbo' ? digits(sum.netDelpus) : digits(sum.netDimbo);
+    return [`*Hutang Lu* · ${todayLbl()}`, `${payer} bayar *${fmt(amount)}* ke ${other(payer)} · ${k} transaksi lunas`,
+      back > 0 ? `Sisa utang ${other(payer)}: ${fmt(back)}` : left > 0 ? `Sisa utang ${payer}: ${fmt(left)}` : 'Semua lunas ✅'].join('\n');
   }
 
   // ---------- Mulai ----------
