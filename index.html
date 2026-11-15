@@ -48,6 +48,7 @@
     return .2126 * c[0] + .7152 * c[1] + .0722 * c[2];
   }
   window.accentHex = function () { var a = ''; try { a = localStorage.getItem('hl_accent') || ''; } catch (e) {} return /^#[0-9a-f]{6}$/i.test(a) ? a.toLowerCase() : ''; };
+  window.hex2hsl = hex2hsl; window.hsl2hex = hsl2hex;
   window.accentLight = function () {      // warna utama versi terang (dipakai juga untuk ikon tab)
     var a = accentHex(); if (!a) return '#00695C';
     var x = hex2hsl(a), h = x[0], s = x[1], l = Math.min(x[2], 45);
@@ -83,7 +84,7 @@
     tok = localStorage.getItem(KEY);
   } catch (e) {}
   window.__PWA = true;
-  window.__VER = '16-11-2026 00:12';
+  window.__VER = '16-11-2026 00:32';
 
   function call(fn, args) {
     return fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -481,6 +482,33 @@
   .snack.show{ opacity:1; transform:none; }
   .snack{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
   .snackbtn{ border:0; background:none; color:var(--accl); font-size:14px; font-weight:500; cursor:pointer; padding:4px 0; flex:none; text-transform:uppercase; letter-spacing:.3px; }
+  /* Tabungan */
+  .goal{ display:flex; align-items:center; gap:12px; width:100%; border:0; background:none; padding:10px 0; color:var(--on); text-align:left; cursor:pointer; font:inherit; }
+  .goal + .goal{ border-top:1px solid var(--line); }
+  .goal .m{ flex:1; min-width:0; } .goal .t1{ display:flex; justify-content:space-between; gap:8px; font-size:15px; }
+  .goal .t1 span:first-child{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .goal .t2{ font-size:12.5px; color:var(--on2); margin-top:6px; }
+  .gic{ width:40px; height:40px; border-radius:13px; display:grid; place-items:center; flex:none; background:var(--brandsoft); color:var(--onbrandsoft); }
+  .gic.big{ width:52px; height:52px; border-radius:17px; } .gic.big .ms{ font-size:28px; }
+  .gbar{ display:flex; height:8px; border-radius:4px; overflow:hidden; background:var(--line); margin-top:8px; } .gbar i{ display:block; }
+  .gbar.gl{ height:12px; border-radius:6px; margin:12px 0 10px; }
+  .gh{ display:flex; align-items:center; gap:12px; } .gh b{ font-size:17px; font-weight:500; } .gh .t2{ font-size:12.5px; color:var(--on2); margin-top:2px; }
+  .gbig{ font-size:30px; font-weight:500; margin-top:14px; }
+  .icpick{ display:grid; grid-template-columns:repeat(6,1fr); gap:8px; margin-top:12px; }
+  .icpick button{ aspect-ratio:1; border:0; border-radius:14px; background:var(--tile); color:var(--on2); display:grid; place-items:center; cursor:pointer; }
+  .icpick button.on{ background:var(--brandsoft); color:var(--onbrandsoft); box-shadow:inset 0 0 0 2px var(--acc); }
+  /* Wrapped */
+  .wrban{ display:flex; align-items:center; gap:12px; width:100%; border:0; border-radius:20px; padding:16px; margin-bottom:12px; color:#fff; font-size:16px; font-weight:500; cursor:pointer; text-align:left; font-family:inherit; }
+  .wrban .ms{ font-size:28px; } .wrban small{ display:block; font-size:12.5px; font-weight:400; opacity:.85; margin-top:2px; }
+  .wr{ position:fixed; inset:0; z-index:40; background:#000; display:flex; align-items:center; justify-content:center; }
+  .wr canvas{ width:min(100vw, calc(100vh * 9 / 16)); height:auto; aspect-ratio:9/16; display:block; touch-action:manipulation; cursor:pointer; }
+  .wrbars{ position:absolute; top:calc(10px + env(safe-area-inset-top)); left:50%; transform:translateX(-50%); width:calc(min(100vw, 100vh * 9 / 16) - 24px); display:flex; gap:4px; z-index:2; }
+  .wrbars i{ flex:1; height:3px; border-radius:2px; background:rgba(255,255,255,.35); } .wrbars i.on{ background:#fff; }
+  .wrtop{ position:absolute; top:calc(18px + env(safe-area-inset-top)); right:max(4px, calc(50vw - min(100vw, 100vh * 9 / 16) / 2 + 4px)); display:flex; color:#fff; z-index:2; }
+  /* Crop foto */
+  .crop{ position:relative; width:280px; height:280px; margin:4px auto 0; overflow:hidden; border-radius:20px; background:#111; touch-action:none; cursor:grab; }
+  .crop img{ position:absolute; left:0; top:0; max-width:none; user-select:none; -webkit-user-drag:none; pointer-events:none; }
+  .cropmask{ position:absolute; inset:0; border-radius:50%; box-shadow:0 0 0 400px rgba(0,0,0,.55); border:2px solid rgba(255,255,255,.85); pointer-events:none; }
+  .zoomrow{ display:flex; align-items:center; gap:10px; margin:16px 4px 0; color:var(--on2); } .zoomrow input{ flex:1; accent-color:var(--acc); }
 </style>
 </head>
 <body>
@@ -498,7 +526,9 @@
     <button class="paybtn hide" id="payBtn"><span class="ms" aria-hidden="true" style="font-size:20px">payments</span>Lunasi</button>
   </div></div>
   <div class="wrap main">
+    <button class="wrban hide" id="wrBanner"><span class="ms" aria-hidden="true">auto_awesome</span><div><span id="wrBanTxt">Wrapped</span><small>Rekap setahun kalian</small></div></button>
     <section class="card hide" id="monthCard"></section>
+    <section class="card hide" id="saveCard"></section>
     <section class="card">
       <div class="ch"><h2>Terakhir</h2><button class="seeall" id="seeAll">Lihat semua</button></div>
       <div id="recentList"><div class="empty">Memuat…</div></div>
@@ -524,7 +554,7 @@
 <!-- ============ STATISTIK ============ -->
 <div class="hide" id="vStats">
   <div class="wrap">
-    <header class="topbar"><h1 style="margin-left:16px">Statistik</h1></header>
+    <header class="topbar"><h1 style="margin-left:16px">Statistik</h1><button class="ib" id="wrBtn" aria-label="Wrapped"><span class="ms" aria-hidden="true">auto_awesome</span></button></header>
     <div style="padding:0 16px">
       <div class="seg" id="sMode" role="group" aria-label="Periode" style="margin-bottom:10px">
         <button data-v="m" class="on">Per bulan</button><button data-v="all">Semua</button>
@@ -620,6 +650,19 @@
   </div>
 </div>
 
+<!-- ============ TABUNGAN ============ -->
+<div class="hide" id="vSave">
+  <div class="wrap">
+    <header class="topbar">
+      <button class="ib" id="saveBack" aria-label="Kembali"><span class="ms" aria-hidden="true">arrow_back</span></button>
+      <h1>Tabungan</h1>
+      <button class="ib" id="goalAdd" aria-label="Target baru"><span class="ms" aria-hidden="true">add</span></button>
+    </header>
+    <div style="padding:4px 16px 0" id="saveBody"></div>
+    <div style="height:110px"></div>
+  </div>
+</div>
+
 <!-- ============ PELUNASAN ============ -->
 <div class="hide" id="vPay">
   <div class="wrap">
@@ -712,6 +755,56 @@
     <button class="btn fill" id="shGo"><span class="ms" aria-hidden="true" style="font-size:20px">share</span>Bagikan</button>
   </div>
 </div></div>
+
+<!-- Sheet setor / tarik -->
+<div class="sheet" id="svSheet" role="dialog" aria-modal="true" aria-labelledby="svTitle"><div class="in">
+  <div class="grab"></div>
+  <div class="ch" style="margin-bottom:12px"><h2 id="svTitle" style="font-size:18px">Setor</h2></div>
+  <div class="payer" id="svWho">
+    <button data-v="Dimbo"><span class="ms f ck" aria-hidden="true">check_circle</span><span class="av Dimbo" style="width:40px;height:40px"></span>Dimbo</button>
+    <button data-v="Delpus"><span class="ms f ck" aria-hidden="true">check_circle</span><span class="av Delpus" style="width:40px;height:40px"></span>Delpus</button>
+  </div>
+  <div class="inp big" style="margin-top:12px"><span class="pre">Rp</span><input id="svAmt" class="n" inputmode="text" enterkeyhint="done" autocomplete="off" data-calc placeholder="0" aria-label="Nominal"></div>
+  <div class="two" style="margin-top:10px">
+    <div class="inp"><input type="date" id="svDate" aria-label="Tanggal"></div>
+    <div class="inp"><input id="svNote" placeholder="Catatan" autocomplete="off" maxlength="60" aria-label="Catatan"></div>
+  </div>
+  <button class="btn fill" id="svGo" style="width:100%;margin-top:14px">Simpan</button>
+</div></div>
+
+<!-- Sheet target tabungan -->
+<div class="sheet" id="gSheet" role="dialog" aria-modal="true" aria-labelledby="gTitle"><div class="in">
+  <div class="grab"></div>
+  <div class="ch" style="margin-bottom:12px"><h2 id="gTitle" style="font-size:18px">Target baru</h2></div>
+  <div class="inp"><input id="gName" placeholder="Nama target" maxlength="40" autocomplete="off" aria-label="Nama target"></div>
+  <div class="inp big" style="margin-top:10px"><span class="pre">Rp</span><input id="gTarget" class="n" inputmode="text" enterkeyhint="done" autocomplete="off" data-calc placeholder="0" aria-label="Target"></div>
+  <div class="icpick" id="gIcons"></div>
+  <div class="act" id="gAct">
+    <button class="btn del" id="gDel"><span class="ms" aria-hidden="true" style="font-size:20px">delete</span>Hapus</button>
+    <button class="btn fill" id="gGo">Simpan</button>
+  </div>
+</div></div>
+
+<!-- Sheet crop foto -->
+<div class="sheet" id="cropSheet" role="dialog" aria-modal="true" aria-label="Atur foto"><div class="in">
+  <div class="grab"></div>
+  <div class="crop" id="cropBox"><img id="cropImg" alt=""><div class="cropmask"></div></div>
+  <div class="zoomrow"><span class="ms" aria-hidden="true">zoom_out</span><input type="range" id="cropZoom" min="1" max="4" step="0.01" value="1" aria-label="Zoom"><span class="ms" aria-hidden="true">zoom_in</span></div>
+  <div class="act">
+    <button class="btn tonal" id="cropCancel">Batal</button>
+    <button class="btn fill" id="cropOk">Simpan</button>
+  </div>
+</div></div>
+
+<!-- Wrapped -->
+<div class="wr hide" id="wr" role="dialog" aria-modal="true" aria-label="Wrapped">
+  <div class="wrbars" id="wrBars"></div>
+  <div class="wrtop">
+    <button class="ib" id="wrShare" aria-label="Bagikan"><span class="ms" aria-hidden="true">share</span></button>
+    <button class="ib" id="wrClose" aria-label="Tutup"><span class="ms" aria-hidden="true">close</span></button>
+  </div>
+  <canvas id="wrCv" width="1080" height="1920"></canvas>
+</div>
 
 <!-- Bottom sheet -->
 <div class="scrim" id="scrim"></div>
@@ -959,32 +1052,72 @@
     try { const rs = await navigator.serviceWorker.getRegistrations(); await Promise.all(rs.map(r => r.update())); } catch (e) {}
     location.reload();
   };
-  function squarePhoto(file){
-    return new Promise((res, rej) => {
-      const img = new Image();
-      img.onload = () => {
-        const S = 96, m = Math.min(img.width, img.height), c = document.createElement('canvas');
-        c.width = c.height = S;
-        c.getContext('2d').drawImage(img, (img.width-m)/2, (img.height-m)/2, m, m, 0, 0, S, S);
-        let q = .85, u; do { u = c.toDataURL('image/jpeg', q); q -= .1; } while (u.length > 8000 && q > .3);
-        res(u);
-      };
-      img.onerror = () => rej(new Error('Gambar tidak bisa dibuka'));
-      img.src = URL.createObjectURL(file);
-    });
-  }
   function savePhoto(url, btn){
     const h = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<span class="spin"></span>';
     google.script.run
-      .withSuccessHandler(ph => { btn.disabled = false; btn.innerHTML = h; setPhotos(ph); openSettings(); snack(url ? 'Foto disimpan' : 'Foto dihapus'); })
-      .withFailureHandler(e => { btn.disabled = false; btn.innerHTML = h; snack('Gagal: ' + e.message); openSettings(); })
+      .withSuccessHandler(r => { btn.disabled = false; btn.innerHTML = h; setPhotos(r.photos); store.set('hl_photover', JSON.stringify(r.ver)); closeSheet(); openSettings(); snack(url ? 'Foto disimpan' : 'Foto dihapus'); })
+      .withFailureHandler(e => { btn.disabled = false; btn.innerHTML = h; snack('Gagal: ' + e.message); })
       .setPhoto(url);
   }
+  // foto hanya diunduh kalau versinya berubah
+  function syncPhotos(ver){
+    if (!ver) return;
+    if (JSON.stringify(ver) === store.get('hl_photover')) return;
+    google.script.run.withSuccessHandler(r => { setPhotos(r.photos); store.set('hl_photover', JSON.stringify(r.ver)); }).withFailureHandler(() => {}).getPhotos();
+  }
   ['phCam','phPick'].forEach(id => $(id).onclick = () => $($(id).dataset.src).click());
-  $('phCamIn').onchange = $('phFile').onchange = async e => {
-    const f = e.target.files[0]; e.target.value = ''; if (!f) return;
-    try { const u = await squarePhoto(f); $('stAv').querySelector('.av').innerHTML = `<img src="${u}" alt="">`; savePhoto(u, $(e.target.id === 'phCamIn' ? 'phCam' : 'phPick')); }
-    catch (err) { snack(err.message); }
+  $('phCamIn').onchange = $('phFile').onchange = e => {
+    const f = e.target.files[0]; e.target.value = ''; if (f) openCrop(f);
+  };
+
+  // ---------- Crop foto: geser & zoom di dalam lingkaran ----------
+  const CR = { V: 280 }, PT = new Map();
+  function openCrop(file){
+    const img = $('cropImg');
+    img.onload = () => {
+      CR.w = img.naturalWidth; CR.h = img.naturalHeight; CR.min = CR.V / Math.min(CR.w, CR.h);
+      CR.z = 1; CR.s = CR.min; CR.x = (CR.V - CR.w * CR.s) / 2; CR.y = (CR.V - CR.h * CR.s) / 2;
+      $('cropZoom').value = 1; paintCrop();
+    };
+    img.onerror = () => snack('Gambar tidak bisa dibuka');
+    img.src = URL.createObjectURL(file);
+    closeSheet(); $('scrim').classList.add('show'); $('cropSheet').classList.add('show');
+  }
+  function paintCrop(){
+    CR.x = Math.min(0, Math.max(CR.V - CR.w * CR.s, CR.x));
+    CR.y = Math.min(0, Math.max(CR.V - CR.h * CR.s, CR.y));
+    const img = $('cropImg');
+    img.style.width = CR.w * CR.s + 'px'; img.style.height = CR.h * CR.s + 'px';
+    img.style.transform = `translate(${CR.x}px, ${CR.y}px)`;
+  }
+  function zoomTo(z, cx = CR.V / 2, cy = CR.V / 2){
+    z = Math.max(1, Math.min(4, z));
+    const ns = CR.min * z;
+    CR.x = cx - (cx - CR.x) * ns / CR.s; CR.y = cy - (cy - CR.y) * ns / CR.s;
+    CR.s = ns; CR.z = z; $('cropZoom').value = z; paintCrop();
+  }
+  $('cropZoom').oninput = e => zoomTo(+e.target.value);
+  const cb = $('cropBox');
+  cb.onpointerdown = e => { cb.setPointerCapture(e.pointerId); PT.set(e.pointerId, { x: e.clientX, y: e.clientY }); };
+  cb.onpointermove = e => {
+    if (!PT.has(e.pointerId) || !CR.w) return;
+    const prev = PT.get(e.pointerId);
+    if (PT.size === 1){ CR.x += e.clientX - prev.x; CR.y += e.clientY - prev.y; PT.set(e.pointerId, { x: e.clientX, y: e.clientY }); paintCrop(); return; }
+    const [a, b] = [...PT.values()], d0 = Math.hypot(a.x - b.x, a.y - b.y);
+    PT.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const [c, d] = [...PT.values()], d1 = Math.hypot(c.x - d.x, c.y - d.y), r = cb.getBoundingClientRect();
+    if (d0 > 0) zoomTo(CR.z * d1 / d0, (c.x + d.x) / 2 - r.left, (c.y + d.y) / 2 - r.top);
+  };
+  cb.onpointerup = cb.onpointercancel = e => PT.delete(e.pointerId);
+  cb.onwheel = e => { e.preventDefault(); const r = cb.getBoundingClientRect(); zoomTo(CR.z * (e.deltaY < 0 ? 1.1 : .9), e.clientX - r.left, e.clientY - r.top); };
+  $('cropCancel').onclick = () => { closeSheet(); openSettings(); };
+  $('cropOk').onclick = () => {
+    if (!CR.w) return;
+    const S = 320, c = document.createElement('canvas'); c.width = c.height = S;
+    const g = c.getContext('2d'); g.imageSmoothingQuality = 'high';
+    g.drawImage($('cropImg'), -CR.x / CR.s, -CR.y / CR.s, CR.V / CR.s, CR.V / CR.s, 0, 0, S, S);
+    let q = .9, u; do { u = c.toDataURL('image/jpeg', q); q -= .08; } while (u.length > 85000 && q > .4);
+    savePhoto(u, $('cropOk'));
   };
   $('phDel').onclick = () => savePhoto('', $('phDel'));
 
@@ -999,6 +1132,7 @@
     if (S) renderStats(S);
     if (HS.all.length) filterHist();
     if (P.rows.length || P.log.length) renderPay();
+    renderSaveCard(); if (view === 'save') renderSave();
     snack(HIDE ? 'Nominal disembunyikan' : 'Nominal ditampilkan');
   };
   paintEye();
@@ -1017,7 +1151,7 @@
   // Tab: home / hist / stats / pay. Form tampil penuh tanpa nav.
   let view = 'home', lastTab = 'home';
   let S = null, statsStale = true, histStale = true, payStale = true;
-  const VIEWS = { home:'vHome', hist:'vHist', stats:'vStats', pay:'vPay', form:'vForm' };
+  const VIEWS = { home:'vHome', hist:'vHist', stats:'vStats', pay:'vPay', form:'vForm', save:'vSave' };
   function setView(v){
     view = v;
     if (v !== 'form') lastTab = v;
@@ -1030,6 +1164,7 @@
     if (v === 'stats' && (statsStale || !S)) loadStats(S ? S.ym : '');
     if (v === 'hist' && histStale) loadHist();
     if (v === 'pay') payStale ? loadPay() : renderPay();
+    if (v === 'save') renderSave();
   }
   document.querySelectorAll('#nav button[data-v]').forEach(b => b.onclick = () => setView(b.dataset.v));
   $('closeForm').onclick = () => { resetForm(); setView(lastTab); };
@@ -1222,7 +1357,8 @@
     $('mini').innerHTML = ME === 'Delpus' ? u('Delpus') + u('Dimbo') : u('Dimbo') + u('Delpus');
 
     state.suggest = info.suggest || [];
-    setPhotos(info.photos);
+    if (info.photos) setPhotos(info.photos);   // server lama
+    syncPhotos(info.photoVer);
 
     setCatMap(info.catMap);
     if (info.sheetUrl) store.set('hl_sheet', info.sheetUrl);
@@ -1376,7 +1512,7 @@
     if (P.rows.length) renderPay();
     statsStale = true; if (view === 'stats') loadStats(S ? S.ym : '');
   }
-  function closeSheet(){ $('scrim').classList.remove('show'); ['sheet','shareSheet','addSheet','meSheet','photoSheet','setSheet'].forEach(id => $(id).classList.remove('show')); }
+  function closeSheet(){ $('scrim').classList.remove('show'); ['sheet','shareSheet','addSheet','meSheet','photoSheet','setSheet','svSheet','gSheet','cropSheet'].forEach(id => $(id).classList.remove('show')); }
 
   function startEdit(r){
     closeSheet();
@@ -2074,6 +2210,386 @@
       back > 0 ? `Sisa utang ${other(payer)}: ${fmt(back)}` : left > 0 ? `Sisa utang ${payer}: ${fmt(left)}` : 'Semua lunas ✅'].join('\n');
   }
 
+  // ---------- Tabungan bersama ----------
+  const SAV_ICONS = ['savings','flight','beach_access','home','directions_car','laptop_mac','smartphone','diamond','celebration','school','pets','redeem'];
+  let SV = { goals: [], tx: [] }; try { SV = JSON.parse(store.get('hl_sav') || 'null') || SV; } catch (e) {}
+  let SVsel = null, SVm = null, GE = null;
+  function setSV(s){ if (!s) return; SV = s; store.set('hl_sav', JSON.stringify(s)); renderSaveCard(); if (view === 'save') renderSave(); }
+  const loadSav = () => google.script.run.withSuccessHandler(r => setSV(r.sav)).withFailureHandler(() => {}).getSavings();
+  function gStats(g){
+    const t = SV.tx.filter(x => x.g === g.id), by = { Dimbo: 0, Delpus: 0 };
+    t.forEach(x => by[x.who] += x.amt);
+    const bal = by.Dimbo + by.Delpus;
+    return { t, by, bal, pct: Math.max(0, Math.min(100, bal / g.target * 100)) };
+  }
+  function gbar(g, st, cls){
+    const d = Math.max(0, st.by.Dimbo), p = Math.max(0, st.by.Delpus), T = Math.max(g.target, d + p) || 1;
+    return `<div class="gbar ${cls || ''}"><i style="width:${d / T * 100}%;background:#3949AB"></i><i style="width:${p / T * 100}%;background:#C2410C"></i></div>`;
+  }
+  // perkiraan tercapai dari rata-rata setoran 3 bulan terakhir
+  function eta(g, st){
+    if (st.bal >= g.target) return '';
+    const since = new Date(Date.now() - 90 * 864e5).toISOString().slice(0, 10);
+    const sum = st.t.filter(x => x.date >= since).reduce((a, x) => a + x.amt, 0);
+    if (sum <= 0) return '';
+    const m = Math.ceil((g.target - st.bal) / (sum / 3));
+    if (m > 120) return '';
+    const d = new Date(); d.setMonth(d.getMonth() + m);
+    return `${MON[d.getMonth()]} ${d.getFullYear()}`;
+  }
+  const dLbl = iso => { const [y, m, d] = iso.split('-').map(Number); return `${d} ${MON[m-1]}${y !== new Date().getFullYear() ? ' ' + y : ''}`; };
+  function goalRow(g){
+    const st = gStats(g);
+    return `<button class="goal" data-id="${g.id}"><span class="gic"><span class="ms" aria-hidden="true">${esc(g.icon)}</span></span>
+      <div class="m"><div class="t1"><span>${esc(g.name)}</span><span class="n">${Math.floor(st.pct)}%</span></div>${gbar(g, st)}
+      <div class="t2 n">${fmt(st.bal)} / ${fmt(g.target)}</div></div></button>`;
+  }
+  function renderSaveCard(){
+    const c = $('saveCard'); c.classList.remove('hide');
+    c.innerHTML = `<div class="ch"><h2>Tabungan</h2>${SV.goals.length > 3 ? '<button class="seeall" data-sv="all">Lihat semua</button>' : ''}</div>` +
+      (SV.goals.length ? SV.goals.slice(0, 3).map(goalRow).join('')
+        : `<button class="addi" data-sv="new" style="margin-top:0"><span class="ms" aria-hidden="true" style="font-size:18px">add</span>Buat target</button>`);
+    c.querySelectorAll('[data-sv="all"]').forEach(b => b.onclick = () => { SVsel = null; setView('save'); });
+    c.querySelectorAll('[data-sv="new"]').forEach(b => b.onclick = () => openGoal(null));
+    c.querySelectorAll('.goal').forEach(b => b.onclick = () => { SVsel = +b.dataset.id; setView('save'); });
+  }
+  function renderSave(){
+    const body = $('saveBody'), g = SVsel && SV.goals.find(x => x.id === SVsel);
+    $('goalAdd').classList.toggle('hide', !!g);
+    if (!g){
+      SVsel = null;
+      body.innerHTML = `<section class="card">${SV.goals.length ? SV.goals.map(goalRow).join('') : '<div class="empty">Belum ada target</div>'}</section>`;
+      body.querySelectorAll('.goal').forEach(b => b.onclick = () => { SVsel = +b.dataset.id; renderSave(); window.scrollTo(0, 0); });
+      return;
+    }
+    const st = gStats(g), left = Math.max(0, g.target - st.bal), e = eta(g, st);
+    const hist = st.t.slice().sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id);
+    body.innerHTML = `
+      <section class="card">
+        <div class="gh"><span class="gic big"><span class="ms" aria-hidden="true">${esc(g.icon)}</span></span>
+          <div style="flex:1;min-width:0"><b>${esc(g.name)}</b><div class="t2 n">${fmt(g.target)}</div></div>
+          <button class="ib" id="gEdit" aria-label="Edit target"><span class="ms" aria-hidden="true">edit</span></button></div>
+        <div class="gbig n">${fmt(st.bal)}</div>
+        ${gbar(g, st, 'gl')}
+        <div class="split2l n"><span style="display:flex;align-items:center;gap:6px">${av('Dimbo', 20)}<b>${fmt(Math.max(0, st.by.Dimbo))}</b></span>
+          <span style="display:flex;align-items:center;gap:6px"><b>${fmt(Math.max(0, st.by.Delpus))}</b>${av('Delpus', 20)}</span></div>
+        <div class="help n" style="margin-top:10px">${st.bal >= g.target ? 'Tercapai 🎉' : `${Math.floor(st.pct)}% · sisa ${fmt(left)}${e ? ' · ± ' + e : ''}`}</div>
+      </section>
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 0 12px">
+        <button class="btn tonal" id="gOut" style="background:var(--card)" ${st.bal <= 0 ? 'disabled' : ''}><span class="ms" aria-hidden="true" style="font-size:20px">remove</span>Tarik</button>
+        <button class="btn fill" id="gIn"><span class="ms" aria-hidden="true" style="font-size:20px">add</span>Setor</button>
+      </div>
+      ${hist.length ? `<section class="card"><div class="ch"><h2>Riwayat</h2></div>${hist.map(x => `<div class="lg">${av(x.who, 32)}
+        <div class="m"><div class="n" style="${x.amt > 0 ? 'color:var(--green)' : ''}">${x.amt < 0 ? '−' : '+'}${fmt(Math.abs(x.amt))}</div>
+          <div class="t2 n">${dLbl(x.date)}${x.note ? ' · ' + esc(x.note) : ''}</div></div>
+        <button class="ib" data-del="${x.id}" aria-label="Hapus" style="color:var(--on2);width:40px;height:40px"><span class="ms" aria-hidden="true" style="font-size:20px">delete</span></button></div>`).join('')}</section>` : ''}`;
+    $('gEdit').onclick = () => openGoal(g);
+    $('gIn').onclick = () => openSV(g, 1);
+    $('gOut').onclick = () => openSV(g, -1);
+    body.querySelectorAll('[data-del]').forEach(b => b.onclick = () => {
+      b.disabled = true;
+      google.script.run.withSuccessHandler(r => {
+        setSV(r.sav);
+        snack('Dihapus', 'Batalkan', () => google.script.run.withSuccessHandler(x => setSV(x.sav)).withFailureHandler(failSnack).addSaving(r.removed));
+      }).withFailureHandler(e => { b.disabled = false; failSnack(e); }).deleteSaving(+b.dataset.del);
+    });
+  }
+  $('saveBack').onclick = () => { if (SVsel) { SVsel = null; renderSave(); } else setView('home'); };
+  $('goalAdd').onclick = () => openGoal(null);
+
+  // setor / tarik
+  function paintWho(){ $('svWho').querySelectorAll('button').forEach(b => { b.classList.toggle('on', b.dataset.v === SVm.who); b.lastChild.textContent = nm(b.dataset.v); }); }
+  function openSV(g, sign){
+    SVm = { g, sign, who: ME || 'Dimbo' };
+    $('svTitle').textContent = sign > 0 ? 'Setor' : 'Tarik';
+    $('svAmt').value = ''; $('svNote').value = ''; $('svDate').value = todayIso();
+    $('svGo').disabled = false; $('svGo').textContent = 'Simpan';
+    paintWho();
+    $('scrim').classList.add('show'); $('svSheet').classList.add('show');
+    setTimeout(() => $('svAmt').focus(), 250);
+  }
+  $('svWho').querySelectorAll('button').forEach(b => b.onclick = () => { SVm.who = b.dataset.v; paintWho(); });
+  $('svGo').onclick = () => {
+    evalField($('svAmt'));
+    const amt = Math.round(num($('svAmt').value)), m = SVm, btn = $('svGo');
+    if (!(amt > 0)) { $('svAmt').focus(); return snack('Nominal belum diisi'); }
+    const was = gStats(m.g).bal >= m.g.target;
+    btn.disabled = true; btn.innerHTML = '<span class="spin"></span>';
+    google.script.run.withSuccessHandler(r => {
+      closeSheet(); setSV(r.sav);
+      const g = SV.goals.find(x => x.id === m.g.id);
+      if (m.sign > 0 && !was && g && gStats(g).bal >= g.target) return snack('Target tercapai 🎉');
+      snack(`${m.sign > 0 ? 'Setor' : 'Tarik'} ${fmt(amt)}`, 'Batalkan', () => google.script.run.withSuccessHandler(x => setSV(x.sav)).withFailureHandler(failSnack).deleteSaving(r.id));
+    }).withFailureHandler(e => { btn.disabled = false; btn.textContent = 'Simpan'; failSnack(e); })
+      .addSaving({ g: m.g.id, who: m.who, amt: m.sign * amt, date: $('svDate').value, note: $('svNote').value });
+  };
+
+  // buat / edit target
+  function openGoal(g){
+    GE = { g, icon: g ? g.icon : 'savings' };
+    $('gTitle').textContent = g ? 'Edit target' : 'Target baru';
+    $('gName').value = g ? g.name : ''; $('gTarget').value = g ? fmtN(g.target) : '';
+    $('gDel').classList.toggle('hide', !g); $('gDel').classList.remove('arm');
+    $('gDel').innerHTML = '<span class="ms" aria-hidden="true" style="font-size:20px">delete</span>Hapus';
+    $('gGo').style.gridColumn = g ? '' : '1 / -1'; $('gGo').disabled = false; $('gGo').textContent = 'Simpan';
+    paintIcons();
+    $('scrim').classList.add('show'); $('gSheet').classList.add('show');
+    if (!g) setTimeout(() => $('gName').focus(), 250);
+  }
+  function paintIcons(){
+    $('gIcons').innerHTML = SAV_ICONS.map(i => `<button class="${i === GE.icon ? 'on' : ''}" data-i="${i}" aria-label="${i}"><span class="ms" aria-hidden="true">${i}</span></button>`).join('');
+    $('gIcons').querySelectorAll('button').forEach(b => b.onclick = () => { GE.icon = b.dataset.i; paintIcons(); });
+  }
+  $('gGo').onclick = () => {
+    evalField($('gTarget'));
+    const name = $('gName').value.trim(), target = Math.round(num($('gTarget').value)), g = GE.g, btn = $('gGo');
+    if (!name) { $('gName').focus(); return snack('Nama belum diisi'); }
+    if (!(target > 0)) { $('gTarget').focus(); return snack('Target belum diisi'); }
+    btn.disabled = true; btn.innerHTML = '<span class="spin"></span>';
+    google.script.run.withSuccessHandler(r => {
+      closeSheet(); setSV(r.sav);
+      if (!g) { SVsel = r.id; setView('save'); }
+      snack(g ? 'Target disimpan' : 'Target dibuat');
+    }).withFailureHandler(e => { btn.disabled = false; btn.textContent = 'Simpan'; failSnack(e); })
+      .saveGoal({ id: g ? g.id : null, name, icon: GE.icon, target });
+  };
+  $('gDel').onclick = () => {
+    const b = $('gDel'), g = GE.g;
+    if (!b.classList.contains('arm')) { b.classList.add('arm'); b.textContent = 'Yakin?'; return; }
+    b.disabled = true; b.innerHTML = '<span class="spin"></span>';
+    google.script.run.withSuccessHandler(r => {
+      closeSheet(); SVsel = null; setSV(r.sav);
+      snack(`Dihapus: ${g.name}`, 'Batalkan', () => google.script.run.withSuccessHandler(x => setSV(x.sav)).withFailureHandler(failSnack).restoreGoal(r.removed));
+    }).withFailureHandler(e => { b.disabled = false; b.classList.remove('arm'); b.textContent = 'Hapus'; failSnack(e); }).deleteGoal(g.id);
+  };
+
+  // ---------- Wrapped: rekap setahun bergaya story ----------
+  const wrYear = () => { const d = new Date(); return d.getMonth() === 0 ? d.getFullYear() - 1 : d.getFullYear(); };
+  const WR = { i: 0, slides: [], D: null, faces: {} };
+  const DAYS = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+  (function(){   // banner di beranda: Desember – Januari
+    const m = new Date().getMonth();
+    if (m !== 11 && m !== 0) return;
+    $('wrBanner').classList.remove('hide'); $('wrBanTxt').textContent = 'Wrapped ' + wrYear();
+    $('wrBanner').style.background = `linear-gradient(135deg, ${accentLight()}, ${hsl2hex((hex2hsl(accentLight())[0] + 60) % 360, 60, 30)})`;
+  })();
+  $('wrBanner').onclick = $('wrBtn').onclick = () => openWrapped(wrYear());
+
+  async function openWrapped(y){
+    $('wr').classList.remove('hide'); WR.i = 0; WR.slides = [];
+    const g = $('wrCv').getContext('2d'); g.setTransform(3, 0, 0, 3, 0, 0);
+    wrBg(g, 0); wrText(g, 'Menyiapkan…', 180, 330, 16, 400, 'rgba(255,255,255,.8)', 'center'); $('wrBars').innerHTML = '';
+    google.script.run.withSuccessHandler(async D => {
+      if (!D || !D.n) { closeWrapped(); return snack(`Belum ada transaksi di ${y}`); }
+      WR.D = D;
+      const [a, b] = await Promise.all([faceImg('Dimbo'), faceImg('Delpus')]); WR.faces = { Dimbo: a, Delpus: b };
+      try { await document.fonts.load("40px 'Material Symbols Outlined'", 'handshake'); } catch (e) {}
+      WR.slides = wrSlides(D);
+      $('wrBars').innerHTML = WR.slides.map(() => '<i></i>').join('');
+      wrShow(0);
+    }).withFailureHandler(e => { closeWrapped(); failSnack(e); }).getWrapped(y);
+  }
+  function closeWrapped(){ $('wr').classList.add('hide'); }
+  function wrShow(i){
+    WR.i = Math.max(0, Math.min(WR.slides.length - 1, i));
+    wrRender($('wrCv'), WR.i);
+    $('wrBars').querySelectorAll('i').forEach((b, k) => b.classList.toggle('on', k <= WR.i));
+  }
+  function wrRender(cv, i){ const g = cv.getContext('2d'); g.setTransform(cv.width / 360, 0, 0, cv.width / 360, 0, 0); wrBg(g, i); WR.slides[i](g); }
+  $('wrCv').onclick = e => {
+    if (!WR.slides.length) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    if (e.clientX - r.left < r.width * .3) wrShow(WR.i - 1);
+    else if (WR.i === WR.slides.length - 1) closeWrapped();
+    else wrShow(WR.i + 1);
+  };
+  $('wrClose').onclick = closeWrapped;
+  document.addEventListener('keydown', e => {
+    if ($('wr').classList.contains('hide')) return;
+    if (e.key === 'Escape') closeWrapped(); else if (e.key === 'ArrowRight') wrShow(WR.i + 1); else if (e.key === 'ArrowLeft') wrShow(WR.i - 1);
+  });
+  $('wrShare').onclick = () => {
+    if (!WR.slides.length) return;
+    const cv = document.createElement('canvas'); cv.width = 1080; cv.height = 1920; wrRender(cv, WR.i);
+    cv.toBlob(async bl => {
+      const file = new File([bl], `hutang-lu-wrapped-${WR.D.year}-${WR.i + 1}.png`, { type: 'image/png' });
+      try { if (navigator.canShare && navigator.canShare({ files: [file] })) return await navigator.share({ files: [file] }); }
+      catch (e) { if (e && e.name === 'AbortError') return; }
+      const a = document.createElement('a'); a.href = URL.createObjectURL(bl); a.download = file.name; a.click();
+    }, 'image/png');
+  };
+
+  // gambar dasar: gradasi dari warna aplikasi, bergeser tiap slide
+  function wrBg(g, i){
+    const h = (hex2hsl(accentLight())[0] + i * 26) % 360;
+    const gr = g.createLinearGradient(0, 0, 360, 640);
+    gr.addColorStop(0, hsl2hex(h, 55, 34)); gr.addColorStop(1, hsl2hex((h + 40) % 360, 60, 13));
+    g.fillStyle = gr; g.fillRect(0, 0, 360, 640);
+    g.fillStyle = 'rgba(255,255,255,.06)';
+    g.beginPath(); g.arc(320, 70, 130, 0, 7); g.fill(); g.beginPath(); g.arc(20, 620, 170, 0, 7); g.fill();
+    g.fillStyle = 'rgba(255,255,255,.18)'; wrRR(g, 20, 34, 24, 24, 7); g.fill();
+    wrText(g, 'handshake', 32, 46, 15, 400, '#fff', 'center', true);
+    wrText(g, 'Hutang Lu Wrapped', 52, 46, 13, 500, 'rgba(255,255,255,.9)');
+  }
+  function wrRR(g, x, y, w, h, r){ g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+  function wrText(g, t, x, y, sz, w, col, align, icon){
+    g.font = icon ? `${sz}px 'Material Symbols Outlined'` : `${w || 500} ${sz}px Roboto, system-ui, -apple-system, "Segoe UI", sans-serif`;
+    g.fillStyle = col || '#fff'; g.textAlign = align || 'left'; g.textBaseline = icon ? 'middle' : 'alphabetic';
+    g.fillText(t, x, y);
+  }
+  // teks panjang dipecah per baris; kembalikan y baris terakhir
+  function wrWrap(g, t, x, y, sz, w, maxW, lh, align, col){
+    g.font = `${w || 500} ${sz}px Roboto, system-ui, sans-serif`;
+    const words = String(t).split(' '), lines = [];
+    let cur = '';
+    words.forEach(wd => { const tt = cur ? cur + ' ' + wd : wd; if (g.measureText(tt).width > maxW && cur) { lines.push(cur); cur = wd; } else cur = tt; });
+    if (cur) lines.push(cur);
+    lines.slice(0, 3).forEach((l, k) => wrText(g, l, x, y + k * lh, sz, w, col, align));
+    return y + (Math.min(lines.length, 3) - 1) * lh;
+  }
+  function wrAv(g, p, cx, cy, d){
+    g.save(); g.beginPath(); g.arc(cx, cy, d / 2, 0, 7); g.closePath(); g.fillStyle = PCOL[p]; g.fill(); g.clip();
+    if (WR.faces[p]) g.drawImage(WR.faces[p], cx - d / 2, cy - d / 2, d, d);
+    g.restore();
+    g.beginPath(); g.arc(cx, cy, d / 2, 0, 7); g.lineWidth = Math.max(3, d / 22); g.strokeStyle = PCOL[p]; g.stroke();
+    g.beginPath(); g.arc(cx, cy, d / 2 + g.lineWidth / 2 + 1.5, 0, 7); g.lineWidth = 2; g.strokeStyle = 'rgba(255,255,255,.9)'; g.stroke();
+  }
+  const rpJt = n => n >= 1e6 ? 'Rp' + (n / 1e6).toLocaleString('id-ID', { maximumFractionDigits: 1 }) + ' jt' : fmtR(n);
+  function wrBars(g, vals, hi, x, y, w, h, labels){
+    const mx = Math.max(...vals, 1), bw = w / vals.length;
+    vals.forEach((v, k) => {
+      const bh = Math.max(3, v / mx * h);
+      g.fillStyle = k === hi ? '#fff' : 'rgba(255,255,255,.3)';
+      wrRR(g, x + k * bw + bw * .18, y + h - bh, bw * .64, bh, Math.min(4, bw * .3)); g.fill();
+      if (labels) wrText(g, labels[k], x + k * bw + bw / 2, y + h + 16, 10.5, k === hi ? 600 : 400, k === hi ? '#fff' : 'rgba(255,255,255,.6)', 'center');
+    });
+  }
+
+  function wrSlides(D){
+    const S = [], Y = D.year, A = D.by.Dimbo, B = D.by.Delpus, W = 360, C = W / 2;
+    // 1. pembuka
+    S.push(g => {
+      wrAv(g, 'Dimbo', C - 34, 220, 92); wrAv(g, 'Delpus', C + 34, 220, 92);
+      wrText(g, 'Wrapped', C, 340, 46, 700, '#fff', 'center');
+      wrText(g, String(Y), C, 436, 96, 800, '#fff', 'center');
+      wrText(g, 'Tap untuk mulai', C, 590, 13, 400, 'rgba(255,255,255,.7)', 'center');
+    });
+    // 2. total
+    S.push(g => {
+      wrWrap(g, 'Tahun ini kalian saling nalangin', 28, 190, 26, 600, 300, 34);
+      wrText(g, rpJt(D.total), 28, 330, 50, 700);
+      wrText(g, `${D.n} transaksi`, 28, 380, 20, 500, 'rgba(255,255,255,.9)');
+      wrText(g, `di ${D.days} hari berbeda`, 28, 410, 20, 400, 'rgba(255,255,255,.75)');
+    });
+    // 3. siapa paling sering nalangin
+    S.push(g => {
+      const win = A.t >= B.t ? 'Dimbo' : 'Delpus', w = D.by[win];
+      wrText(g, 'Paling sering nalangin', C, 150, 22, 600, '#fff', 'center');
+      wrText(g, 'workspace_premium', C, 205, 40, 400, '#FFD54F', 'center', true);
+      wrAv(g, win, C, 300, 130);
+      wrText(g, win, C, 410, 32, 700, '#fff', 'center');
+      wrText(g, `${w.n} kali · ${rpJt(w.t)}`, C, 442, 17, 400, 'rgba(255,255,255,.85)', 'center');
+      const tot = (A.t + B.t) || 1, bx = 40, bw = 280, pa = A.t / tot * bw;
+      g.fillStyle = PCOL.Dimbo; wrRR(g, bx, 510, Math.max(6, pa), 14, 7); g.fill();
+      g.fillStyle = PCOL.Delpus; wrRR(g, bx + pa, 510, Math.max(6, bw - pa), 14, 7); g.fill();
+      wrAv(g, 'Dimbo', bx + 12, 560, 26); wrText(g, rpJt(A.t), bx + 32, 566, 13, 500);
+      wrAv(g, 'Delpus', bx + bw - 12, 560, 26); wrText(g, rpJt(B.t), bx + bw - 32, 566, 13, 500, '#fff', 'right');
+    });
+    // 4. langganan
+    if (D.places.length) S.push(g => {
+      const p = D.places[0];
+      wrText(g, 'Langganan kalian', 28, 150, 22, 600);
+      const yy = wrWrap(g, p.name, 28, 240, 40, 700, 304, 46);
+      wrText(g, `${p.n} kali`, 28, yy + 50, 26, 600, '#FFD54F');
+      wrText(g, rpJt(p.t), 28, yy + 80, 17, 400, 'rgba(255,255,255,.8)');
+      D.places.slice(1).forEach((q, k) => {
+        const y = 470 + k * 52;
+        g.fillStyle = 'rgba(255,255,255,.12)'; wrRR(g, 28, y - 28, 304, 42, 12); g.fill();
+        wrText(g, String(k + 2), 46, y - 1, 16, 700, 'rgba(255,255,255,.8)', 'center');
+        g.font = '500 15px Roboto, system-ui, sans-serif'; let nmx = q.name; while (g.measureText(nmx).width > 190 && nmx.length > 2) nmx = nmx.slice(0, -1);
+        wrText(g, nmx === q.name ? nmx : nmx + '…', 64, y - 1, 15, 500);
+        wrText(g, `${q.n} kali`, 318, y - 1, 14, 400, 'rgba(255,255,255,.8)', 'right');
+      });
+    });
+    // 5. kategori juara
+    if (D.cats.length) S.push(g => {
+      const c = D.cats[0], ci = CAT_ICON[c.name] || ['category'], pct = Math.round(c.t / (D.total || 1) * 100);
+      wrText(g, 'Kategori juara', C, 150, 22, 600, '#fff', 'center');
+      g.fillStyle = 'rgba(255,255,255,.16)'; g.beginPath(); g.arc(C, 250, 62, 0, 7); g.fill();
+      wrText(g, ci[0], C, 252, 64, 400, '#fff', 'center', true);
+      wrText(g, c.name, C, 370, 32, 700, '#fff', 'center');
+      wrText(g, rpJt(c.t), C, 404, 18, 500, 'rgba(255,255,255,.9)', 'center');
+      wrText(g, `${pct}% dari semua talangan`, C, 430, 14, 400, 'rgba(255,255,255,.7)', 'center');
+      D.cats.slice(1, 4).forEach((x, k) => {
+        const y = 500 + k * 34, w = Math.max(6, x.t / c.t * 200);
+        wrText(g, x.name, 40, y, 13, 500, 'rgba(255,255,255,.85)');
+        g.fillStyle = 'rgba(255,255,255,.35)'; wrRR(g, 140, y - 10, w, 10, 5); g.fill();
+      });
+    });
+    // 6. bulan paling boros
+    S.push(g => {
+      const i = D.months.indexOf(Math.max(...D.months));
+      wrText(g, 'Bulan paling boros', 28, 150, 22, 600);
+      wrText(g, MONF[i], 28, 230, 48, 700);
+      wrText(g, rpJt(D.months[i]), 28, 270, 20, 500, 'rgba(255,255,255,.9)');
+      wrText(g, `${D.mN[i]} transaksi`, 28, 298, 15, 400, 'rgba(255,255,255,.7)');
+      wrBars(g, D.months, i, 24, 380, 312, 160, MON.map(m => m[0]));
+    });
+    // 7. hari favorit
+    S.push(g => {
+      const i = D.dow.indexOf(Math.max(...D.dow));
+      wrText(g, 'Hari favorit jajan', 28, 150, 22, 600);
+      wrText(g, DAYS[i], 28, 236, 56, 700);
+      wrText(g, `${D.dow[i]} transaksi`, 28, 276, 18, 400, 'rgba(255,255,255,.85)');
+      wrBars(g, D.dow, i, 24, 380, 312, 160, DAYS.map(d => d.slice(0, 3)));
+    });
+    // 8. talangan terbesar
+    if (D.big) S.push(g => {
+      const b = D.big, [yy, mm, dd] = b.date.split('-').map(Number);
+      wrText(g, 'Talangan terbesar', 28, 150, 22, 600);
+      const y2 = wrWrap(g, b.desc, 28, 240, 34, 700, 304, 40);
+      wrText(g, fmtR(b.amt), 28, y2 + 64, 44, 700, '#FFD54F');
+      wrText(g, `${dd} ${MONF[mm - 1]} ${yy}`, 28, y2 + 96, 16, 400, 'rgba(255,255,255,.8)');
+      wrAv(g, b.by, 52, y2 + 160, 48); wrText(g, `${b.by} yang bayar`, 86, y2 + 166, 16, 500);
+    });
+    // 9. pelunasan
+    if (D.settle.n) S.push(g => {
+      wrText(g, 'Saling melunasi', C, 190, 22, 600, '#fff', 'center');
+      wrText(g, 'handshake', C, 280, 72, 400, '#fff', 'center', true);
+      wrText(g, `${D.settle.n} kali`, C, 400, 56, 700, '#fff', 'center');
+      wrText(g, `total ${rpJt(D.settle.t)}`, C, 440, 18, 400, 'rgba(255,255,255,.85)', 'center');
+    });
+    // 10. tabungan
+    if (D.sav.t > 0) S.push(g => {
+      const a = D.sav.by.Dimbo, b = D.sav.by.Delpus, t = (a + b) || 1;
+      wrText(g, 'Tabungan bersama', 28, 150, 22, 600);
+      wrText(g, rpJt(D.sav.t), 28, 236, 48, 700);
+      wrText(g, `disetor tahun ini`, 28, 268, 16, 400, 'rgba(255,255,255,.8)');
+      [['Dimbo', a], ['Delpus', b]].forEach(([p, v], k) => {
+        const y = 360 + k * 80;
+        wrAv(g, p, 52, y, 44);
+        g.fillStyle = 'rgba(255,255,255,.15)'; wrRR(g, 86, y - 8, 240, 16, 8); g.fill();
+        g.fillStyle = PCOL[p]; wrRR(g, 86, y - 8, Math.max(8, v / t * 240), 16, 8); g.fill();
+        wrText(g, rpJt(v), 86, y + 32, 14, 500, 'rgba(255,255,255,.9)');
+      });
+    });
+    // 11. penutup: ringkasan
+    S.push(g => {
+      wrAv(g, 'Dimbo', C - 26, 150, 64); wrAv(g, 'Delpus', C + 26, 150, 64);
+      wrText(g, `${Y} kalian`, C, 236, 30, 700, '#fff', 'center');
+      const box = (x, y, k, v) => {
+        g.fillStyle = 'rgba(255,255,255,.12)'; wrRR(g, x, y, 146, 92, 16); g.fill();
+        wrText(g, k, x + 14, y + 28, 12.5, 400, 'rgba(255,255,255,.75)');
+        g.font = '700 19px Roboto, system-ui, sans-serif'; let t = String(v); while (g.measureText(t).width > 120 && t.length > 2) t = t.slice(0, -1);
+        wrText(g, t === String(v) ? t : t + '…', x + 14, y + 64, 19, 700);
+      };
+      box(28, 280, 'Talangan', rpJt(D.total)); box(186, 280, 'Transaksi', D.n);
+      box(28, 386, 'Langganan', D.places[0] ? D.places[0].name : '–'); box(186, 386, 'Kategori', D.cats[0] ? D.cats[0].name : '–');
+      wrText(g, `Sampai jumpa di ${Y + 1}`, C, 560, 17, 500, 'rgba(255,255,255,.9)', 'center');
+    });
+    return S;
+  }
+
   // ---------- Mulai ----------
   $('date').value = todayIso();
   $('scrim').onclick = closeSheet;
@@ -2094,6 +2610,7 @@
     .withFailureHandler(e => snack(isOffline(e) ? 'Offline: data belum bisa dimuat' : 'Gagal memuat: '+e.message)).getInfo();
   initMe(() => {
     setSeg('by','by', defBy()); if (lastInfo) renderInfo(lastInfo);
+    renderSaveCard(); loadSav();
   });
 </script>
 </body>
