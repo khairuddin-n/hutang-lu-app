@@ -1,11 +1,12 @@
 // Service worker Hutang Lu: tampilan app disimpan di HP supaya cepat dibuka.
-// Strategi: tampilkan dari cache dulu, sambil ambil versi terbaru di belakang (berlaku di pembukaan berikutnya).
+// Strategi: halaman app selalu diambil dari internet dulu (cache HTTP dilewati), cache hanya cadangan saat offline.
+// File lain (ikon, font): dari cache dulu, diperbarui di belakang.
 // Panggilan API (script.google.com) tidak pernah di-cache.
 const CACHE = 'hutang-lu-e09ebd3812';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k))))
@@ -19,6 +20,13 @@ self.addEventListener('fetch', e => {
   if (!sameApp && !isFont) return;
   e.respondWith(caches.open(CACHE).then(async c => {
     const key = sameApp && req.mode === 'navigate' ? './index.html' : req;
+    if (sameApp && req.mode === 'navigate') {
+      try {
+        const r = await fetch(req.url, { cache: 'no-cache' });
+        if (r.ok) { c.put(key, r.clone()); return r; }
+      } catch (err) {}
+      return (await c.match(key)) || Response.error();
+    }
     const hit = await c.match(key, { ignoreSearch: sameApp });
     const net = fetch(req).then(r => { if (r.ok || r.type === 'opaque') c.put(key, r.clone()); return r; }).catch(() => hit);
     return hit || net;
