@@ -83,7 +83,7 @@
     tok = localStorage.getItem(KEY);
   } catch (e) {}
   window.__PWA = true;
-  window.__VER = '15-11-2026 23:57';
+  window.__VER = '16-11-2026 00:00';
 
   function call(fn, args) {
     return fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -680,12 +680,12 @@
   <div class="sw swg" id="accSw"></div>
 
   <div class="sec">Data</div>
-  <a class="row hide" id="stSheet" target="_blank" rel="noopener"><span class="ms" aria-hidden="true">table_view</span><div class="m">Buka Google Sheet<div class="t2">Data asli semua transaksi</div></div><span class="ms" aria-hidden="true">open_in_new</span></a>
-  <button class="row" id="stCsv"><span class="ms" aria-hidden="true">download</span><div class="m">Ekspor CSV<div class="t2">Semua transaksi, bisa dibuka di Excel</div></div></button>
-  <button class="row hide" id="stQueue"><span class="ms" aria-hidden="true">cloud_upload</span><div class="m">Kirim catatan offline<div class="t2" id="stQueueN"></div></div></button>
+  <a class="row hide" id="stSheet" target="_blank" rel="noopener"><span class="ms" aria-hidden="true">table_view</span><div class="m">Buka Google Sheet</div><span class="ms" aria-hidden="true">open_in_new</span></a>
+  <button class="row" id="stCsv"><span class="ms" aria-hidden="true">download</span><div class="m">Ekspor CSV</div></button>
+  <button class="row hide" id="stQueue"><span class="ms" aria-hidden="true">cloud_upload</span><div class="m">Kirim catatan offline</div><span class="n" id="stQueueN" style="color:var(--on2);font-size:13.5px"></span></button>
 
   <div class="sec">Aplikasi</div>
-  <button class="row" id="stReload"><span class="ms" aria-hidden="true">refresh</span><div class="m">Muat ulang app<div class="t2">Ambil versi terbaru kalau tampilan belum berubah</div></div></button>
+  <button class="row" id="stReload"><span class="ms" aria-hidden="true">refresh</span><div class="m">Muat ulang app</div></button>
   <div class="note" id="stVer"></div>
 </div></div>
 
@@ -933,7 +933,7 @@
     google.script.run.withSuccessHandler(rows => { HS.all = rows || []; histStale = false; cb(HS.all); }).withFailureHandler(failSnack).getHistory();
   }
   $('stCsv').onclick = () => {
-    const t2 = $('stCsv').querySelector('.t2'), h = t2.textContent; t2.textContent = 'Menyiapkan…';
+    const t2 = $('stCsv').querySelector('.m'), h = t2.textContent; t2.textContent = 'Menyiapkan…';
     withHistory(rows => {
       const q = v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
       const L = [['Tanggal','Keterangan','Kategori','Dibayar','Total','Bagian Dimbo','Bagian Delpus','Status'].map(q).join(',')];
@@ -948,12 +948,12 @@
 
   function paintQueue(){
     $('stQueue').classList.toggle('hide', !Q.length);
-    $('stQueueN').textContent = `${Q.length} transaksi menunggu sinyal`;
+    $('stQueueN').textContent = Q.length;
   }
   $('stQueue').onclick = () => flushQueue(true);
   // buang cache tampilan app lalu muat ulang dari internet
   $('stReload').onclick = async () => {
-    $('stReload').querySelector('.t2').textContent = 'Memuat ulang…';
+    $('stReload').querySelector('.m').textContent = 'Memuat ulang…';
     try { const ks = await caches.keys(); await Promise.all(ks.map(k => caches.delete(k))); } catch (e) {}
     try { const rs = await navigator.serviceWorker.getRegistrations(); await Promise.all(rs.map(r => r.update())); } catch (e) {}
     location.reload();
