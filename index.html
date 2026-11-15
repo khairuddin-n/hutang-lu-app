@@ -83,7 +83,7 @@
     tok = localStorage.getItem(KEY);
   } catch (e) {}
   window.__PWA = true;
-  window.__VER = '15-11-2026 23:41';
+  window.__VER = '15-11-2026 23:49';
 
   function call(fn, args) {
     return fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -360,6 +360,17 @@
   .sw button.on{ box-shadow:0 0 0 2px var(--card), 0 0 0 4px var(--on); }
   .sw .cust{ background:conic-gradient(#E53935,#FDD835,#43A047,#00ACC1,#1E88E5,#8E24AA,#E53935); }
   .sw .cust input{ position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; border:0; padding:0; }
+  .tg{ width:44px; height:26px; border-radius:13px; background:var(--outline); position:relative; flex:none; transition:background .15s; }
+  .tg::after{ content:''; position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:#fff; transition:left .15s; }
+  .tg.on{ background:var(--pri); } .tg.on::after{ left:21px; }
+  .row .seg{ margin-top:8px; }
+  .chipsin{ width:100%; border:0; border-bottom:1px solid var(--outline); background:transparent; color:var(--on); font-size:14px; padding:6px 0 4px; outline:none; margin-top:4px; }
+  .chipsin:focus{ border-color:var(--acc); }
+  .cm{ display:flex; align-items:center; gap:10px; width:100%; border:0; background:none; padding:10px 0; color:var(--on); text-align:left; cursor:pointer; }
+  .cm + .chips{ margin-bottom:8px; }
+  .cmw + .cmw{ border-top:1px solid var(--line); }
+  .cm .m{ flex:1; min-width:0; font-size:14.5px; } .cm .m > div:first-child{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .cm .t2{ font-size:12px; color:var(--on2); margin-top:2px; } .cm .man{ color:var(--acc); font-weight:500; }
   .sec{ font-size:13px; color:var(--on2); margin:18px 2px 8px; }
   .row{ display:flex; align-items:center; gap:12px; width:100%; border:0; background:var(--tile); border-radius:16px; padding:12px 14px; color:var(--on); font-size:15px; text-align:left; cursor:pointer; text-decoration:none; margin-bottom:8px; }
   .row .m{ flex:1; min-width:0; } .row .t2{ font-size:12px; color:var(--on2); margin-top:2px; } .row > .ms{ color:var(--on2); }
@@ -642,23 +653,47 @@
   <input type="file" id="phCamIn" accept="image/*" capture="user" class="hide">
   <input type="file" id="phFile" accept="image/*" class="hide">
 
-  <div class="sec">Tema</div>
+  <div class="sec">Tampilan</div>
   <div class="seg" id="themeSeg" role="group" aria-label="Tema">
     <button data-v="auto"><span class="ms" aria-hidden="true" style="font-size:18px">brightness_auto</span>Otomatis</button>
     <button data-v="light"><span class="ms" aria-hidden="true" style="font-size:18px">light_mode</span>Terang</button>
     <button data-v="dark"><span class="ms" aria-hidden="true" style="font-size:18px">dark_mode</span>Gelap</button>
   </div>
+  <div class="sw" id="accSw" style="margin:14px 0 12px"></div>
+  <div class="row" style="cursor:default;display:block"><div style="display:flex;gap:12px;align-items:center"><span class="ms" aria-hidden="true" style="color:var(--on2)">start</span><div class="m">Tab pertama saat dibuka</div></div>
+    <div class="seg sm" id="startSeg" role="group" aria-label="Tab pertama">
+      <button data-v="home">Beranda</button><button data-v="hist">Riwayat</button><button data-v="stats">Statistik</button><button data-v="pay">Bayar</button>
+    </div></div>
+  <button class="row" id="stAutoHide"><span class="ms" aria-hidden="true">visibility_off</span><div class="m">Sembunyikan nominal saat dibuka<div class="t2">Selalu mulai dengan Rp•••••</div></div><span class="tg"></span></button>
 
-  <div class="sec">Warna aplikasi</div>
-  <div class="sw" id="accSw"></div>
+  <div class="sec">Pencatatan</div>
+  <div class="row" style="cursor:default;display:block"><div style="display:flex;gap:12px;align-items:center"><span class="ms" aria-hidden="true" style="color:var(--on2)">person</span><div class="m">Yang bayar (awal)<div class="t2">Pilihan otomatis saat catat transaksi baru</div></div></div>
+    <div class="seg sm" id="defBySeg" role="group" aria-label="Yang bayar awal">
+      <button data-v="me">Kamu</button><button data-v="other" id="defByOther">Dia</button><button data-v="last">Terakhir</button>
+    </div></div>
+  <button class="row" id="stCats"><span class="ms" aria-hidden="true">category</span><div class="m">Kategori<div class="t2" id="stCatsN">Atur kategori tiap keterangan</div></div><span class="ms" aria-hidden="true">chevron_right</span></button>
 
-  <div class="sec">Lainnya</div>
+  <div class="sec">Pelunasan</div>
+  <div class="row" style="cursor:default"><span class="ms" aria-hidden="true">bolt</span><div class="m">Nominal cepat di Bayar
+    <input class="chipsin n" id="stChips" autocomplete="off" placeholder="100rb 200rb 500rb 1jt"></div></div>
+
+  <div class="sec">Data</div>
   <a class="row hide" id="stSheet" target="_blank" rel="noopener"><span class="ms" aria-hidden="true">table_view</span><div class="m">Buka Google Sheet<div class="t2">Data asli semua transaksi</div></div><span class="ms" aria-hidden="true">open_in_new</span></a>
-  <button class="row" id="stCats"><span class="ms" aria-hidden="true">category</span><div class="m">Kategori manual<div class="t2" id="stCatsN"></div></div><span class="ms" aria-hidden="true">expand_more</span></button>
-  <div id="stCatList" class="hide" style="padding:0 6px 8px"></div>
+  <button class="row" id="stCsv"><span class="ms" aria-hidden="true">download</span><div class="m">Ekspor CSV<div class="t2">Semua transaksi, bisa dibuka di Excel</div></div></button>
   <button class="row hide" id="stQueue"><span class="ms" aria-hidden="true">cloud_upload</span><div class="m">Kirim catatan offline<div class="t2" id="stQueueN"></div></div></button>
+
+  <div class="sec">Aplikasi</div>
   <button class="row" id="stReload"><span class="ms" aria-hidden="true">refresh</span><div class="m">Muat ulang app<div class="t2">Ambil versi terbaru kalau tampilan belum berubah</div></div></button>
   <div class="note" id="stVer"></div>
+</div></div>
+
+<!-- Sheet kelola kategori -->
+<div class="sheet" id="catSheet" role="dialog" aria-modal="true" aria-label="Kategori"><div class="in" style="min-height:70vh">
+  <div class="grab"></div>
+  <div class="ch" style="margin-bottom:10px"><h2 style="font-size:18px">Kategori</h2><span id="cmN"></span></div>
+  <div class="inp" style="min-height:46px"><span class="ms" aria-hidden="true" style="color:var(--on2);font-size:20px">search</span><input id="cmQ" type="search" autocomplete="off" placeholder="Cari keterangan"></div>
+  <div class="help">Tap untuk ganti. Berlaku untuk semua transaksi dengan keterangan yang sama.</div>
+  <div id="cmList" style="margin-top:6px"></div>
 </div></div>
 
 <!-- Sheet tambah -->
@@ -705,7 +740,7 @@
   const fmtR = n => 'Rp' + fmtN(n);
   const jtR = n => n >= 1e6 ? 'Rp' + (n/1e6).toLocaleString('id-ID',{maximumFractionDigits:1}) + ' jt' : 'Rp' + Math.round(n/1e3) + ' rb';
   // Mode sembunyi nominal (ikon mata): semua angka tampil "Rp•••••", kecuali di form isian (pakai fmtR) & teks yang dibagikan
-  let HIDE = false; try { HIDE = localStorage.getItem('hl_hide') === '1'; } catch (e) {}
+  let HIDE = false; try { HIDE = localStorage.getItem('hl_hide') === '1' || localStorage.getItem('hl_autohide') === '1'; } catch (e) {}
   const MASK = 'Rp•••••';
   const fmt = n => HIDE ? MASK : fmtR(n);
   const jt = n => HIDE ? MASK : jtR(n);
@@ -862,7 +897,7 @@
     paintAcc();
     const url = store.get('hl_sheet');
     $('stSheet').classList.toggle('hide', !url); if (url) $('stSheet').href = url;
-    paintCatList(); paintQueue();
+    paintQueue(); paintPrefs();
     $('stVer').textContent = 'Versi ' + (window.__VER || '-');
     $('scrim').classList.add('show'); $('setSheet').classList.add('show');
   }
@@ -895,21 +930,90 @@
   $('themeSeg').querySelectorAll('button').forEach(b => b.onclick = () => {
     store.set('hl_theme', b.dataset.v); applyTheme(); setSeg('themeSeg', 'theme', b.dataset.v);
   });
-  // daftar kategori manual: bisa dikembalikan ke otomatis
-  function paintCatList(){
-    const ks = Object.keys(CATMAP).sort();
-    $('stCatsN').textContent = ks.length ? `${ks.length} keterangan` : 'Belum ada. Ganti kategori lewat detail transaksi.';
-    $('stCatList').innerHTML = ks.map(k => { const c = catByName(CATMAP[k]) || CATS[0]; return `<div class="crow">
-      <span class="cic ${c[2]}" style="width:32px;height:32px"><span class="ms" aria-hidden="true" style="font-size:18px">${c[1]}</span></span>
-      <div class="m">${esc(k)}<div class="t2">${esc(c[0])} · otomatis: ${esc(autoCat(k)[0])}</div></div>
-      <button class="undo" data-k="${esc(k)}">Reset</button></div>`; }).join('');
-    $('stCatList').querySelectorAll('.undo').forEach(b => b.onclick = () => {
-      const k = b.dataset.k; b.disabled = true; b.innerHTML = '<span class="spin" style="width:14px;height:14px"></span>';
-      google.script.run.withSuccessHandler(x => { setCatMap(x.catMap); refreshCats(); paintCatList(); })
-        .withFailureHandler(e => { b.disabled = false; b.textContent = 'Reset'; failSnack(e); }).setCategory(k, '');
-    });
+  // ---------- Preferensi ----------
+  const quickAmts = () => { try { const a = JSON.parse(store.get('hl_chips') || 'null'); if (Array.isArray(a) && a.length) return a; } catch (e) {} return [100000, 200000, 300000, 500000, 1000000]; };
+  function paintPrefs(){
+    setSeg('startSeg', 'startTab', store.get('hl_start') || 'home');
+    setSeg('defBySeg', 'defByPref', store.get('hl_defby') || 'me');
+    $('defByOther').textContent = other(ME);
+    $('stAutoHide').querySelector('.tg').classList.toggle('on', store.get('hl_autohide') === '1');
+    $('stChips').value = quickAmts().map(jtR).join(' ').replace(/Rp/g, '').replace(/ (rb|jt)/g, '$1');
+    const n = Object.keys(CATMAP).length;
+    $('stCatsN').textContent = n ? `${n} keterangan diatur manual` : 'Atur kategori tiap keterangan';
   }
-  $('stCats').onclick = () => { if (!Object.keys(CATMAP).length) return; $('stCatList').classList.toggle('hide'); };
+  $('startSeg').querySelectorAll('button').forEach(b => b.onclick = () => { store.set('hl_start', b.dataset.v); setSeg('startSeg', 'startTab', b.dataset.v); });
+  $('defBySeg').querySelectorAll('button').forEach(b => b.onclick = () => {
+    store.set('hl_defby', b.dataset.v); setSeg('defBySeg', 'defByPref', b.dataset.v);
+    if (!state.edit) setSeg('by', 'by', defBy());
+  });
+  $('stAutoHide').onclick = () => {
+    const on = store.get('hl_autohide') !== '1';
+    store.set('hl_autohide', on ? '1' : '0'); paintPrefs();
+    snack(on ? 'Nominal akan selalu tersembunyi saat app dibuka' : 'Nominal mengikuti pilihan terakhir');
+  };
+  // "100rb 200rb 1jt" → [100000, 200000, 1000000]
+  $('stChips').onchange = () => {
+    const a = $('stChips').value.split(/[;\s]+|,\s+/).map(num).filter(v => v > 0).map(Math.round);
+    if (!a.length) { store.set('hl_chips', ''); paintPrefs(); return snack('Kembali ke nominal bawaan'); }
+    const u = [...new Set(a)].sort((x, y) => x - y).slice(0, 8);
+    store.set('hl_chips', JSON.stringify(u)); paintPrefs(); if (P.rows.length) renderPay();
+    snack('Nominal cepat disimpan');
+  };
+
+  // ambil semua transaksi (pakai yang sudah dimuat kalau ada)
+  function withHistory(cb){
+    if (HS.all.length && !histStale) return cb(HS.all);
+    google.script.run.withSuccessHandler(rows => { HS.all = rows || []; histStale = false; cb(HS.all); }).withFailureHandler(failSnack).getHistory();
+  }
+  $('stCsv').onclick = () => {
+    const t2 = $('stCsv').querySelector('.t2'), h = t2.textContent; t2.textContent = 'Menyiapkan…';
+    withHistory(rows => {
+      const q = v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
+      const L = [['Tanggal','Keterangan','Kategori','Dibayar','Total','Bagian Dimbo','Bagian Delpus','Status'].map(q).join(',')];
+      rows.slice().reverse().forEach(r => { const w = r.raw;
+        L.push([w.date, w.desc, catOf(w.desc)[0], w.by, w.G || '', Math.round(w.H * 100) / 100, Math.round(w.I * 100) / 100, r.paid ? 'Lunas' : 'Belum'].map(q).join(',')); });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob(['\ufeff' + L.join('\r\n')], { type: 'text/csv;charset=utf-8' }));
+      a.download = `hutang-lu-${todayIso()}.csv`; document.body.appendChild(a); a.click(); a.remove();
+      t2.textContent = h; snack(`${rows.length} transaksi diekspor`);
+    });
+  };
+
+  // ---------- Kelola kategori ----------
+  let CM = [];      // [{ k, desc, n }] keterangan unik, terbanyak dulu
+  $('stCats').onclick = () => {
+    closeSheet(); $('scrim').classList.add('show'); $('catSheet').classList.add('show');
+    $('cmQ').value = ''; $('cmList').innerHTML = '<div class="empty">Memuat…</div>';
+    withHistory(rows => {
+      const g = {};
+      rows.forEach(r => { if (ADJ.test(r.desc)) return; const k = catKey(r.desc); (g[k] = g[k] || { k, desc: r.desc, n: 0 }).n++; });
+      CM = Object.values(g).sort((a, b) => b.n - a.n || a.k.localeCompare(b.k));
+      paintCM();
+    });
+  };
+  $('cmQ').oninput = () => paintCM();
+  function paintCM(openK){
+    const q = catKey($('cmQ').value), list = CM.filter(x => !q || x.k.includes(q)), man = Object.keys(CATMAP).length;
+    $('cmN').textContent = `${CM.length} keterangan · ${man} manual`;
+    $('cmList').innerHTML = list.slice(0, 120).map((x, i) => { const c = catOf(x.desc), manual = !!CATMAP[x.k]; return `<div class="cmw">
+      <button class="cm" data-i="${i}">${cic(x.desc, 36)}<div class="m"><div>${esc(x.desc)}</div>
+        <div class="t2">${x.n} transaksi · ${esc(c[0])} · ${manual ? '<span class="man">manual</span>' : 'otomatis'}</div></div>
+        <span class="ms chev2" aria-hidden="true" style="color:var(--on2)">expand_more</span></button>
+      <div class="chips hide" data-ch="${i}"></div></div>`; }).join('') ||
+      '<div class="empty">Tidak ada yang cocok</div>';
+    $('cmList').querySelectorAll('.cm').forEach(b => b.onclick = () => {
+      const x = list[+b.dataset.i], box = $('cmList').querySelector(`[data-ch="${b.dataset.i}"]`), open = box.classList.contains('hide');
+      $('cmList').querySelectorAll('[data-ch]').forEach(e => e.classList.add('hide'));
+      $('cmList').querySelectorAll('.cm .chev2').forEach(e => e.textContent = 'expand_more');
+      if (!open) return;
+      box.classList.remove('hide'); b.querySelector('.chev2').textContent = 'expand_less';
+      catChips(box, catOf(x.desc)[0], name => setCatFor(x.desc, name, () => paintCM(x.k)));
+      if (CATMAP[x.k]) box.insertAdjacentHTML('afterbegin', `<button class="chip" data-reset><span class="ms" aria-hidden="true" style="font-size:18px">restart_alt</span>Otomatis (${esc(autoCat(x.desc)[0])})</button>`);
+      const rs = box.querySelector('[data-reset]'); if (rs) rs.onclick = () => setCatFor(x.desc, '', () => paintCM(x.k));
+    });
+    if (openK){ const i = list.findIndex(x => x.k === openK); const b = $('cmList').querySelector(`.cm[data-i="${i}"]`); if (b) b.click(); }
+  }
+
   function paintQueue(){
     $('stQueue').classList.toggle('hide', !Q.length);
     $('stQueueN').textContent = `${Q.length} transaksi menunggu sinyal`;
@@ -971,7 +1075,12 @@
       const t = b.lastChild; t.textContent = nm(b.dataset.v);
     });
     initHF();
-    if (!state.edit) setSeg('by', 'by', ME);
+    if (!state.edit) setSeg('by', 'by', defBy());
+  }
+  // yang bayar awal di form: me / other / last (pengaturan)
+  function defBy(){
+    const v = store.get('hl_defby') || 'me';
+    return v === 'other' ? other(ME) : v === 'last' ? (store.get('by') || ME) : ME;
   }
 
   // ---------- Navigasi ----------
@@ -1154,7 +1263,7 @@
     $('scanInfo').classList.add('hide');
     scanReset();
     setSeg('mode','mode','direct');
-    setSeg('by','by', ME || store.get('by') || 'Delpus');
+    setSeg('by','by', ME ? defBy() : (store.get('by') || 'Delpus'));
     renderMode();
     renderCatPick();
   }
@@ -1315,16 +1424,20 @@
     $('scrim').classList.add('show'); $('sheet').classList.add('show');
   }
   // ganti kategori dari detail: berlaku untuk semua transaksi dengan keterangan yang sama
-  function pickCatSheet(name){
-    const r = sheetRow, k = catKey(r.desc);
-    if (catOf(r.desc)[0] === name) return;
-    const old = Object.assign({}, CATMAP), m = Object.assign({}, CATMAP);
-    if (name === autoCat(r.desc)[0]) delete m[k]; else m[k] = name;
-    setCatMap(m); openSheet(r); refreshCats();
+  // ganti kategori satu keterangan (name kosong = kembali otomatis); after() dipanggil untuk menggambar ulang
+  function setCatFor(desc, name, after){
+    const k = catKey(desc), old = Object.assign({}, CATMAP), m = Object.assign({}, CATMAP);
+    if (!name || name === autoCat(desc)[0]) delete m[k]; else m[k] = name;
+    setCatMap(m); refreshCats(); after && after();
     google.script.run
-      .withSuccessHandler(x => { setCatMap(x.catMap); refreshCats(); })
-      .withFailureHandler(e => { setCatMap(old); refreshCats(); if (sheetRow === r) openSheet(r); snack('Gagal: ' + e.message); })
-      .setCategory(r.desc, name);
+      .withSuccessHandler(x => { setCatMap(x.catMap); refreshCats(); after && after(); })
+      .withFailureHandler(e => { setCatMap(old); refreshCats(); after && after(); snack('Gagal: ' + e.message); })
+      .setCategory(desc, name || '');
+  }
+  function pickCatSheet(name){
+    const r = sheetRow;
+    if (catOf(r.desc)[0] === name) return;
+    setCatFor(r.desc, name, () => { if (sheetRow === r && $('sheet').classList.contains('show')) openSheet(r); });
   }
   // gambar ulang semua tempat yang menampilkan kategori
   function refreshCats(){
@@ -1333,7 +1446,7 @@
     if (P.rows.length) renderPay();
     statsStale = true; if (view === 'stats') loadStats(S ? S.ym : '');
   }
-  function closeSheet(){ $('scrim').classList.remove('show'); ['sheet','shareSheet','addSheet','meSheet','photoSheet','setSheet'].forEach(id => $(id).classList.remove('show')); }
+  function closeSheet(){ $('scrim').classList.remove('show'); ['sheet','shareSheet','addSheet','meSheet','photoSheet','setSheet','catSheet'].forEach(id => $(id).classList.remove('show')); }
 
   function startEdit(r){
     closeSheet();
@@ -1733,7 +1846,7 @@
     $('assistBtn').setAttribute('aria-label', P.assist ? 'Tutup' : 'Bantu catat pembayaran');
     $('shareBtn').classList.toggle('hide', ro);
     const kk = ro ? 0 : k;
-    const chips = [100000, 200000, 300000, 500000, 1000000].filter(x => x < P.total);
+    const chips = quickAmts().filter(x => x < P.total);
     // batas akhir tiap bulan: k = jumlah transaksi s.d. bulan itu
     const ends = [];
     P.rows.forEach((r, i) => {
@@ -1981,7 +2094,10 @@
   if (Q.length) renderRecent();
   google.script.run.withSuccessHandler(info => { lastInfo = info; if (ME) renderInfo(info); flushQueue(); })
     .withFailureHandler(e => snack(isOffline(e) ? 'Offline: data belum bisa dimuat' : 'Gagal memuat: '+e.message)).getInfo();
-  initMe(() => { setSeg('by','by', ME); if (lastInfo) renderInfo(lastInfo); });
+  initMe(() => {
+    setSeg('by','by', defBy()); if (lastInfo) renderInfo(lastInfo);
+    const st = store.get('hl_start'); if (st && st !== 'home' && VIEWS[st]) setView(st);   // tab pertama (pengaturan)
+  });
 </script>
 </body>
 </html>
