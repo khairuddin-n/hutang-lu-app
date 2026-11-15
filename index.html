@@ -83,7 +83,7 @@
     tok = localStorage.getItem(KEY);
   } catch (e) {}
   window.__PWA = true;
-  window.__VER = '16-11-2026 00:00';
+  window.__VER = '16-11-2026 00:04';
 
   function call(fn, args) {
     return fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -694,9 +694,9 @@
   <div class="grab"></div>
   <div class="ch" style="margin-bottom:14px"><h2 style="font-size:18px">Catat apa?</h2></div>
   <div class="addgrid">
-    <button data-add="direct"><span class="cic k-dir"><span class="ms" aria-hidden="true">swap_horiz</span></span><b>Langsung</b><small>satu orang</small></button>
-    <button data-add="split"><span class="cic k-split"><span class="ms" aria-hidden="true">call_split</span></span><b>Patungan</b><small>bagi per item</small></button>
-    <button data-add="scan"><span class="cic k-scan"><span class="ms" aria-hidden="true">photo_camera</span></span><b>Scan struk</b><small>foto langsung</small></button>
+    <button data-add="direct"><span class="cic k-dir"><span class="ms" aria-hidden="true">swap_horiz</span></span><b>Langsung</b></button>
+    <button data-add="split"><span class="cic k-split"><span class="ms" aria-hidden="true">call_split</span></span><b>Patungan</b></button>
+    <button data-add="scan"><span class="cic k-scan"><span class="ms" aria-hidden="true">photo_camera</span></span><b>Scan struk</b></button>
   </div>
 </div></div>
 
