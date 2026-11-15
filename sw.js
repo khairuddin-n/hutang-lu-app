@@ -1,7 +1,7 @@
 // Service worker Hutang Lu: tampilan app disimpan di HP supaya cepat dibuka.
 // Strategi: tampilkan dari cache dulu, sambil ambil versi terbaru di belakang (berlaku di pembukaan berikutnya).
 // Panggilan API (script.google.com) tidak pernah di-cache.
-const CACHE = 'hutang-lu-7f5693ead3';
+const CACHE = 'hutang-lu-e09ebd3812';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {

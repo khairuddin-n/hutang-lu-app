@@ -506,7 +506,7 @@
       <!-- LANGSUNG -->
       <section class="card" id="direct">
         <div class="lbl"><label for="amount" id="amtLabel">Nominal</label></div>
-        <div class="inp big"><span class="pre">Rp</span><input id="amount" class="n" inputmode="tel" autocomplete="off" data-calc placeholder="0"></div>
+        <div class="inp big"><span class="pre">Rp</span><input id="amount" class="n" inputmode="text" enterkeyhint="done" autocomplete="off" data-calc placeholder="0"></div>
         <div class="help" id="amtHelp"></div>
       </section>
 
@@ -520,8 +520,8 @@
         </section>
         <section class="card">
           <div class="two">
-            <div style="min-width:0"><div class="lbl"><label for="fee">Ongkir + layanan</label></div><div class="inp"><span class="pre">Rp</span><input id="fee" class="n" inputmode="tel" autocomplete="off" data-calc placeholder="0"></div></div>
-            <div style="min-width:0"><div class="lbl"><label for="total">Total bayar</label></div><div class="inp"><span class="pre">Rp</span><input id="total" class="n" inputmode="tel" autocomplete="off" data-calc placeholder="0"></div></div>
+            <div style="min-width:0"><div class="lbl"><label for="fee">Ongkir + layanan</label></div><div class="inp"><span class="pre">Rp</span><input id="fee" class="n" inputmode="text" enterkeyhint="done" autocomplete="off" data-calc placeholder="0"></div></div>
+            <div style="min-width:0"><div class="lbl"><label for="total">Total bayar</label></div><div class="inp"><span class="pre">Rp</span><input id="total" class="n" inputmode="text" enterkeyhint="done" autocomplete="off" data-calc placeholder="0"></div></div>
           </div>
           <div class="help">Ongkir dibagi rata, diskon & pajak ikut porsi. Bisa ketik 5000+2000 atau 12000*2.</div>
         </section>
@@ -797,7 +797,6 @@
   paintEye();
   function applyMe(){
     $('meBtn').innerHTML = av(ME, 32);
-    $('meBtn').style.pointerEvents = window.__PWA ? 'none' : '';
     document.querySelectorAll('#by button').forEach(b => {
       const t = b.lastChild; t.textContent = nm(b.dataset.v);
     });
@@ -912,7 +911,7 @@
       d.innerHTML = `
         <div class="r1">
           <div class="inp"><input placeholder="Item ${i+1}" value="${esc(it.name)}" data-k="name" aria-label="Nama item ${i+1}"></div>
-          <div class="inp"><span class="pre">Rp</span><input class="n" inputmode="tel" autocomplete="off" data-calc placeholder="0" value="${esc(it.price)}" data-k="price" aria-label="Harga item ${i+1}"></div>
+          <div class="inp"><span class="pre">Rp</span><input class="n" inputmode="text" enterkeyhint="done" autocomplete="off" data-calc placeholder="0" value="${esc(it.price)}" data-k="price" aria-label="Harga item ${i+1}"></div>
         </div>
         <div class="r2">
           <div class="seg sm" role="group" aria-label="Pemilik item ${i+1}">
@@ -1475,7 +1474,7 @@
 
       ${ro ? '' : `<section class="card">
         <div class="lbl"><label for="payAmt">Nominal transfer</label></div>
-        <div class="inp big"><span class="pre">Rp</span><input id="payAmt" class="n" inputmode="tel" autocomplete="off" data-calc placeholder="0"></div>
+        <div class="inp big"><span class="pre">Rp</span><input id="payAmt" class="n" inputmode="text" enterkeyhint="done" autocomplete="off" data-calc placeholder="0"></div>
         <div class="amts">
           <button class="chip" data-a="${P.total}">Semua</button>
           ${chips.map(x => `<button class="chip" data-a="${x}">${jtR(x)}</button>`).join('')}
