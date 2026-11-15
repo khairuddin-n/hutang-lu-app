@@ -84,7 +84,7 @@
     tok = localStorage.getItem(KEY);
   } catch (e) {}
   window.__PWA = true;
-  window.__VER = '16-11-2026 00:37';
+  window.__VER = '16-11-2026 03:01';
 
   function call(fn, args) {
     return fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -482,20 +482,6 @@
   .snack.show{ opacity:1; transform:none; }
   .snack{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
   .snackbtn{ border:0; background:none; color:var(--accl); font-size:14px; font-weight:500; cursor:pointer; padding:4px 0; flex:none; text-transform:uppercase; letter-spacing:.3px; }
-  /* Tabungan */
-  .goal{ display:flex; align-items:center; gap:12px; width:100%; border:0; background:none; padding:10px 0; color:var(--on); text-align:left; cursor:pointer; font:inherit; }
-  .goal + .goal{ border-top:1px solid var(--line); }
-  .goal .m{ flex:1; min-width:0; } .goal .t1{ display:flex; justify-content:space-between; gap:8px; font-size:15px; }
-  .goal .t1 span:first-child{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .goal .t2{ font-size:12.5px; color:var(--on2); margin-top:6px; }
-  .gic{ width:40px; height:40px; border-radius:13px; display:grid; place-items:center; flex:none; background:var(--brandsoft); color:var(--onbrandsoft); }
-  .gic.big{ width:52px; height:52px; border-radius:17px; } .gic.big .ms{ font-size:28px; }
-  .gbar{ display:flex; height:8px; border-radius:4px; overflow:hidden; background:var(--line); margin-top:8px; } .gbar i{ display:block; }
-  .gbar.gl{ height:12px; border-radius:6px; margin:12px 0 10px; }
-  .gh{ display:flex; align-items:center; gap:12px; } .gh b{ font-size:17px; font-weight:500; } .gh .t2{ font-size:12.5px; color:var(--on2); margin-top:2px; }
-  .gbig{ font-size:30px; font-weight:500; margin-top:14px; }
-  .icpick{ display:grid; grid-template-columns:repeat(6,1fr); gap:8px; margin-top:12px; }
-  .icpick button{ aspect-ratio:1; border:0; border-radius:14px; background:var(--tile); color:var(--on2); display:grid; place-items:center; cursor:pointer; }
-  .icpick button.on{ background:var(--brandsoft); color:var(--onbrandsoft); box-shadow:inset 0 0 0 2px var(--acc); }
   /* Wrapped */
   .wrban{ display:flex; align-items:center; gap:12px; width:100%; border:0; border-radius:20px; padding:16px; margin-bottom:12px; color:#fff; font-size:16px; font-weight:500; cursor:pointer; text-align:left; font-family:inherit; }
   .wrban .ms{ font-size:28px; } .wrban small{ display:block; font-size:12.5px; font-weight:400; opacity:.85; margin-top:2px; }
@@ -528,7 +514,6 @@
   <div class="wrap main">
     <button class="wrban hide" id="wrBanner"><span class="ms" aria-hidden="true">auto_awesome</span><div><span id="wrBanTxt">Wrapped</span><small>Rekap setahun kalian</small></div></button>
     <section class="card hide" id="monthCard"></section>
-    <section class="card hide" id="saveCard"></section>
     <section class="card">
       <div class="ch"><h2>Terakhir</h2><button class="seeall" id="seeAll">Lihat semua</button></div>
       <div id="recentList"><div class="empty">Memuat…</div></div>
@@ -650,19 +635,6 @@
   </div>
 </div>
 
-<!-- ============ TABUNGAN ============ -->
-<div class="hide" id="vSave">
-  <div class="wrap">
-    <header class="topbar">
-      <button class="ib" id="saveBack" aria-label="Kembali"><span class="ms" aria-hidden="true">arrow_back</span></button>
-      <h1>Tabungan</h1>
-      <button class="ib" id="goalAdd" aria-label="Target baru"><span class="ms" aria-hidden="true">add</span></button>
-    </header>
-    <div style="padding:4px 16px 0" id="saveBody"></div>
-    <div style="height:110px"></div>
-  </div>
-</div>
-
 <!-- ============ PELUNASAN ============ -->
 <div class="hide" id="vPay">
   <div class="wrap">
@@ -753,35 +725,6 @@
   <div class="act">
     <button class="btn tonal" id="shCopy"><span class="ms" aria-hidden="true" style="font-size:20px">content_copy</span>Salin teks</button>
     <button class="btn fill" id="shGo"><span class="ms" aria-hidden="true" style="font-size:20px">share</span>Bagikan</button>
-  </div>
-</div></div>
-
-<!-- Sheet setor / tarik -->
-<div class="sheet" id="svSheet" role="dialog" aria-modal="true" aria-labelledby="svTitle"><div class="in">
-  <div class="grab"></div>
-  <div class="ch" style="margin-bottom:12px"><h2 id="svTitle" style="font-size:18px">Setor</h2></div>
-  <div class="payer" id="svWho">
-    <button data-v="Dimbo"><span class="ms f ck" aria-hidden="true">check_circle</span><span class="av Dimbo" style="width:40px;height:40px"></span>Dimbo</button>
-    <button data-v="Delpus"><span class="ms f ck" aria-hidden="true">check_circle</span><span class="av Delpus" style="width:40px;height:40px"></span>Delpus</button>
-  </div>
-  <div class="inp big" style="margin-top:12px"><span class="pre">Rp</span><input id="svAmt" class="n" inputmode="text" enterkeyhint="done" autocomplete="off" data-calc placeholder="0" aria-label="Nominal"></div>
-  <div class="two" style="margin-top:10px">
-    <div class="inp"><input type="date" id="svDate" aria-label="Tanggal"></div>
-    <div class="inp"><input id="svNote" placeholder="Catatan" autocomplete="off" maxlength="60" aria-label="Catatan"></div>
-  </div>
-  <button class="btn fill" id="svGo" style="width:100%;margin-top:14px">Simpan</button>
-</div></div>
-
-<!-- Sheet target tabungan -->
-<div class="sheet" id="gSheet" role="dialog" aria-modal="true" aria-labelledby="gTitle"><div class="in">
-  <div class="grab"></div>
-  <div class="ch" style="margin-bottom:12px"><h2 id="gTitle" style="font-size:18px">Target baru</h2></div>
-  <div class="inp"><input id="gName" placeholder="Nama target" maxlength="40" autocomplete="off" aria-label="Nama target"></div>
-  <div class="inp big" style="margin-top:10px"><span class="pre">Rp</span><input id="gTarget" class="n" inputmode="text" enterkeyhint="done" autocomplete="off" data-calc placeholder="0" aria-label="Target"></div>
-  <div class="icpick" id="gIcons"></div>
-  <div class="act" id="gAct">
-    <button class="btn del" id="gDel"><span class="ms" aria-hidden="true" style="font-size:20px">delete</span>Hapus</button>
-    <button class="btn fill" id="gGo">Simpan</button>
   </div>
 </div></div>
 
@@ -1132,7 +1075,6 @@
     if (S) renderStats(S);
     if (HS.all.length) filterHist();
     if (P.rows.length || P.log.length) renderPay();
-    renderSaveCard(); if (view === 'save') renderSave();
     snack(HIDE ? 'Nominal disembunyikan' : 'Nominal ditampilkan');
   };
   paintEye();
@@ -1151,7 +1093,7 @@
   // Tab: home / hist / stats / pay. Form tampil penuh tanpa nav.
   let view = 'home', lastTab = 'home';
   let S = null, statsStale = true, histStale = true, payStale = true;
-  const VIEWS = { home:'vHome', hist:'vHist', stats:'vStats', pay:'vPay', form:'vForm', save:'vSave' };
+  const VIEWS = { home:'vHome', hist:'vHist', stats:'vStats', pay:'vPay', form:'vForm' };
   function setView(v){
     view = v;
     if (v !== 'form') lastTab = v;
@@ -1164,7 +1106,6 @@
     if (v === 'stats' && (statsStale || !S)) loadStats(S ? S.ym : '');
     if (v === 'hist' && histStale) loadHist();
     if (v === 'pay') payStale ? loadPay() : renderPay();
-    if (v === 'save') renderSave();
   }
   document.querySelectorAll('#nav button[data-v]').forEach(b => b.onclick = () => setView(b.dataset.v));
   $('closeForm').onclick = () => { resetForm(); setView(lastTab); };
@@ -1512,7 +1453,7 @@
     if (P.rows.length) renderPay();
     statsStale = true; if (view === 'stats') loadStats(S ? S.ym : '');
   }
-  function closeSheet(){ $('scrim').classList.remove('show'); ['sheet','shareSheet','addSheet','meSheet','photoSheet','setSheet','svSheet','gSheet','cropSheet'].forEach(id => $(id).classList.remove('show')); }
+  function closeSheet(){ $('scrim').classList.remove('show'); ['sheet','shareSheet','addSheet','meSheet','photoSheet','setSheet','cropSheet'].forEach(id => $(id).classList.remove('show')); }
 
   function startEdit(r){
     closeSheet();
@@ -2210,159 +2151,6 @@
       back > 0 ? `Sisa utang ${other(payer)}: ${fmt(back)}` : left > 0 ? `Sisa utang ${payer}: ${fmt(left)}` : 'Semua lunas ✅'].join('\n');
   }
 
-  // ---------- Tabungan bersama ----------
-  const SAV_ICONS = ['savings','flight','beach_access','home','directions_car','laptop_mac','smartphone','diamond','celebration','school','pets','redeem'];
-  let SV = { goals: [], tx: [] }; try { SV = JSON.parse(store.get('hl_sav') || 'null') || SV; } catch (e) {}
-  let SVsel = null, SVm = null, GE = null;
-  function setSV(s){ if (!s) return; SV = s; store.set('hl_sav', JSON.stringify(s)); renderSaveCard(); if (view === 'save') renderSave(); }
-  const loadSav = () => google.script.run.withSuccessHandler(r => setSV(r.sav)).withFailureHandler(() => {}).getSavings();
-  function gStats(g){
-    const t = SV.tx.filter(x => x.g === g.id), by = { Dimbo: 0, Delpus: 0 };
-    t.forEach(x => by[x.who] += x.amt);
-    const bal = by.Dimbo + by.Delpus;
-    return { t, by, bal, pct: Math.max(0, Math.min(100, bal / g.target * 100)) };
-  }
-  function gbar(g, st, cls){
-    const d = Math.max(0, st.by.Dimbo), p = Math.max(0, st.by.Delpus), T = Math.max(g.target, d + p) || 1;
-    return `<div class="gbar ${cls || ''}"><i style="width:${d / T * 100}%;background:#3949AB"></i><i style="width:${p / T * 100}%;background:#C2410C"></i></div>`;
-  }
-  // perkiraan tercapai dari rata-rata setoran 3 bulan terakhir
-  function eta(g, st){
-    if (st.bal >= g.target) return '';
-    const since = new Date(Date.now() - 90 * 864e5).toISOString().slice(0, 10);
-    const sum = st.t.filter(x => x.date >= since).reduce((a, x) => a + x.amt, 0);
-    if (sum <= 0) return '';
-    const m = Math.ceil((g.target - st.bal) / (sum / 3));
-    if (m > 120) return '';
-    const d = new Date(); d.setMonth(d.getMonth() + m);
-    return `${MON[d.getMonth()]} ${d.getFullYear()}`;
-  }
-  const dLbl = iso => { const [y, m, d] = iso.split('-').map(Number); return `${d} ${MON[m-1]}${y !== new Date().getFullYear() ? ' ' + y : ''}`; };
-  function goalRow(g){
-    const st = gStats(g);
-    return `<button class="goal" data-id="${g.id}"><span class="gic"><span class="ms" aria-hidden="true">${esc(g.icon)}</span></span>
-      <div class="m"><div class="t1"><span>${esc(g.name)}</span><span class="n">${Math.floor(st.pct)}%</span></div>${gbar(g, st)}
-      <div class="t2 n">${fmt(st.bal)} / ${fmt(g.target)}</div></div></button>`;
-  }
-  function renderSaveCard(){
-    const c = $('saveCard'); c.classList.remove('hide');
-    c.innerHTML = `<div class="ch"><h2>Tabungan</h2>${SV.goals.length > 3 ? '<button class="seeall" data-sv="all">Lihat semua</button>' : ''}</div>` +
-      (SV.goals.length ? SV.goals.slice(0, 3).map(goalRow).join('')
-        : `<button class="addi" data-sv="new" style="margin-top:0"><span class="ms" aria-hidden="true" style="font-size:18px">add</span>Buat target</button>`);
-    c.querySelectorAll('[data-sv="all"]').forEach(b => b.onclick = () => { SVsel = null; setView('save'); });
-    c.querySelectorAll('[data-sv="new"]').forEach(b => b.onclick = () => openGoal(null));
-    c.querySelectorAll('.goal').forEach(b => b.onclick = () => { SVsel = +b.dataset.id; setView('save'); });
-  }
-  function renderSave(){
-    const body = $('saveBody'), g = SVsel && SV.goals.find(x => x.id === SVsel);
-    $('goalAdd').classList.toggle('hide', !!g);
-    if (!g){
-      SVsel = null;
-      body.innerHTML = `<section class="card">${SV.goals.length ? SV.goals.map(goalRow).join('') : '<div class="empty">Belum ada target</div>'}</section>`;
-      body.querySelectorAll('.goal').forEach(b => b.onclick = () => { SVsel = +b.dataset.id; renderSave(); window.scrollTo(0, 0); });
-      return;
-    }
-    const st = gStats(g), left = Math.max(0, g.target - st.bal), e = eta(g, st);
-    const hist = st.t.slice().sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id);
-    body.innerHTML = `
-      <section class="card">
-        <div class="gh"><span class="gic big"><span class="ms" aria-hidden="true">${esc(g.icon)}</span></span>
-          <div style="flex:1;min-width:0"><b>${esc(g.name)}</b><div class="t2 n">${fmt(g.target)}</div></div>
-          <button class="ib" id="gEdit" aria-label="Edit target"><span class="ms" aria-hidden="true">edit</span></button></div>
-        <div class="gbig n">${fmt(st.bal)}</div>
-        ${gbar(g, st, 'gl')}
-        <div class="split2l n"><span style="display:flex;align-items:center;gap:6px">${av('Dimbo', 20)}<b>${fmt(Math.max(0, st.by.Dimbo))}</b></span>
-          <span style="display:flex;align-items:center;gap:6px"><b>${fmt(Math.max(0, st.by.Delpus))}</b>${av('Delpus', 20)}</span></div>
-        <div class="help n" style="margin-top:10px">${st.bal >= g.target ? 'Tercapai 🎉' : `${Math.floor(st.pct)}% · sisa ${fmt(left)}${e ? ' · ± ' + e : ''}`}</div>
-      </section>
-      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 0 12px">
-        <button class="btn tonal" id="gOut" style="background:var(--card)" ${st.bal <= 0 ? 'disabled' : ''}><span class="ms" aria-hidden="true" style="font-size:20px">remove</span>Tarik</button>
-        <button class="btn fill" id="gIn"><span class="ms" aria-hidden="true" style="font-size:20px">add</span>Setor</button>
-      </div>
-      ${hist.length ? `<section class="card"><div class="ch"><h2>Riwayat</h2></div>${hist.map(x => `<div class="lg">${av(x.who, 32)}
-        <div class="m"><div class="n" style="${x.amt > 0 ? 'color:var(--green)' : ''}">${x.amt < 0 ? '−' : '+'}${fmt(Math.abs(x.amt))}</div>
-          <div class="t2 n">${dLbl(x.date)}${x.note ? ' · ' + esc(x.note) : ''}</div></div>
-        <button class="ib" data-del="${x.id}" aria-label="Hapus" style="color:var(--on2);width:40px;height:40px"><span class="ms" aria-hidden="true" style="font-size:20px">delete</span></button></div>`).join('')}</section>` : ''}`;
-    $('gEdit').onclick = () => openGoal(g);
-    $('gIn').onclick = () => openSV(g, 1);
-    $('gOut').onclick = () => openSV(g, -1);
-    body.querySelectorAll('[data-del]').forEach(b => b.onclick = () => {
-      b.disabled = true;
-      google.script.run.withSuccessHandler(r => {
-        setSV(r.sav);
-        snack('Dihapus', 'Batalkan', () => google.script.run.withSuccessHandler(x => setSV(x.sav)).withFailureHandler(failSnack).addSaving(r.removed));
-      }).withFailureHandler(e => { b.disabled = false; failSnack(e); }).deleteSaving(+b.dataset.del);
-    });
-  }
-  $('saveBack').onclick = () => { if (SVsel) { SVsel = null; renderSave(); } else setView('home'); };
-  $('goalAdd').onclick = () => openGoal(null);
-
-  // setor / tarik
-  function paintWho(){ $('svWho').querySelectorAll('button').forEach(b => { b.classList.toggle('on', b.dataset.v === SVm.who); b.lastChild.textContent = nm(b.dataset.v); }); }
-  function openSV(g, sign){
-    SVm = { g, sign, who: ME || 'Dimbo' };
-    $('svTitle').textContent = sign > 0 ? 'Setor' : 'Tarik';
-    $('svAmt').value = ''; $('svNote').value = ''; $('svDate').value = todayIso();
-    $('svGo').disabled = false; $('svGo').textContent = 'Simpan';
-    paintWho();
-    $('scrim').classList.add('show'); $('svSheet').classList.add('show');
-    setTimeout(() => $('svAmt').focus(), 250);
-  }
-  $('svWho').querySelectorAll('button').forEach(b => b.onclick = () => { SVm.who = b.dataset.v; paintWho(); });
-  $('svGo').onclick = () => {
-    evalField($('svAmt'));
-    const amt = Math.round(num($('svAmt').value)), m = SVm, btn = $('svGo');
-    if (!(amt > 0)) { $('svAmt').focus(); return snack('Nominal belum diisi'); }
-    const was = gStats(m.g).bal >= m.g.target;
-    btn.disabled = true; btn.innerHTML = '<span class="spin"></span>';
-    google.script.run.withSuccessHandler(r => {
-      closeSheet(); setSV(r.sav);
-      const g = SV.goals.find(x => x.id === m.g.id);
-      if (m.sign > 0 && !was && g && gStats(g).bal >= g.target) return snack('Target tercapai 🎉');
-      snack(`${m.sign > 0 ? 'Setor' : 'Tarik'} ${fmt(amt)}`, 'Batalkan', () => google.script.run.withSuccessHandler(x => setSV(x.sav)).withFailureHandler(failSnack).deleteSaving(r.id));
-    }).withFailureHandler(e => { btn.disabled = false; btn.textContent = 'Simpan'; failSnack(e); })
-      .addSaving({ g: m.g.id, who: m.who, amt: m.sign * amt, date: $('svDate').value, note: $('svNote').value });
-  };
-
-  // buat / edit target
-  function openGoal(g){
-    GE = { g, icon: g ? g.icon : 'savings' };
-    $('gTitle').textContent = g ? 'Edit target' : 'Target baru';
-    $('gName').value = g ? g.name : ''; $('gTarget').value = g ? fmtN(g.target) : '';
-    $('gDel').classList.toggle('hide', !g); $('gDel').classList.remove('arm');
-    $('gDel').innerHTML = '<span class="ms" aria-hidden="true" style="font-size:20px">delete</span>Hapus';
-    $('gGo').style.gridColumn = g ? '' : '1 / -1'; $('gGo').disabled = false; $('gGo').textContent = 'Simpan';
-    paintIcons();
-    $('scrim').classList.add('show'); $('gSheet').classList.add('show');
-    if (!g) setTimeout(() => $('gName').focus(), 250);
-  }
-  function paintIcons(){
-    $('gIcons').innerHTML = SAV_ICONS.map(i => `<button class="${i === GE.icon ? 'on' : ''}" data-i="${i}" aria-label="${i}"><span class="ms" aria-hidden="true">${i}</span></button>`).join('');
-    $('gIcons').querySelectorAll('button').forEach(b => b.onclick = () => { GE.icon = b.dataset.i; paintIcons(); });
-  }
-  $('gGo').onclick = () => {
-    evalField($('gTarget'));
-    const name = $('gName').value.trim(), target = Math.round(num($('gTarget').value)), g = GE.g, btn = $('gGo');
-    if (!name) { $('gName').focus(); return snack('Nama belum diisi'); }
-    if (!(target > 0)) { $('gTarget').focus(); return snack('Target belum diisi'); }
-    btn.disabled = true; btn.innerHTML = '<span class="spin"></span>';
-    google.script.run.withSuccessHandler(r => {
-      closeSheet(); setSV(r.sav);
-      if (!g) { SVsel = r.id; setView('save'); }
-      snack(g ? 'Target disimpan' : 'Target dibuat');
-    }).withFailureHandler(e => { btn.disabled = false; btn.textContent = 'Simpan'; failSnack(e); })
-      .saveGoal({ id: g ? g.id : null, name, icon: GE.icon, target });
-  };
-  $('gDel').onclick = () => {
-    const b = $('gDel'), g = GE.g;
-    if (!b.classList.contains('arm')) { b.classList.add('arm'); b.textContent = 'Yakin?'; return; }
-    b.disabled = true; b.innerHTML = '<span class="spin"></span>';
-    google.script.run.withSuccessHandler(r => {
-      closeSheet(); SVsel = null; setSV(r.sav);
-      snack(`Dihapus: ${g.name}`, 'Batalkan', () => google.script.run.withSuccessHandler(x => setSV(x.sav)).withFailureHandler(failSnack).restoreGoal(r.removed));
-    }).withFailureHandler(e => { b.disabled = false; b.classList.remove('arm'); b.textContent = 'Hapus'; failSnack(e); }).deleteGoal(g.id);
-  };
-
   // ---------- Wrapped: rekap setahun bergaya story ----------
   const wrYear = () => { const d = new Date(); return d.getMonth() === 0 ? d.getFullYear() - 1 : d.getFullYear(); };
   const WR = { i: 0, slides: [], D: null, faces: {} };
@@ -2561,21 +2349,7 @@
       wrText(g, `${D.paid.n} dari ${D.n} transaksi`, C, 440, 18, 500, 'rgba(255,255,255,.9)', 'center');
       wrText(g, rpJt(D.paid.t), C, 468, 16, 400, 'rgba(255,255,255,.75)', 'center');
     });
-    // 10. tabungan
-    if (D.sav.t > 0) S.push(g => {
-      const a = D.sav.by.Dimbo, b = D.sav.by.Delpus, t = (a + b) || 1;
-      wrText(g, 'Tabungan bersama', 28, 150, 22, 600);
-      wrText(g, rpJt(D.sav.t), 28, 236, 48, 700);
-      wrText(g, `disetor tahun ini`, 28, 268, 16, 400, 'rgba(255,255,255,.8)');
-      [['Dimbo', a], ['Delpus', b]].forEach(([p, v], k) => {
-        const y = 360 + k * 80;
-        wrAv(g, p, 52, y, 44);
-        g.fillStyle = 'rgba(255,255,255,.15)'; wrRR(g, 86, y - 8, 240, 16, 8); g.fill();
-        g.fillStyle = PCOL[p]; wrRR(g, 86, y - 8, Math.max(8, v / t * 240), 16, 8); g.fill();
-        wrText(g, rpJt(v), 86, y + 32, 14, 500, 'rgba(255,255,255,.9)');
-      });
-    });
-    // 11. penutup: ringkasan
+    // 10. penutup: ringkasan
     S.push(g => {
       wrAv(g, 'Dimbo', C - 26, 150, 64); wrAv(g, 'Delpus', C + 26, 150, 64);
       wrText(g, `${Y} kalian`, C, 236, 30, 700, '#fff', 'center');
@@ -2612,7 +2386,7 @@
     .withFailureHandler(e => snack(isOffline(e) ? 'Offline: data belum bisa dimuat' : 'Gagal memuat: '+e.message)).getInfo();
   initMe(() => {
     setSeg('by','by', defBy()); if (lastInfo) renderInfo(lastInfo);
-    renderSaveCard(); loadSav();
+    try { localStorage.removeItem('hl_sav'); } catch (e) {}
   });
 </script>
 </body>
