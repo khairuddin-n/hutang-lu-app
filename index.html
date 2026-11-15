@@ -4,14 +4,29 @@
 <meta charset="utf-8">
 <base target="_top">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#00695C" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0B3D37" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#00695C" id="themeColor">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Hutang Lu">
 <title>Hutang Lu</title>
+<script>
+// ---------- Tema: auto (ikut sistem) / light / dark ----------
+(function () {
+  var mq = window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : null;
+  window.applyTheme = function () {
+    var t = 'auto'; try { t = localStorage.getItem('hl_theme') || 'auto'; } catch (e) {}
+    var dark = t === 'dark' || (t === 'auto' && mq && mq.matches);
+    document.documentElement.classList.toggle('dk', dark);
+    document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+    var m = document.getElementById('themeColor'); if (m) m.content = dark ? '#0B3D37' : '#00695C';
+    return t;
+  };
+  if (mq && mq.addEventListener) mq.addEventListener('change', applyTheme);
+  applyTheme();
+})();
+</script>
 <script>
 // ---------- Mode PWA ----------
 // Di luar Apps Script, google.script.run diganti panggilan ke API (Api.js) dengan kunci pribadi.
@@ -71,20 +86,18 @@
 <style>
   :root{
     --page:#F3F4F6; --card:#FFFFFF; --tile:#F1F4F4; --line:#ECECEC; --on:#1B1B1B; --on2:#62666D; --outline:#C9CBD0;
-    --brand:#00695C; --onbrand:#FFFFFF; --brandsoft:#DDF1EE; --onbrandsoft:#00382F;
+    --brand:#00695C; --acc:#00695C; --onbrand:#FFFFFF; --brandsoft:#DDF1EE; --onbrandsoft:#00382F;
     --dim:#3949AB; --dimsoft:#E3E6F7; --del:#C2410C; --delsoft:#FCE9DF;
     --red:#C5221F; --redsoft:#FCE8E6; --green:#137333; --greensoft:#E6F4EA; --warn:#B06000;
     --shadow:0 1px 2px rgba(16,24,40,.06);
     --fab-shadow:0 2px 6px rgba(0,0,0,.18),0 6px 16px rgba(0,0,0,.12);
   }
-  @media (prefers-color-scheme: dark){
-    :root{
+  html.dk{
       --page:#0E0E10; --card:#1B1B1E; --tile:#232628; --line:#2C2C30; --on:#ECECEC; --on2:#A3A6AD; --outline:#4A4C52;
-      --brand:#0B3D37; --onbrand:#E6F7F4; --brandsoft:#16332F; --onbrandsoft:#A7E3D8;
+      --brand:#0B3D37; --acc:#4DB6A8; --onbrand:#E6F7F4; --brandsoft:#16332F; --onbrandsoft:#A7E3D8;
       --dim:#A5B0F0; --dimsoft:#23284A; --del:#FFAB85; --delsoft:#3B2418;
       --red:#F28B82; --redsoft:#3A1C1A; --green:#81C995; --greensoft:#16301F; --warn:#FDD663;
       --shadow:none; --fab-shadow:0 2px 6px rgba(0,0,0,.5),0 6px 16px rgba(0,0,0,.4);
-    }
   }
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body{ margin:0; background:var(--page); overflow-x:hidden; }
@@ -100,7 +113,10 @@
   .ib:active{ background:rgba(127,127,127,.18); } .ib:disabled{ opacity:.3; }
 
   .av{ border-radius:50%; display:grid; place-items:center; color:#FFFFFF; font-weight:500; flex:none; overflow:hidden; }
-  .av svg{ width:100%; height:100%; display:block; }
+  .av svg, .av img{ width:100%; height:100%; display:block; object-fit:cover; }
+  .cicw{ position:relative; flex:none; display:block; }
+  .cicw > .av{ position:absolute; right:-4px; bottom:-4px; border:2px solid var(--card); box-sizing:content-box; }
+  .sub .cicw > .av{ border-color:var(--tile); }
   .av.Dimbo{ background:#3949AB; } .av.Delpus{ background:#C2410C; }
   .c-Dimbo{ color:var(--dim); } .c-Delpus{ color:var(--del); }
 
@@ -109,12 +125,13 @@
   .hero .bar{ display:flex; align-items:center; height:60px; padding:0 8px 0 20px; }
   .hero .bar h1{ margin:0; flex:1; font-size:20px; font-weight:500; display:flex; align-items:center; gap:10px; }
   .hero .bar h1 i{ width:28px; height:28px; border-radius:8px; background:rgba(255,255,255,.18); display:grid; place-items:center; font-style:normal; }
-  .who{ display:flex; align-items:center; gap:8px; padding:8px 20px 0; font-size:14px; }
+  .who{ display:flex; align-items:center; gap:6px; padding:8px 20px 0; font-size:14px; min-height:36px; }
+  .who .av{ border:2px solid rgba(255,255,255,.6); }
   .who .avs{ display:flex; } .who .avs .av{ border:2px solid var(--brand); } .who .avs .av + .av{ margin-left:-8px; }
   .hero .big{ padding:6px 20px 0; font-size:36px; font-weight:500; letter-spacing:-.5px; }
   .mini{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; padding:16px 20px 0; }
-  .mini div{ background:rgba(255,255,255,.12); border-radius:14px; padding:10px 12px; font-size:12px; opacity:.95; }
-  .mini b{ display:block; font-size:15px; font-weight:500; margin-top:2px; }
+  .mini div{ background:rgba(255,255,255,.12); border-radius:14px; padding:8px 12px; display:flex; align-items:center; gap:10px; }
+  .mini b{ font-size:15px; font-weight:500; }
   .sk{ background:rgba(255,255,255,.22); border-radius:6px; height:1em; }
 
   .main{ padding:0 16px; margin-top:-44px; position:relative; }
@@ -134,7 +151,7 @@
   .cic{ width:40px; height:40px; border-radius:13px; display:grid; place-items:center; flex:none; }
   .cic .ms{ font-size:22px; }
   .k-food{ background:#FFF1DA; color:#9A5B00; } .k-car{ background:#E1ECFF; color:#1F5BC6; } .k-shop{ background:#F6E3F6; color:#8E2B8E; } .k-fun{ background:#E3F4E8; color:#1E7A3C; }
-  @media (prefers-color-scheme: dark){ .k-food{ background:#3A2A10; color:#FFC46B; } .k-car{ background:#16264A; color:#9DBDFF; } .k-shop{ background:#3A1C3A; color:#F0A6F0; } .k-fun{ background:#15301F; color:#8CD9A4; } }
+  html.dk .k-food{ background:#3A2A10; color:#FFC46B; } html.dk .k-car{ background:#16264A; color:#9DBDFF; } html.dk .k-shop{ background:#3A1C3A; color:#F0A6F0; } html.dk .k-fun{ background:#15301F; color:#8CD9A4; }
 
   /* Riwayat */
   .tx{ display:flex; align-items:center; gap:12px; padding:10px 0; width:100%; border:0; background:none; text-align:left; color:var(--on); cursor:pointer; }
@@ -155,7 +172,7 @@
   .nav .add b{ position:absolute; top:-20px; left:50%; transform:translateX(-50%); width:60px; height:60px; border-radius:50%; background:var(--brand); color:#fff; display:grid; place-items:center; box-shadow:var(--fab-shadow); border:5px solid var(--page); transition:transform .15s; }
   .nav .add b .ms{ font-size:30px; }
   .nav .add:active b{ transform:translateX(-50%) scale(.94); }
-  @media (prefers-color-scheme: dark){ .nav .add b{ background:#4DB6A8; color:#00201C; } }
+  html.dk .nav .add b{ background:#4DB6A8; color:#00201C; }
   .addgrid{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
   .addgrid button{ border:0; background:var(--tile); border-radius:20px; padding:16px 8px 14px; display:flex; flex-direction:column; align-items:center; gap:10px; color:var(--on); cursor:pointer; min-width:0; }
   .addgrid button:active{ filter:brightness(.95); }
@@ -190,10 +207,10 @@
   .split2l b{ color:var(--on); font-weight:500; }
   .sic{ width:40px; height:40px; border-radius:13px; display:grid; place-items:center; flex:none; background:var(--tile); color:var(--on2); }
   .sic.warn{ background:#FFF1DA; color:#9A5B00; }
-  @media (prefers-color-scheme: dark){ .sic.warn{ background:#3A2A10; color:#FFC46B; } }
+  html.dk .sic.warn{ background:#3A2A10; color:#FFC46B; }
   .up{ color:var(--red); } .down{ color:var(--green); }
   .seeall{ border:0; background:none; color:var(--brand); font-size:13px; font-weight:500; cursor:pointer; padding:4px 0; }
-  @media (prefers-color-scheme: dark){ .seeall{ color:#4DB6A8; } }
+  html.dk .seeall{ color:#4DB6A8; }
 
   /* Riwayat */
   .hbar{ position:sticky; top:0; z-index:3; background:var(--page); padding:0 16px 10px; }
@@ -206,7 +223,7 @@
   .topbar{ display:flex; align-items:center; height:60px; padding:0 8px 0 4px; position:sticky; top:0; background:var(--page); z-index:3; }
   .topbar h1{ margin:0 0 0 4px; flex:1; font-size:20px; font-weight:500; }
   .savebtn{ height:40px; padding:0 20px; border:0; border-radius:20px; background:var(--brand); color:#fff; font-size:14px; font-weight:500; cursor:pointer; display:flex; align-items:center; gap:8px; }
-  @media (prefers-color-scheme: dark){ .savebtn{ background:#4DB6A8; color:#00201C; } }
+  html.dk .savebtn{ background:#4DB6A8; color:#00201C; }
   .savebtn:disabled{ opacity:.5; }
   .seg{ display:grid; grid-auto-flow:column; grid-auto-columns:minmax(0,1fr); gap:4px; background:var(--tile); border-radius:14px; padding:4px; }
   .seg button{ height:38px; border:0; border-radius:10px; background:transparent; font-size:14px; font-weight:500; color:var(--on2); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; min-width:0; }
@@ -215,7 +232,7 @@
   .lbl{ font-size:13px; color:var(--on2); margin:0 0 8px 2px; }
   .inp{ display:flex; align-items:center; gap:8px; background:var(--tile); border-radius:14px; padding:0 14px; min-height:52px; border:1.5px solid transparent; min-width:0; }
   .inp:focus-within{ border-color:var(--brand); background:var(--card); }
-  @media (prefers-color-scheme: dark){ .inp:focus-within{ border-color:#4DB6A8; } }
+  html.dk .inp:focus-within{ border-color:#4DB6A8; }
   .inp input{ flex:1; width:100%; border:0; outline:none; background:transparent; font-size:16px; color:var(--on); padding:14px 0; color-scheme:light dark; }
   .inp .pre{ color:var(--on2); font-size:15px; }
   .inp.big input{ font-size:26px; font-weight:500; }
@@ -225,6 +242,7 @@
   .chips::-webkit-scrollbar{ display:none; }
   .chip{ height:32px; padding:0 12px; border:1px solid var(--outline); border-radius:16px; background:transparent; font-size:13px; color:var(--on); cursor:pointer; flex:none; display:flex; align-items:center; gap:6px; }
   .chip i{ width:8px; height:8px; border-radius:50%; display:inline-block; }
+  .chip.avc{ padding:0 10px 0 4px; }
   .payer{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
   .payer button{ border:1.5px solid var(--line); background:var(--card); border-radius:16px; padding:14px 12px; display:flex; flex-direction:column; align-items:center; gap:8px; font-size:14px; font-weight:500; color:var(--on); cursor:pointer; position:relative; min-width:0; }
   .payer button .av{ opacity:.45; }
@@ -234,7 +252,7 @@
   .payer button .ck{ position:absolute; top:8px; right:8px; font-size:20px; display:none; }
   .payer button.on .ck{ display:block; }
   .payer button.on[data-v=Dimbo] .ck{ color:#3949AB; } .payer button.on[data-v=Delpus] .ck{ color:#C2410C; }
-  @media (prefers-color-scheme: dark){ .payer button.on[data-v=Dimbo] .ck{ color:var(--dim); } .payer button.on[data-v=Delpus] .ck{ color:var(--del); } }
+  html.dk .payer button.on[data-v=Dimbo] .ck{ color:var(--dim); } html.dk .payer button.on[data-v=Delpus] .ck{ color:var(--del); }
   .item{ padding:12px 0; border-top:1px solid var(--line); }
   .item:first-child{ border-top:0; padding-top:0; }
   .item .r1{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,128px); gap:8px; }
@@ -252,7 +270,7 @@
   .pv .rows{ margin-top:12px; font-size:13px; color:var(--on2); }
   .pv .rows div{ display:flex; justify-content:space-between; padding:4px 0; }
   .pv .warn{ margin-top:10px; font-size:13px; color:var(--warn); display:flex; gap:6px; align-items:center; }
-  .owe{ display:flex; align-items:center; gap:12px; background:var(--brandsoft); color:var(--onbrandsoft); border-radius:16px; padding:14px 16px; margin-bottom:12px; font-size:14px; }
+  .owe{ display:flex; align-items:center; gap:8px; background:var(--brandsoft); color:var(--onbrandsoft); border-radius:16px; padding:14px 16px; margin-bottom:12px; font-size:14px; }
   .owe b{ margin-left:auto; font-size:17px; font-weight:500; }
   .editinfo{ display:flex; gap:8px; align-items:center; background:var(--brandsoft); color:var(--onbrandsoft); border-radius:14px; padding:10px 12px; margin-bottom:12px; font-size:13px; }
 
@@ -262,20 +280,21 @@
   .donut{ display:flex; align-items:center; gap:18px; }
   .donut svg{ flex:none; }
   .lg2{ flex:1; min-width:0; display:flex; flex-direction:column; gap:10px; }
-  .lg2 div{ font-size:12.5px; color:var(--on2); }
-  .lg2 b{ display:block; font-size:16px; font-weight:500; color:var(--on); margin-top:2px; }
+  .lg2 > div{ font-size:12.5px; color:var(--on2); display:flex; align-items:center; gap:10px; }
+  .lg2 b{ display:block; font-size:16px; font-weight:500; margin-bottom:1px; }
   .dot{ display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; }
+  .cscroll{ overflow-x:auto; scrollbar-width:none; } .cscroll::-webkit-scrollbar{ display:none; }
   .cols{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); align-items:end; height:140px; }
   .cols .c{ display:flex; gap:5px; justify-content:center; align-items:flex-end; height:100%; }
   .cols .c i{ display:block; width:20px; border-radius:6px 6px 2px 2px; }
-  .cl{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); text-align:center; font-size:12px; color:var(--on2); margin-top:8px; line-height:1.5; }
+  .cl{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); text-align:center; white-space:nowrap; font-size:12px; color:var(--on2); margin-top:8px; line-height:1.5; }
   .catrow{ display:flex; align-items:center; gap:12px; padding:10px 0; width:100%; border:0; background:none; text-align:left; color:var(--on); cursor:pointer; }
   .catrow + .sub + .catrow, .sub + .catrow{ border-top:1px solid var(--line); }
   .catrow .m{ flex:1; min-width:0; }
   .catrow .t1{ display:flex; justify-content:space-between; gap:8px; font-size:15px; }
   .catrow .pb{ height:6px; border-radius:3px; background:var(--tile); margin-top:8px; overflow:hidden; }
   .catrow .pb i{ display:block; height:100%; border-radius:3px; background:var(--brand); }
-  @media (prefers-color-scheme: dark){ .catrow .pb i{ background:#4DB6A8; } }
+  html.dk .catrow .pb i{ background:#4DB6A8; }
   .catrow .t2{ font-size:12px; color:var(--on2); margin-top:6px; }
   .catrow .chev{ color:var(--on2); transition:transform .2s; } .catrow.open .chev{ transform:rotate(90deg); }
   .sub{ background:var(--tile); border-radius:14px; margin:2px 0 10px; padding:4px 12px; }
@@ -304,7 +323,7 @@
   .sheet .act{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:16px; }
   .btn{ height:48px; border-radius:24px; font-size:15px; font-weight:500; display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer; }
   .btn.fill{ border:0; background:var(--brand); color:#fff; }
-  @media (prefers-color-scheme: dark){ .btn.fill{ background:#4DB6A8; color:#00201C; } }
+  html.dk .btn.fill{ background:#4DB6A8; color:#00201C; }
   .btn.del{ border:0; background:var(--redsoft); color:var(--red); }
   .btn.del.arm{ background:var(--red); color:#fff; }
   .btn.fill.arm{ background:#B06000; color:#fff; }
@@ -320,7 +339,7 @@
   .paybtn{ margin:14px 20px 0; height:40px; padding:0 18px 0 14px; border-radius:20px; border:1px solid rgba(255,255,255,.45); background:rgba(255,255,255,.12); color:inherit; font-size:14px; font-weight:500; display:inline-flex; align-items:center; gap:8px; cursor:pointer; }
   .paybtn:active{ background:rgba(255,255,255,.22); }
   .k-pay{ background:#E3F4E8; color:#137333; }
-  @media (prefers-color-scheme: dark){ .k-pay{ background:#16301F; color:#81C995; } }
+  html.dk .k-pay{ background:#16301F; color:#81C995; }
 
   /* Pelunasan */
   .flow{ display:flex; align-items:center; gap:12px; }
@@ -331,7 +350,7 @@
   .opt .rd{ width:20px; height:20px; border-radius:50%; border:2px solid var(--outline); flex:none; display:grid; place-items:center; }
   .opt.on{ border-color:var(--brand); background:var(--brandsoft); }
   .opt.on .rd{ border-color:var(--brand); } .opt.on .rd::after{ content:''; width:10px; height:10px; border-radius:50%; background:var(--brand); }
-  @media (prefers-color-scheme: dark){ .opt.on{ border-color:#4DB6A8; } .opt.on .rd{ border-color:#4DB6A8; } .opt.on .rd::after{ background:#4DB6A8; } }
+  html.dk .opt.on{ border-color:#4DB6A8; } html.dk .opt.on .rd{ border-color:#4DB6A8; } html.dk .opt.on .rd::after{ background:#4DB6A8; }
   .opt .m{ flex:1; min-width:0; } .opt .t1{ font-size:15px; font-weight:500; } .opt .t2{ font-size:12.5px; color:var(--on2); margin-top:2px; }
   .opt .tag{ font-size:11.5px; font-weight:500; padding:3px 8px; border-radius:8px; background:var(--tile); color:var(--on2); flex:none; }
   .sum{ background:var(--tile); border-radius:16px; padding:4px 14px; font-size:14px; }
@@ -341,7 +360,7 @@
   .diffnote{ font-size:13px; margin-top:10px; display:flex; gap:8px; align-items:flex-start; color:var(--on2); }
   .diffnote .ms{ font-size:18px; }
   .linkbtn{ border:0; background:none; padding:0; color:var(--brand); font-size:13px; font-weight:500; cursor:pointer; text-decoration:underline; }
-  @media (prefers-color-scheme: dark){ .linkbtn{ color:#4DB6A8; } }
+  html.dk .linkbtn{ color:#4DB6A8; }
   .ur{ display:flex; align-items:center; gap:10px; padding:10px 0; width:100%; border:0; background:none; text-align:left; color:var(--on); cursor:pointer; }
   .ur + .ur{ border-top:1px solid var(--line); }
   .ur .ck{ width:22px; height:22px; border-radius:50%; flex:none; display:grid; place-items:center; border:2px solid var(--outline); color:#fff; }
@@ -353,8 +372,6 @@
   .ur.ro{ cursor:default; opacity:1 !important; } .ur.ro .ck{ display:none; }
   .assistnote{ display:flex; gap:8px; align-items:center; background:var(--brandsoft); color:var(--onbrandsoft); border-radius:14px; padding:10px 12px; margin-bottom:12px; font-size:13px; }
   .cut{ font-size:12px; color:var(--on2); text-align:center; padding:6px 0; border-top:1px dashed var(--outline); border-bottom:1px dashed var(--outline); margin:2px 0; }
-  .bottombar{ position:fixed; left:0; right:0; bottom:calc(72px + env(safe-area-inset-bottom)); background:var(--page); padding:10px 16px; z-index:4; }
-  .bottombar .in{ max-width:568px; margin:0 auto; }
   .lg{ display:flex; align-items:center; gap:12px; padding:10px 0; }
   .lg + .lg{ border-top:1px solid var(--line); }
   .lg .m{ flex:1; min-width:0; } .lg .t2{ font-size:12px; color:var(--on2); margin-top:2px; }
@@ -374,15 +391,14 @@
   .scanrow{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
   .flash{ animation:flash 1.8s ease-out; }
   #items.flash{ border-radius:14px; }
-  @keyframes flash{ 0%,35%{ box-shadow:0 0 0 2px var(--brand); background:var(--brandsoft); } 100%{ box-shadow:0 0 0 0 transparent; } }
-  @media (prefers-color-scheme: dark){ @keyframes flash{ 0%,35%{ box-shadow:0 0 0 2px #4DB6A8; background:var(--brandsoft); } 100%{ box-shadow:0 0 0 0 transparent; } } }
+  @keyframes flash{ 0%,35%{ box-shadow:0 0 0 2px var(--acc); background:var(--brandsoft); } 100%{ box-shadow:0 0 0 0 transparent; } }
   .scanrow .scanbtn{ height:42px; justify-content:center; border-radius:14px; }
   .scanbtn .ms{ font-size:20px; }
   .scanbtn:disabled{ opacity:.6; }
 
   .spin{ width:18px; height:18px; border-radius:50%; border:2.5px solid currentColor; border-right-color:transparent; animation:sp .7s linear infinite; flex:none; }
   @keyframes sp{ to{ transform:rotate(360deg);} }
-  .snack{ position:fixed; left:16px; right:16px; bottom:calc(160px + env(safe-area-inset-bottom)); max-width:568px; margin:0 auto; background:#2B2B2E; color:#F2F2F2; padding:14px 16px; border-radius:12px; font-size:14px; box-shadow:0 4px 12px rgba(0,0,0,.2); opacity:0; transform:translateY(8px); transition:all .2s; pointer-events:none; z-index:20; }
+  .snack{ position:fixed; left:16px; right:16px; bottom:calc(96px + env(safe-area-inset-bottom)); max-width:568px; margin:0 auto; background:#2B2B2E; color:#F2F2F2; padding:14px 16px; border-radius:12px; font-size:14px; box-shadow:0 4px 12px rgba(0,0,0,.2); opacity:0; transform:translateY(8px); transition:all .2s; pointer-events:none; z-index:20; }
   .snack.show{ opacity:1; transform:none; }
 </style>
 </head>
@@ -393,6 +409,7 @@
 <div id="vHome">
   <div class="hero"><div class="wrap">
     <div class="bar"><h1><i class="ms f" aria-hidden="true" style="font-size:18px">handshake</i>Hutang Lu</h1>
+      <button class="ib" id="themeBtn" aria-label="Tema"><span class="ms" aria-hidden="true">brightness_auto</span></button>
       <button class="ib" id="eyeBtn" aria-label="Sembunyikan nominal"><span class="ms" aria-hidden="true">visibility</span></button>
       <button class="ib" id="meBtn" aria-label="Ganti pengguna"></button></div>
     <div class="who" id="who"><div class="sk" style="width:170px"></div></div>
@@ -429,7 +446,10 @@
   <div class="wrap">
     <header class="topbar"><h1 style="margin-left:16px">Statistik</h1></header>
     <div style="padding:0 16px">
-      <div class="mnav">
+      <div class="seg" id="sMode" role="group" aria-label="Periode" style="margin-bottom:10px">
+        <button data-v="m" class="on">Per bulan</button><button data-v="all">Semua</button>
+      </div>
+      <div class="mnav" id="mnav">
         <button class="ib" id="mPrev" aria-label="Bulan sebelumnya"><span class="ms" aria-hidden="true">chevron_left</span></button>
         <span id="mTitle">&nbsp;</span>
         <button class="ib" id="mNext" aria-label="Bulan berikutnya"><span class="ms" aria-hidden="true">chevron_right</span></button>
@@ -476,7 +496,7 @@
       </section>
 
       <section class="card">
-        <div class="lbl">Siapa yang bayar?</div>
+        <div class="lbl">Yang bayar</div>
         <div class="payer" id="by" role="group" aria-label="Yang bayar">
           <button data-v="Dimbo"><span class="ms f ck" aria-hidden="true">check_circle</span><span class="av Dimbo" style="width:40px;height:40px;font-size:17px">D</span>Dimbo</button>
           <button data-v="Delpus"><span class="ms f ck" aria-hidden="true">check_circle</span><span class="av Delpus" style="width:40px;height:40px;font-size:17px">P</span>Delpus</button>
@@ -485,8 +505,8 @@
 
       <!-- LANGSUNG -->
       <section class="card" id="direct">
-        <div class="lbl"><label for="amount" id="amtLabel">Bagian Dimbo</label></div>
-        <div class="inp big"><span class="pre">Rp</span><input id="amount" class="n" inputmode="decimal" placeholder="0"></div>
+        <div class="lbl"><label for="amount" id="amtLabel">Nominal</label></div>
+        <div class="inp big"><span class="pre">Rp</span><input id="amount" class="n" inputmode="tel" autocomplete="off" data-calc placeholder="0"></div>
         <div class="help" id="amtHelp"></div>
       </section>
 
@@ -500,10 +520,10 @@
         </section>
         <section class="card">
           <div class="two">
-            <div style="min-width:0"><div class="lbl"><label for="fee">Ongkir + layanan</label></div><div class="inp"><span class="pre">Rp</span><input id="fee" class="n" inputmode="decimal" placeholder="0"></div></div>
-            <div style="min-width:0"><div class="lbl"><label for="total">Total bayar</label></div><div class="inp"><span class="pre">Rp</span><input id="total" class="n" inputmode="decimal" placeholder="0"></div></div>
+            <div style="min-width:0"><div class="lbl"><label for="fee">Ongkir + layanan</label></div><div class="inp"><span class="pre">Rp</span><input id="fee" class="n" inputmode="tel" autocomplete="off" data-calc placeholder="0"></div></div>
+            <div style="min-width:0"><div class="lbl"><label for="total">Total bayar</label></div><div class="inp"><span class="pre">Rp</span><input id="total" class="n" inputmode="tel" autocomplete="off" data-calc placeholder="0"></div></div>
           </div>
-          <div class="help">Ongkir dibagi rata. Diskon dan pajak ikut porsi masing-masing. Bisa ketik 25k, 25.000, atau 25000x2.</div>
+          <div class="help">Ongkir dibagi rata, diskon & pajak ikut porsi. Bisa ketik 5000+2000 atau 12000*2.</div>
         </section>
         <section class="card pv" id="preview"></section>
       </div>
@@ -528,11 +548,8 @@
       <button class="ib hide" id="shareBtn" aria-label="Bagikan ke WhatsApp"><span class="ms" aria-hidden="true">share</span></button>
     </header>
     <div style="padding:4px 16px 0" id="payBody"><section class="card"><div class="empty">Memuat…</div></section></div>
-    <div style="height:170px"></div>
+    <div style="height:110px"></div>
   </div>
-  <div class="bottombar hide" id="payBar"><div class="in">
-    <button class="btn fill" id="payGo" style="width:100%"></button>
-  </div></div>
 </div>
 
 <nav class="nav" id="nav"><div class="in">
@@ -552,6 +569,17 @@
     <button data-v="Dimbo"><span class="av Dimbo" style="width:48px;height:48px;font-size:20px">D</span>Dimbo</button>
     <button data-v="Delpus"><span class="av Delpus" style="width:48px;height:48px;font-size:20px">P</span>Delpus</button>
   </div>
+</div></div>
+
+<!-- Sheet foto profil -->
+<div class="sheet" id="photoSheet" role="dialog" aria-modal="true" aria-label="Foto profil"><div class="in">
+  <div class="grab"></div>
+  <div style="display:flex;justify-content:center;margin-bottom:18px" id="phAv"></div>
+  <div class="act" style="margin-top:0">
+    <button class="btn tonal" id="phDel"><span class="ms" aria-hidden="true" style="font-size:20px">delete</span>Hapus</button>
+    <button class="btn fill" id="phPick"><span class="ms" aria-hidden="true" style="font-size:20px">photo_camera</span>Ganti foto</button>
+  </div>
+  <input type="file" id="phFile" accept="image/*" class="hide">
 </div></div>
 
 <!-- Sheet tambah -->
@@ -595,11 +623,11 @@
   const fmtN = n => Math.round(n).toLocaleString('id-ID');
   const fmtR = n => 'Rp' + fmtN(n);
   const jtR = n => n >= 1e6 ? 'Rp' + (n/1e6).toLocaleString('id-ID',{maximumFractionDigits:1}) + ' jt' : 'Rp' + Math.round(n/1e3) + ' rb';
-  // Mode sembunyi nominal (ikon mata): semua angka tampil "Rp•••••", kecuali di form isian & teks yang dibagikan
+  // Mode sembunyi nominal (ikon mata): semua angka tampil "Rp•••••", kecuali di form isian (pakai fmtR) & teks yang dibagikan
   let HIDE = false; try { HIDE = localStorage.getItem('hl_hide') === '1'; } catch (e) {}
   const MASK = 'Rp•••••';
-  const fmt = n => HIDE && view !== 'form' ? MASK : fmtR(n);
-  const jt = n => HIDE && view !== 'form' ? MASK : jtR(n);
+  const fmt = n => HIDE ? MASK : fmtR(n);
+  const jt = n => HIDE ? MASK : jtR(n);
   const store = {
     get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } },
     set(k,v){ try { localStorage.setItem(k,v); } catch(e){} }
@@ -615,9 +643,19 @@
     Dimbo: '<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M5 41c1.5-8 7.5-12 15-12s13.5 4 15 12z" fill="#C9CFF6"/><rect x="17" y="22" width="6" height="7" rx="2" fill="#E8B48F"/><circle cx="20" cy="17" r="8" fill="#F3C9A7"/><path d="M11.6 16.5c-.4-6.3 3.6-9.8 8.6-9.8 5.2 0 8.9 3.3 8.3 9.3-1.2-2.4-3.2-3.6-5.6-3.9-1.5 1.4-5.6 2.4-11.3 4.4z" fill="#2B1B12"/></svg>',
     Delpus: '<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M9.5 33c-1.8-10-.6-24 10.5-24s12.3 14 10.5 24z" fill="#3B2314"/><path d="M5 41c1.5-8 7.5-12 15-12s13.5 4 15 12z" fill="#FFD7C2"/><rect x="17" y="22" width="6" height="7" rx="2" fill="#E8B48F"/><circle cx="20" cy="17" r="8" fill="#F6CDB0"/><path d="M11.8 17.5c.2-6 3.6-9.4 8.2-9.4s8 3.4 8.2 9.4c-2.6-1-5.8-3.4-7.6-5.9-1.6 2.9-4.9 5-8.8 5.9z" fill="#3B2314"/></svg>'
   };
-  const av = (p, s=32) => `<span class="av ${p}" style="width:${s}px;height:${s}px">${FACE[p] || ini(p)}</span>`;
-  // avatar yang ditulis langsung di HTML (pilihan pembayar, pilih pengguna)
-  document.querySelectorAll('span.av.Dimbo, span.av.Delpus').forEach(e => { e.innerHTML = FACE[e.classList.contains('Dimbo') ? 'Dimbo' : 'Delpus']; });
+  // Foto profil (dari server, disimpan juga di HP supaya langsung tampil)
+  let PHOTOS = {}; try { PHOTOS = JSON.parse(store.get('hl_photos') || '{}') || {}; } catch (e) {}
+  const face = p => PHOTOS[p] ? `<img src="${PHOTOS[p]}" alt="">` : (FACE[p] || ini(p));
+  const av = (p, s=32) => `<span class="av ${p}" style="width:${s}px;height:${s}px" title="${p}">${face(p)}</span>`;
+  // gambar ulang semua avatar yang sudah ada di halaman
+  const paintAvs = () => document.querySelectorAll('span.av.Dimbo, span.av.Delpus').forEach(e => { e.innerHTML = face(e.classList.contains('Dimbo') ? 'Dimbo' : 'Delpus'); });
+  paintAvs();   // avatar yang ditulis langsung di HTML (pilihan pembayar, pilih pengguna)
+  function setPhotos(ph){
+    if (!ph) return;
+    const j = JSON.stringify(ph);
+    if (j === JSON.stringify(PHOTOS)) return;
+    PHOTOS = ph; store.set('hl_photos', j); paintAvs();
+  }
 
   // Kategori dari keterangan (sama dengan Stats.js)
   const CATS = [
@@ -628,24 +666,45 @@
   const ADJ = /^(Kelebihan bayar|Sisa pelunasan)\b/i;
   const catOf = desc => { if (ADJ.test(desc)) return ['Pelunasan','payments','k-pay']; for (const c of CATS) if (c[3].test(desc)) return c; return ['Makan & minum','restaurant','k-food']; };
   const cic = (desc, s=40) => { const c = catOf(desc); return `<span class="cic ${c[2]}" style="width:${s}px;height:${s}px"><span class="ms" aria-hidden="true">${c[1]}</span></span>`; };
+  // ikon kategori + avatar kecil yang bayar
+  const cicBy = (desc, by, s=40) => `<span class="cicw">${cic(desc, s)}${av(by, Math.round(s*.42))}</span>`;
 
-  // "25k" "25.000" "25000x2" "12k+3k" → angka
+  // "25k" "25.000" "25000x2" "5000+2000-500" "(12000+3000)/2" → angka
   function num(s){
     s = String(s||'').toLowerCase().replace(/\s/g,'').replace(/rp/g,'');
     if (!s) return 0;
     s = s.replace(/(\d)[.,](?=\d{3}(\D|$))/g,'$1').replace(/,/g,'.');
+    s = s.replace(/(\d+(?:\.\d+)?)jt/g,(m,a)=>String(parseFloat(a)*1e6));
     s = s.replace(/(\d+(?:\.\d+)?)(rb|k)/g,(m,a)=>String(parseFloat(a)*1000));
-    s = s.replace(/[x×]/g,'*');
-    if (!/^[\d.+*]+$/.test(s)) return NaN;
-    let total = 0;
-    for (const term of s.split('+')){
-      if (term==='') continue;
-      let p = 1;
-      for (const f of term.split('*')){ const v = parseFloat(f); if (isNaN(v)) return NaN; p *= v; }
-      total += p;
-    }
-    return total;
+    s = s.replace(/[x×]/g,'*').replace(/[:÷]/g,'/').replace(/[−–]/g,'-').replace(/[+\-*/]+$/,'');   // operator di akhir = masih ngetik
+    if (!s) return 0;
+    if (!/^[\d.+\-*/()]+$/.test(s)) return NaN;
+    let i = 0;
+    const expr = () => { let v = term(); while (s[i]==='+' || s[i]==='-'){ const o = s[i++], t = term(); v = o==='+' ? v+t : v-t; } return v; };
+    const term = () => { let v = fac(); while (s[i]==='*' || s[i]==='/'){ const o = s[i++], f = fac(); v = o==='*' ? v*f : v/f; } return v; };
+    const fac = () => {
+      if (s[i]==='-'){ i++; return -fac(); }
+      if (s[i]==='('){ i++; const v = expr(); if (s[i] === ')') i++; return v; }
+      const m = /^(\d+(\.\d*)?|\.\d+)/.exec(s.slice(i)); if (!m) throw 0;
+      i += m[0].length; return parseFloat(m[0]);
+    };
+    try { const v = expr(); return i === s.length && isFinite(v) ? v : NaN; } catch (e) { return NaN; }
   }
+  // Kalkulator di kolom nominal: "5000+2000+1000" jadi "8.000" saat Enter atau pindah kolom
+  function evalField(el){
+    if (!el.isConnected) return;
+    const raw = el.value.trim();
+    if (!/[+\-*/x×:÷()]|\d\s*(k|rb|jt)\b/i.test(raw.replace(/^rp/i,''))) return;
+    const v = num(raw);
+    if (isNaN(v) || v < 0) return snack('Hitungan tidak terbaca');
+    const out = fmtN(v);
+    if (out !== el.value){ el.value = out; el.dispatchEvent(new Event('input', { bubbles:true })); }
+  }
+  document.addEventListener('focusout', e => { if (e.target.matches && e.target.matches('input[data-calc]')) evalField(e.target); });
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' || !e.target.matches || !e.target.matches('input[data-calc]')) return;
+    e.preventDefault(); evalField(e.target);
+  });
 
   function snack(msg){
     const t=$('snack'); t.textContent=msg; t.classList.add('show');
@@ -678,7 +737,50 @@
     const cb = meCb; meCb = null;
     if (cb) cb(); else if (lastInfo) { renderInfo(lastInfo); if (view === 'pay') renderPay(); }
   });
-  $('meBtn').onclick = () => askMe(null);
+  $('meBtn').onclick = () => window.__PWA ? openPhoto() : askMe(null);
+  // ---------- Foto profil (PWA: tap avatar sendiri) ----------
+  function openPhoto(){
+    $('phAv').innerHTML = av(ME, 96);
+    $('phDel').disabled = !PHOTOS[ME];
+    $('scrim').classList.add('show'); $('photoSheet').classList.add('show');
+  }
+  function squarePhoto(file){
+    return new Promise((res, rej) => {
+      const img = new Image();
+      img.onload = () => {
+        const S = 96, m = Math.min(img.width, img.height), c = document.createElement('canvas');
+        c.width = c.height = S;
+        c.getContext('2d').drawImage(img, (img.width-m)/2, (img.height-m)/2, m, m, 0, 0, S, S);
+        let q = .85, u; do { u = c.toDataURL('image/jpeg', q); q -= .1; } while (u.length > 8000 && q > .3);
+        res(u);
+      };
+      img.onerror = () => rej(new Error('Gambar tidak bisa dibuka'));
+      img.src = URL.createObjectURL(file);
+    });
+  }
+  function savePhoto(url, btn){
+    const h = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<span class="spin"></span>';
+    google.script.run
+      .withSuccessHandler(ph => { btn.disabled = false; btn.innerHTML = h; setPhotos(ph); closeSheet(); snack(url ? 'Foto disimpan' : 'Foto dihapus'); })
+      .withFailureHandler(e => { btn.disabled = false; btn.innerHTML = h; snack('Gagal: ' + e.message); openPhoto(); })
+      .setPhoto(url);
+  }
+  $('phPick').onclick = () => $('phFile').click();
+  $('phFile').onchange = async e => {
+    const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+    try { const u = await squarePhoto(f); $('phAv').innerHTML = `<span class="av ${ME}" style="width:96px;height:96px"><img src="${u}" alt=""></span>`; savePhoto(u, $('phPick')); }
+    catch (err) { snack(err.message); }
+  };
+  $('phDel').onclick = () => savePhoto('', $('phDel'));
+
+  // ---------- Tema ----------
+  const THEMES = ['auto','light','dark'], TH_IC = { auto:'brightness_auto', light:'light_mode', dark:'dark_mode' }, TH_TX = { auto:'Tema ikut sistem', light:'Tema terang', dark:'Tema gelap' };
+  function paintTheme(t){ $('themeBtn').innerHTML = `<span class="ms" aria-hidden="true">${TH_IC[t]}</span>`; $('themeBtn').setAttribute('aria-label', TH_TX[t] + ' (ganti)'); }
+  $('themeBtn').onclick = () => {
+    const t = THEMES[(THEMES.indexOf(applyTheme()) + 1) % 3];
+    store.set('hl_theme', t); applyTheme(); paintTheme(t); snack(TH_TX[t]);
+  };
+  paintTheme(applyTheme());
   function paintEye(){
     $('eyeBtn').innerHTML = `<span class="ms" aria-hidden="true">${HIDE ? 'visibility_off' : 'visibility'}</span>`;
     $('eyeBtn').setAttribute('aria-label', HIDE ? 'Tampilkan nominal' : 'Sembunyikan nominal');
@@ -697,7 +799,7 @@
     $('meBtn').innerHTML = av(ME, 32);
     $('meBtn').style.pointerEvents = window.__PWA ? 'none' : '';
     document.querySelectorAll('#by button').forEach(b => {
-      const t = b.lastChild; t.textContent = b.dataset.v + (b.dataset.v === ME ? ' (kamu)' : '');
+      const t = b.lastChild; t.textContent = nm(b.dataset.v);
     });
     initHF();
     if (!state.edit) setSeg('by', 'by', ME);
@@ -716,7 +818,6 @@
     el.classList.remove('view-in', 'form-in'); void el.offsetWidth; el.classList.add(cls);
     $('nav').classList.toggle('hide', v === 'form');
     document.querySelectorAll('#nav button[data-v]').forEach(b => b.classList.toggle('on', b.dataset.v === v));
-    if (v !== 'pay') $('payBar').classList.add('hide');
     window.scrollTo(0,0);
     if (v === 'stats' && (statsStale || !S)) loadStats(S ? S.ym : '');
     if (v === 'hist' && histStale) loadHist();
@@ -769,8 +870,8 @@
 
   function renderDirect(){
     const deb = other(state.by);
-    $('amtLabel').textContent = 'Bagian ' + nml(deb);
-    $('amtHelp').textContent = 'Jumlah yang dibayari ' + nml(state.by);
+    $('amtLabel').textContent = 'Nominal';
+    $('amtHelp').textContent = '';
     if (state.mode === 'direct') showOwe(num($('amount').value));
   }
 
@@ -778,7 +879,7 @@
     const deb = other(state.by);
     const ok = v > 0 && !isNaN(v);
     $('owe').classList.toggle('hide', !ok);
-    if (ok) $('owe').innerHTML = `${av(deb, 30)}<span>${nm(deb)} utang ke ${nml(state.by)}</span><b class="n">${fmt(v)}</b>`;
+    if (ok) $('owe').innerHTML = `${av(deb, 30)}<span class="ms" aria-hidden="true" style="font-size:18px">arrow_forward</span>${av(state.by, 30)}<b class="n" aria-label="${deb} utang ke ${state.by}">${fmtR(v)}</b>`;
   }
 
   function fillQuick(x){
@@ -811,7 +912,7 @@
       d.innerHTML = `
         <div class="r1">
           <div class="inp"><input placeholder="Item ${i+1}" value="${esc(it.name)}" data-k="name" aria-label="Nama item ${i+1}"></div>
-          <div class="inp"><span class="pre">Rp</span><input class="n" inputmode="decimal" placeholder="0" value="${esc(it.price)}" data-k="price" aria-label="Harga item ${i+1}"></div>
+          <div class="inp"><span class="pre">Rp</span><input class="n" inputmode="tel" autocomplete="off" data-calc placeholder="0" value="${esc(it.price)}" data-k="price" aria-label="Harga item ${i+1}"></div>
         </div>
         <div class="r2">
           <div class="seg sm" role="group" aria-label="Pemilik item ${i+1}">
@@ -834,6 +935,7 @@
   // Rumus sama dengan sheet: H = F/2 + D/(D+E)*(G-F); I = G-H
   function calc(){
     if (state.mode!=='split') return null;
+    const fmt = fmtR;                       // form selalu tampilkan angka asli
     let D=0, E=0, bad=false;
     state.items.forEach(it=>{
       const p = num(it.price); if (isNaN(p)) { bad=true; return; }
@@ -891,7 +993,8 @@
     const nD = digits(s.netDimbo), nP = digits(s.netDelpus);
     let from = '', to = '', amt = 0;
     if (nD > 0){ from='Dimbo'; to='Delpus'; amt=nD; } else if (nP > 0){ from='Delpus'; to='Dimbo'; amt=nP; }
-    $('who').innerHTML = from ? `<span class="avs">${av(from, 28)}${av(to, 28)}</span>${nm(from)} utang ke ${nml(to)}` : 'Semua lunas';
+    $('who').innerHTML = from ? `${av(from, 28)}<span class="ms" aria-hidden="true" style="font-size:18px;opacity:.8">arrow_forward</span>${av(to, 28)}` : 'Semua lunas';
+    $('who').setAttribute('aria-label', from ? `${from} utang ke ${to}` : 'Semua lunas');
     $('bigAmt').textContent = from ? fmt(amt) : 'Rp0';
     $('payBtn').classList.toggle('hide', !from);
     // yang berutang: Bayar · yang ditalangin: Tagih
@@ -899,10 +1002,11 @@
     $('payBtn').innerHTML = `<span class="ms" aria-hidden="true" style="font-size:20px">${iOwe || !from ? 'payments' : 'request_quote'}</span>${iOwe || !from ? 'Bayar' : 'Tagih'}`;
     $('payTab').querySelector('i').textContent = iOwe || !from ? 'payments' : 'request_quote';
     $('payTab').querySelector('span').textContent = iOwe || !from ? 'Bayar' : 'Tagih';
-    const u = p => `<div>Utang ${nml(p)}<b>${fmt(digits(p==='Dimbo' ? s.utangDimbo : s.utangDelpus))}</b></div>`;
+    const u = p => `<div aria-label="Utang ${p}">${av(p, 24)}<b>${fmt(digits(p==='Dimbo' ? s.utangDimbo : s.utangDelpus))}</b></div>`;
     $('mini').innerHTML = ME === 'Delpus' ? u('Delpus') + u('Dimbo') : u('Dimbo') + u('Delpus');
 
     state.suggest = info.suggest || [];
+    setPhotos(info.photos);
 
     state.recent = info.recent || [];
     const rec = state.recent.slice(0, 5);
@@ -916,13 +1020,13 @@
       $('monthCard').innerHTML = `<button class="mcard">
         <div class="m"><div style="font-size:13px;color:var(--on2)">Talangan bulan ini</div>
           <div class="v n">${fmt(m.total)}</div>
-          <div class="t2 n">${m.n} transaksi${m.prev ? ` · <span class="${chg>0?'up':'down'}">${chg>0?'▲':'▼'} ${Math.abs(Math.round(chg*100))}%</span> vs ${esc(m.prevLabel)}` : ''}${m.top ? ' · terbanyak ' + esc(m.top.toLowerCase()) : ''}</div></div>
+          <div class="t2 n">${m.n} transaksi${m.prev ? ` · <span class="${chg>0?'up':'down'}">${chg>0?'▲':'▼'} ${Math.abs(Math.round(chg*100))}%</span>` : ''}</div></div>
         <span class="ms" aria-hidden="true" style="color:var(--on2)">chevron_right</span></button>
         ${m.total > 0 ? (() => {
           const a = ME === 'Delpus' ? ['Delpus', m.del] : ['Dimbo', m.dim], b = ME === 'Delpus' ? ['Dimbo', m.dim] : ['Delpus', m.del];
           const col = p => p === 'Dimbo' ? '#3949AB' : '#C2410C', pa = a[1] / (m.total || 1) * 100;
           return `<div class="split2"><i style="width:${pa}%;background:${col(a[0])}"></i><i style="width:${100-pa}%;background:${col(b[0])}"></i></div>
-            <div class="split2l n"><span>${nm(a[0])} nalangin <b>${fmt(a[1])}</b></span><span>${nm(b[0])} <b>${fmt(b[1])}</b></span></div>`; })() : ''}`;
+            <div class="split2l n"><span style="display:flex;align-items:center;gap:6px">${av(a[0], 20)}<b>${fmt(a[1])}</b></span><span style="display:flex;align-items:center;gap:6px"><b>${fmt(b[1])}</b>${av(b[0], 20)}</span></div>`; })() : ''}`;
       $('monthCard').querySelector('button').onclick = () => setView('stats');
     }
     histStale = true; payStale = true;
@@ -934,12 +1038,14 @@
 
   // Satu baris transaksi (dipakai beranda & riwayat)
   function txHtml(r, i, src, showDate){
-    const w = r.raw, deb = other(r.by), owed = r.by==='Delpus' ? w.H : w.I;
+    // warna nominal = warna orang yang bayar (sama dengan avatar kecil di ikon)
+    const w = r.raw, owed = r.by==='Delpus' ? w.H : w.I;
     const d = /^\d{4}-\d{2}-\d{2}$/.test(w.date) ? w.date.split('-').map(Number) : null;
-    return `<button class="tx ${r.paid?'paid':''}" data-i="${i}" ${r.paid?'tabindex="-1"':''}>
-      ${cic(r.desc)}
-      <div class="m"><div class="t1">${esc(r.desc)}</div><div class="t2 n">${d ? d[2]+' '+MON[d[1]-1]+(showDate && d[0]!==new Date().getFullYear() ? ' '+d[0] : '')+' · ' : ''}${esc(nm(r.by))} bayar${w.G>0 ? ' '+fmt(w.G) : ''}</div></div>
-      <div class="e n">${r.paid ? `<b>${fmt(owed)}</b><small style="color:var(--green)">Lunas</small>` : `<b class="c-${deb}">${fmt(owed)}</b><small>${nm(deb)} utang</small>`}</div>
+    const dt = d ? d[2]+' '+MON[d[1]-1]+(showDate && d[0]!==new Date().getFullYear() ? ' '+d[0] : '') : '';
+    return `<button class="tx ${r.paid?'paid':''}" data-i="${i}" ${r.paid?'tabindex="-1"':''} aria-label="${esc(r.desc)}, ${r.by} bayar">
+      ${cicBy(r.desc, r.by)}
+      <div class="m"><div class="t1">${esc(r.desc)}</div><div class="t2 n">${[dt, w.G>0 ? 'total '+fmt(w.G) : ''].filter(Boolean).join(' · ')}</div></div>
+      <div class="e n"><b class="${r.paid?'':'c-'+r.by}">${fmt(owed)}</b>${r.paid ? '<small style="color:var(--green);display:flex;justify-content:flex-end"><span class="ms" aria-label="Lunas" style="font-size:16px">check_circle</span></small>' : ''}</div>
     </button>`;
   }
   function bindTx(box, list){ box.querySelectorAll('.tx:not(.paid)').forEach(el => el.onclick = () => openSheet(list[+el.dataset.i])); }
@@ -950,9 +1056,11 @@
   const HF = [['st','open','Belum lunas'],['st','paid','Lunas'],['by','Dimbo','Dimbo bayar'],['by','Delpus','Delpus bayar'],
               ['cat','Makan & minum','Makan'],['cat','Transport','Transport'],['cat','Belanja','Belanja'],['cat','Hiburan','Hiburan'],['cat','Pelunasan','Pelunasan']];
   function initHF(){
-    const list = HF.map(([g,v,l]) => [g, v, g === 'by' ? nm(v) + ' bayar' : l]);
-    if (ME === 'Delpus') { const a = list[2]; list[2] = list[3]; list[3] = a; }   // "Kamu bayar" duluan
-    $('hf').innerHTML = list.map(([g,v,l]) => `<button class="chip ${HS[g]===v?'on':''}" data-g="${g}" data-v="${v}">${l}</button>`).join('');
+    const list = HF.map(([g,v,l]) => [g, v, l]);
+    if (ME === 'Delpus') { const a = list[2]; list[2] = list[3]; list[3] = a; }   // avatar sendiri duluan
+    $('hf').innerHTML = list.map(([g,v,l]) => g === 'by'
+      ? `<button class="chip avc ${HS[g]===v?'on':''}" data-g="${g}" data-v="${v}" aria-label="${l}">${av(v, 24)}<span class="ms" aria-hidden="true" style="font-size:18px">payments</span></button>`
+      : `<button class="chip ${HS[g]===v?'on':''}" data-g="${g}" data-v="${v}">${l}</button>`).join('');
     $('hf').querySelectorAll('.chip').forEach(b => b.onclick = () => { const g = b.dataset.g; HS[g] = HS[g] === b.dataset.v ? '' : b.dataset.v; filterHist(); });
   }
   initHF();
@@ -1005,14 +1113,14 @@
     sheetRow = r;
     const w = r.raw, deb = other(r.by), owed = r.by==='Delpus' ? w.H : w.I;
     $('shHd').innerHTML = `${cic(r.desc, 48)}<div style="min-width:0"><b>${esc(r.desc)}</b><span>${esc(r.date)}</span></div>`;
-    $('shFacts').innerHTML = `<div><span>Dibayar</span><span>${esc(r.by)}</span></div>` +
-      (w.G>0 ? `<div><span>Total bayar</span><span>${fmt(w.G)}</span></div>` : `<div><span>Jenis</span><span>Langsung</span></div>`) +
-      `<div><span>${nm(deb)} utang</span><span class="c-${deb}" style="font-weight:500">${fmt(owed)}</span></div>`;
+    $('shFacts').innerHTML = `<div><span>Dibayar</span>${av(r.by, 22)}</div>` +
+      (w.G>0 ? `<div><span>Total</span><span>${fmt(w.G)}</span></div>` : '') +
+      `<div><span>Utang</span><span style="display:flex;align-items:center;gap:8px">${av(deb, 22)}<b class="c-${r.by}" style="font-weight:500">${fmt(owed)}</b></span></div>`;
     const del = $('shDel'); del.classList.remove('arm'); del.innerHTML='<span class="ms" aria-hidden="true" style="font-size:20px">delete</span>Hapus'; del.disabled=false;
     $('shNote').textContent = '';
     $('scrim').classList.add('show'); $('sheet').classList.add('show');
   }
-  function closeSheet(){ $('scrim').classList.remove('show'); ['sheet','shareSheet','addSheet','meSheet'].forEach(id => $(id).classList.remove('show')); }
+  function closeSheet(){ $('scrim').classList.remove('show'); ['sheet','shareSheet','addSheet','meSheet','photoSheet'].forEach(id => $(id).classList.remove('show')); }
 
   function startEdit(r){
     closeSheet();
@@ -1096,10 +1204,14 @@
 
   // ---------- Statistik ----------
   const CAT_ICON = { 'Makan & minum':['restaurant','k-food'], 'Transport':['directions_car','k-car'], 'Belanja':['shopping_bag','k-shop'], 'Hiburan':['movie','k-fun'] };
+  let statsMonth = '';     // bulan terakhir yang dilihat, untuk kembali dari "Semua"
+  document.querySelectorAll('#sMode button').forEach(b => b.onclick = () => loadStats(b.dataset.v === 'all' ? 'all' : statsMonth));
   function loadStats(ym){
+    document.querySelectorAll('#sMode button').forEach(b => b.classList.toggle('on', (b.dataset.v === 'all') === (ym === 'all')));
+    $('mnav').classList.toggle('hide', ym === 'all');
     $('statsBody').innerHTML = '<section class="card"><div class="empty">Memuat…</div></section>';
     google.script.run
-      .withSuccessHandler(s=>{ statsStale=false; S=s; renderStats(s); })
+      .withSuccessHandler(s=>{ statsStale=false; S=s; if (!s.all && s.ym) statsMonth = s.ym; renderStats(s); })
       .withFailureHandler(e=>{ $('statsBody').innerHTML = `<section class="card"><div class="empty">Gagal memuat: ${esc(e.message)}</div></section>`; })
       .getStats(ym || '');
   }
@@ -1120,9 +1232,10 @@
 
   function renderStats(s){
     if (s.empty){ $('statsBody').innerHTML = '<section class="card"><div class="empty">Belum ada data</div></section>'; return; }
+    $('mnav').classList.toggle('hide', !!s.all);
     $('mTitle').textContent = s.title;
-    $('mPrev').disabled = s.prevYm < s.minYm;
-    $('mNext').disabled = s.nextYm > s.maxYm;
+    if (!s.all){ $('mPrev').disabled = s.prevYm < s.minYm; $('mNext').disabled = s.nextYm > s.maxYm; }
+    const nmon = s.months.length, colW = s.all ? `repeat(${nmon},minmax(68px,1fr))` : `repeat(${nmon},minmax(0,1fr))`, barW = s.all ? 14 : 20;
     const c = s.cur, p = s.prev, tot = x => x.del + x.dim;
     const ct = tot(c), pt = tot(p), chg = pt ? ct/pt - 1 : 0;
     const maxM = Math.max(...s.months.map(m => Math.max(m.del, m.dim)), 1);
@@ -1134,19 +1247,21 @@
         <div class="donut">
           ${donut(c.del, c.dim)}
           <div class="lg2 n">
-            <div><span class="dot" style="background:#C2410C"></span>${nm('Delpus')} bayar duluan<b>${fmt(c.del)}</b>${c.nDel} transaksi</div>
-            <div><span class="dot" style="background:#3949AB"></span>${nm('Dimbo')} bayar duluan<b>${fmt(c.dim)}</b>${c.nDim} transaksi</div>
+            <div>${av('Delpus', 32)}<div><b class="c-Delpus">${fmt(c.del)}</b>${c.nDel} transaksi</div></div>
+            <div>${av('Dimbo', 32)}<div><b class="c-Dimbo">${fmt(c.dim)}</b>${c.nDim} transaksi</div></div>
           </div>
         </div>
       </section>
 
       <section class="card">
         <div class="ch"><h2>Per bulan</h2><span>${esc(s.winLabel)}</span></div>
-        <div class="cols">${s.months.map(m => `<div class="c">
-          <i style="height:${Math.max(3, m.del/maxM*130)}px;background:#C2410C"></i>
-          <i style="height:${Math.max(3, m.dim/maxM*130)}px;background:#3949AB"></i></div>`).join('')}</div>
-        <div class="cl n">${s.months.map(m => `<span style="${m.key===s.ym?'color:var(--on);font-weight:500':''}">${esc(m.label)}<br>${jt(m.del+m.dim)}</span>`).join('')}</div>
-        <div style="display:flex;gap:16px;justify-content:center;margin-top:12px;font-size:12px;color:var(--on2)"><span><span class="dot" style="background:#C2410C"></span>${nm('Delpus')} bayar</span><span><span class="dot" style="background:#3949AB"></span>${nm('Dimbo')} bayar</span></div>
+        <div class="cscroll" id="colScroll">
+        <div class="cols" style="grid-template-columns:${colW}">${s.months.map(m => `<div class="c">
+          <i style="width:${barW}px;height:${Math.max(3, m.del/maxM*130)}px;background:#C2410C"></i>
+          <i style="width:${barW}px;height:${Math.max(3, m.dim/maxM*130)}px;background:#3949AB"></i></div>`).join('')}</div>
+        <div class="cl n" style="grid-template-columns:${colW}">${s.months.map(m => `<span style="${m.key===s.ym?'color:var(--on);font-weight:500':''}">${esc(m.label)}<br>${jt(m.del+m.dim)}</span>`).join('')}</div>
+        </div>
+        <div style="display:flex;gap:18px;justify-content:center;align-items:center;margin-top:12px"><span style="display:flex;align-items:center"><span class="dot" style="background:#C2410C"></span>${av('Delpus', 20)}</span><span style="display:flex;align-items:center"><span class="dot" style="background:#3949AB"></span>${av('Dimbo', 20)}</span></div>
       </section>
 
       <section class="card">
@@ -1168,7 +1283,8 @@
           <div class="m"><div style="font-size:15px">${esc(x.name)}</div><div class="t2">${x.n} kali</div></div>
           <span class="n" style="font-size:15px">${fmt(x.total)}</span></div>`).join('')}
       </section>
-      <div style="font-size:12px;color:var(--on2);padding:0 4px 80px">Angka = bagian yang ditalangin. Porsi si pembayar sendiri tidak dihitung.</div>`;
+      <div style="font-size:12px;color:var(--on2);padding:0 4px 80px">Angka = bagian yang ditalangin.</div>`;
+    if (s.all){ const sc = $('colScroll'); sc.scrollLeft = sc.scrollWidth; }
 
     $('catList').querySelectorAll('button.catrow').forEach(b => b.onclick = () => {
       const i = +b.dataset.c, box = $('catList').querySelector(`[data-sub="${i}"]`), x = s.cats[i];
@@ -1181,8 +1297,8 @@
   function showItems(box, x, n){
     box.innerHTML = x.items.slice(0, n).map(t => `<div class="si n">
         ${av(t[2], 24)}
-        <div class="m"><div>${esc(t[1])}</div><div class="t2">${esc(t[0])} · ${esc(nm(t[2]))} bayar</div></div>
-        <span class="c-${other(t[2])}">${fmt(t[3])}</span></div>`).join('') +
+        <div class="m"><div>${esc(t[1])}</div><div class="t2">${esc(t[0])}</div></div>
+        <span class="c-${t[2]}">${fmt(t[3])}</span></div>`).join('') +
       (n < x.items.length ? `<button class="more">Tampilkan ${Math.min(20, x.items.length-n)} lagi</button>` : '');
     const more = box.querySelector('.more'); if (more) more.onclick = () => showItems(box, x, n + 20);
   }
@@ -1255,7 +1371,7 @@
         if (r.date && !state.edit){ $('date').value = r.date; filled.push('date'); }
         setSeg('mode','mode','split'); renderMode(); renderItems();
         flashFields(filled.concat(['items']));
-        scanState('ok', 'Terisi dari struk', `${esc(r.merchant || 'Struk')} · ${r.items.length} item · ${fmt(r.total)}`);
+        scanState('ok', 'Terisi dari struk', `${esc(r.merchant || 'Struk')} · ${r.items.length} item · ${fmtR(r.total)}`);
         const sum = r.items.reduce((a,b)=>a+b.price,0);
         scanInfo(r.via==='ocr' ? 'warning' : 'check_circle',
           `Pilih pemilik tiap item (awalnya Berdua).${r.via==='ocr' ? ' Dibaca lewat OCR cadangan, <b>cek lagi angkanya</b>.' : ''}` +
@@ -1272,7 +1388,6 @@
   $('payBtn').onclick = () => setView('pay');
 
   function loadPay(){
-    $('payBar').classList.add('hide');
     $('payBody').innerHTML = '<section class="card"><div class="empty">Memuat…</div></section>';
     google.script.run.withSuccessHandler(d => setPay(d, true)).withFailureHandler(e => {
       $('payBody').innerHTML = `<section class="card"><div class="empty">Gagal memuat: ${esc(e.message)}</div></section>`;
@@ -1326,7 +1441,7 @@
     const body = $('payBody');
     $('shareBtn').classList.toggle('hide', !P.payer);
     if (!P.payer){
-      $('payBar').classList.add('hide'); $('assistBtn').classList.add('hide');
+      $('assistBtn').classList.add('hide');
       $('payTitle').textContent = 'Bayar';
       body.innerHTML = `<section class="card"><div class="empty">Tidak ada utang. Semua sudah impas.</div></section>` + logCard();
       bindLog(); return;
@@ -1351,19 +1466,16 @@
     const first = P.rows[0];
     body.innerHTML = `
       <section class="card">
-        <div class="flow">${av(P.payer, 40)}<span class="ms arr" aria-hidden="true">arrow_forward</span>${av(P.to, 40)}
-          <div style="margin-left:6px;min-width:0"><div class="t">${nm(P.payer)} bayar ke ${nml(P.to)}</div><b class="n">${fmt(P.total)}</b></div></div>
-        <div class="help">${P.rows.length} transaksi belum lunas${first ? ' sejak ' + esc(first.label) : ''}. Yang dilunasi selalu yang terlama dulu.</div>
+        <div class="flow" aria-label="${P.payer} bayar ke ${P.to}">${av(P.payer, 40)}<span class="ms arr" aria-hidden="true">arrow_forward</span>${av(P.to, 40)}
+          <b class="n" style="margin:0 0 0 auto">${fmt(P.total)}</b></div>
+        <div class="help">${P.rows.length} transaksi${first ? ' sejak ' + esc(first.label) : ''}</div>
       </section>
-      ${P.assist ? `<div class="assistnote"><span class="ms" aria-hidden="true" style="font-size:18px">edit_note</span>Mencatatkan transfer dari ${esc(P.payer)}. Cukup sekali, jangan sampai ${esc(P.payer)} mencatat juga.</div>` : ''}
-      ${ro ? `<section class="card"><div class="tagih">
-        <div class="m"><b>Tagih ${esc(P.payer)}</b>Kirim rincian tagihan lewat WhatsApp.</div>
-        <button class="btn wa sm" id="billWa"><span class="ms" aria-hidden="true" style="font-size:20px">send</span>Kirim</button>
-      </div></section>` : ''}
+      ${P.assist ? `<div class="assistnote"><span class="ms" aria-hidden="true" style="font-size:18px">edit_note</span>Catat transfer dari ${esc(P.payer)}. Cukup sekali.</div>` : ''}
+      ${ro ? `<button class="btn wa" id="billWa" style="width:100%;margin-bottom:12px"><span class="ms" aria-hidden="true" style="font-size:20px">send</span>Kirim tagihan</button>` : ''}
 
       ${ro ? '' : `<section class="card">
-        <div class="lbl"><label for="payAmt">${mine ? 'Transfer berapa?' : `${esc(P.payer)} transfer berapa?`}</label></div>
-        <div class="inp big"><span class="pre">Rp</span><input id="payAmt" class="n" inputmode="decimal" placeholder="0"></div>
+        <div class="lbl"><label for="payAmt">Nominal transfer</label></div>
+        <div class="inp big"><span class="pre">Rp</span><input id="payAmt" class="n" inputmode="tel" autocomplete="off" data-calc placeholder="0"></div>
         <div class="amts">
           <button class="chip" data-a="${P.total}">Semua</button>
           ${chips.map(x => `<button class="chip" data-a="${x}">${jtR(x)}</button>`).join('')}
@@ -1391,7 +1503,8 @@
           ? `Kelebihan ${fmt(diff)} dicatat sebagai <b>Kelebihan bayar</b>, jadi utang ${nml(P.payer)} berikutnya berkurang segitu.`
           : `Kekurangan ${fmt(-diff)} dicatat sebagai <b>Sisa pelunasan</b>, tetap jadi utang ${nml(P.payer)}.`}
           <br><button class="linkbtn" id="payExact">Transfer pas ${fmt(cover)} saja</button></div></div>` : ''}
-      </section>` : ''}`}
+      </section>` : ''}
+      <button class="btn fill" id="payGo" style="width:100%;margin-bottom:12px"></button>`}
 
       <section class="card">
         <div class="ch"><h2>Transaksi</h2><span>${ro ? 'belum lunas' : 'tap untuk geser batas'}</span></div>
@@ -1400,9 +1513,9 @@
           return (i === kk && kk > 0 ? '<div class="cut">batas pelunasan</div>' : '') + `
           <button class="ur ${inn?'in':''} ${ro?'ro':''}" data-i="${i}" ${ro?'tabindex="-1"':''}>
             <span class="ck">${inn ? '<span class="ms" aria-hidden="true">check</span>' : ''}</span>
-            ${cic(r.desc, 32)}
-            <div class="m"><div class="t1">${esc(r.desc)}</div><div class="t2">${esc(r.label)} · ${esc(nm(r.by))} bayar</div></div>
-            <div class="e n"><span class="${sign>0?'c-'+P.payer:''}" style="${sign<0?'color:var(--green)':''}">${sign>0?'':'−'}${fmt(r.amt)}</span><small>${P.cum[i+1]<0?'−':''}${fmt(Math.abs(P.cum[i+1]))}</small></div>
+            ${cicBy(r.desc, r.by, 32)}
+            <div class="m"><div class="t1">${esc(r.desc)}</div><div class="t2">${esc(r.label)}</div></div>
+            <div class="e n"><span class="c-${r.by}">${sign>0?'':'−'}${fmt(r.amt)}</span><small>${P.cum[i+1]<0?'−':''}${fmt(Math.abs(P.cum[i+1]))}</small></div>
           </button>`; }).join('')}
         ${!P.all && P.rows.length > Math.max(kk + 5, 12) ? `<button class="more" id="payAll" style="display:block;width:100%;border:0;border-top:1px solid var(--line);background:none;padding:12px 0 2px;color:var(--on);font-size:13px;font-weight:500;cursor:pointer">Tampilkan semua (${P.rows.length})</button>` : ''}
       </section>
@@ -1437,9 +1550,11 @@
     bindLog();
 
     const go = $('payGo');
-    go.classList.remove('arm'); go.disabled = !(P.amount > 0);
-    go.innerHTML = P.amount > 0 ? `<span class="ms" aria-hidden="true" style="font-size:20px">task_alt</span>${mine ? 'Catat pembayaran' : 'Catat pembayaran ' + esc(P.payer)} ${fmt(P.amount)}` : 'Isi nominal dulu';
-    $('payBar').classList.toggle('hide', view !== 'pay' || ro);
+    if (go){
+      go.classList.remove('arm'); go.disabled = !(P.amount > 0);
+      go.innerHTML = P.amount > 0 ? `<span class="ms" aria-hidden="true" style="font-size:20px">task_alt</span>Catat ${fmt(P.amount)}` : 'Isi nominal dulu';
+      go.onclick = payGo;
+    }
   }
 
   function logCard(){
@@ -1464,7 +1579,7 @@
     };
   }
 
-  $('payGo').onclick = () => {
+  function payGo(){
     const go = $('payGo');
     if (!(P.amount > 0) || go.disabled) return;
     if (!go.classList.contains('arm')){
@@ -1484,7 +1599,7 @@
       })
       .withFailureHandler(e => { go.disabled = false; go.classList.remove('arm'); snack('Gagal: ' + e.message); renderPay(); })
       .settle({ payer, amount, rows: P.rows.slice(0, P.k).map(r => ({ row: r.row, key: r.key })), cover: P.cum[P.k] });
-  };
+  }
 
 
   // ---------- Bagikan ke WhatsApp ----------
