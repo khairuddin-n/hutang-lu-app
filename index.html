@@ -83,7 +83,7 @@
     tok = localStorage.getItem(KEY);
   } catch (e) {}
   window.__PWA = true;
-  window.__VER = '15-11-2026 23:52';
+  window.__VER = '15-11-2026 23:57';
 
   function call(fn, args) {
     return fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -383,6 +383,7 @@
   .li .v{ font-size:13.5px; color:var(--on2); white-space:nowrap; max-width:48%; overflow:hidden; text-overflow:ellipsis; display:flex; align-items:center; }
   .li .chev{ color:var(--on2); font-size:20px; flex:none; transition:transform .2s; } .li.open .chev{ transform:rotate(180deg); }
   .lx{ padding:0 14px 14px; }
+  .swg{ display:grid; grid-template-columns:repeat(5, 36px); justify-content:space-between; row-gap:12px; padding:2px 4px; }
   .lx .sw{ display:grid; grid-template-columns:repeat(5, 36px); justify-content:space-between; row-gap:12px; }
   .lx .help{ margin-top:6px; }
   .dotv{ display:inline-block; width:20px; height:20px; border-radius:50%; box-shadow:inset 0 0 0 1px rgba(0,0,0,.12); }
@@ -659,73 +660,33 @@
 <!-- Sheet profil & pengaturan -->
 <div class="sheet" id="setSheet" role="dialog" aria-modal="true" aria-label="Profil dan pengaturan"><div class="in">
   <div class="grab"></div>
-  <div class="prof">
-    <span id="stAv"></span>
-    <div class="m"><b id="stName"></b>
-      <div class="phbtns">
-        <button class="chip" id="phCam" data-src="phCamIn"><span class="ms" aria-hidden="true" style="font-size:18px">photo_camera</span>Kamera</button>
-        <button class="chip" id="phPick" data-src="phFile"><span class="ms" aria-hidden="true" style="font-size:18px">image</span>Galeri</button>
-        <button class="chip" id="phDel" aria-label="Hapus foto"><span class="ms" aria-hidden="true" style="font-size:18px">delete</span></button>
-      </div></div>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><span id="stAv"></span><b id="stName" style="font-size:17px;font-weight:500"></b></div>
+  <div class="act">
+    <button class="btn tonal" id="phCam" data-src="phCamIn"><span class="ms" aria-hidden="true" style="font-size:20px">photo_camera</span>Kamera</button>
+    <button class="btn tonal" id="phPick" data-src="phFile"><span class="ms" aria-hidden="true" style="font-size:20px">image</span>Galeri</button>
   </div>
+  <div style="text-align:center;margin-top:8px"><button class="linkbtn" id="phDel">Hapus foto</button></div>
   <input type="file" id="phCamIn" accept="image/*" capture="user" class="hide">
   <input type="file" id="phFile" accept="image/*" class="hide">
 
-  <div class="sec">Tampilan</div>
-  <div class="grp">
-    <button class="li" data-x="xTheme"><span class="ms" aria-hidden="true">contrast</span><span class="m">Tema</span><span class="v" id="vTheme"></span><span class="ms chev" aria-hidden="true">expand_more</span></button>
-    <div class="lx hide" id="xTheme"><div class="seg" id="themeSeg" role="group" aria-label="Tema">
-      <button data-v="auto"><span class="ms" aria-hidden="true" style="font-size:18px">brightness_auto</span>Otomatis</button>
-      <button data-v="light"><span class="ms" aria-hidden="true" style="font-size:18px">light_mode</span>Terang</button>
-      <button data-v="dark"><span class="ms" aria-hidden="true" style="font-size:18px">dark_mode</span>Gelap</button>
-    </div></div>
-    <button class="li" data-x="xAcc"><span class="ms" aria-hidden="true">palette</span><span class="m">Warna aplikasi</span><span class="v"><i class="dotv" id="vAcc"></i></span><span class="ms chev" aria-hidden="true">expand_more</span></button>
-    <div class="lx hide" id="xAcc"><div class="sw" id="accSw"></div></div>
-    <button class="li" data-x="xStart"><span class="ms" aria-hidden="true">start</span><span class="m">Tab pertama</span><span class="v" id="vStart"></span><span class="ms chev" aria-hidden="true">expand_more</span></button>
-    <div class="lx hide" id="xStart"><div class="seg sm" id="startSeg" role="group" aria-label="Tab pertama">
-      <button data-v="home">Beranda</button><button data-v="hist">Riwayat</button><button data-v="stats">Statistik</button><button data-v="pay">Bayar</button>
-    </div></div>
-    <button class="li" id="stAutoHide"><span class="ms" aria-hidden="true">visibility_off</span><span class="m">Selalu sembunyikan nominal</span><span class="tg"></span></button>
+  <div class="sec">Tema</div>
+  <div class="seg" id="themeSeg" role="group" aria-label="Tema">
+    <button data-v="auto"><span class="ms" aria-hidden="true" style="font-size:18px">brightness_auto</span>Otomatis</button>
+    <button data-v="light"><span class="ms" aria-hidden="true" style="font-size:18px">light_mode</span>Terang</button>
+    <button data-v="dark"><span class="ms" aria-hidden="true" style="font-size:18px">dark_mode</span>Gelap</button>
   </div>
 
-  <div class="sec">Pencatatan</div>
-  <div class="grp">
-    <button class="li" data-x="xDef"><span class="ms" aria-hidden="true">person</span><span class="m">Yang bayar (awal)</span><span class="v" id="vDef"></span><span class="ms chev" aria-hidden="true">expand_more</span></button>
-    <div class="lx hide" id="xDef"><div class="seg sm" id="defBySeg" role="group" aria-label="Yang bayar awal">
-      <button data-v="me">Kamu</button><button data-v="other" id="defByOther">Dia</button><button data-v="last">Terakhir</button>
-    </div></div>
-    <button class="li" id="stCats"><span class="ms" aria-hidden="true">category</span><span class="m">Kategori</span><span class="v" id="stCatsN"></span><span class="ms chev" aria-hidden="true">chevron_right</span></button>
-  </div>
-
-  <div class="sec">Pelunasan</div>
-  <div class="grp">
-    <button class="li" data-x="xChips"><span class="ms" aria-hidden="true">bolt</span><span class="m">Nominal cepat</span><span class="v n" id="vChips"></span><span class="ms chev" aria-hidden="true">expand_more</span></button>
-    <div class="lx hide" id="xChips"><input class="chipsin n" id="stChips" autocomplete="off" placeholder="100rb 200rb 500rb 1jt" aria-label="Nominal cepat">
-      <div class="help">Pisahkan dengan spasi, contoh 100rb 200rb 1jt</div></div>
-  </div>
+  <div class="sec">Warna aplikasi</div>
+  <div class="sw swg" id="accSw"></div>
 
   <div class="sec">Data</div>
-  <div class="grp">
-    <a class="li hide" id="stSheet" target="_blank" rel="noopener"><span class="ms" aria-hidden="true">table_view</span><span class="m">Buka Google Sheet</span><span class="ms chev" aria-hidden="true">open_in_new</span></a>
-    <button class="li" id="stCsv"><span class="ms" aria-hidden="true">download</span><span class="m">Ekspor CSV</span><span class="v"></span></button>
-    <button class="li hide" id="stQueue"><span class="ms" aria-hidden="true">cloud_upload</span><span class="m">Kirim catatan offline</span><span class="v" id="stQueueN"></span></button>
-  </div>
+  <a class="row hide" id="stSheet" target="_blank" rel="noopener"><span class="ms" aria-hidden="true">table_view</span><div class="m">Buka Google Sheet<div class="t2">Data asli semua transaksi</div></div><span class="ms" aria-hidden="true">open_in_new</span></a>
+  <button class="row" id="stCsv"><span class="ms" aria-hidden="true">download</span><div class="m">Ekspor CSV<div class="t2">Semua transaksi, bisa dibuka di Excel</div></div></button>
+  <button class="row hide" id="stQueue"><span class="ms" aria-hidden="true">cloud_upload</span><div class="m">Kirim catatan offline<div class="t2" id="stQueueN"></div></div></button>
 
   <div class="sec">Aplikasi</div>
-  <div class="grp">
-    <button class="li" id="stReload"><span class="ms" aria-hidden="true">refresh</span><span class="m">Muat ulang app</span><span class="v"></span></button>
-    <div class="li" style="cursor:default"><span class="ms" aria-hidden="true">info</span><span class="m">Versi</span><span class="v n" id="stVer"></span></div>
-  </div>
-  <div style="height:8px"></div>
-</div></div>
-
-<!-- Sheet kelola kategori -->
-<div class="sheet" id="catSheet" role="dialog" aria-modal="true" aria-label="Kategori"><div class="in" style="min-height:70vh">
-  <div class="grab"></div>
-  <div class="ch" style="margin-bottom:10px"><h2 style="font-size:18px">Kategori</h2><span id="cmN"></span></div>
-  <div class="inp" style="min-height:46px"><span class="ms" aria-hidden="true" style="color:var(--on2);font-size:20px">search</span><input id="cmQ" type="search" autocomplete="off" placeholder="Cari keterangan"></div>
-  <div class="help">Tap untuk ganti. Berlaku untuk semua transaksi dengan keterangan yang sama.</div>
-  <div id="cmList" style="margin-top:6px"></div>
+  <button class="row" id="stReload"><span class="ms" aria-hidden="true">refresh</span><div class="m">Muat ulang app<div class="t2">Ambil versi terbaru kalau tampilan belum berubah</div></div></button>
+  <div class="note" id="stVer"></div>
 </div></div>
 
 <!-- Sheet tambah -->
@@ -772,7 +733,7 @@
   const fmtR = n => 'Rp' + fmtN(n);
   const jtR = n => n >= 1e6 ? 'Rp' + (n/1e6).toLocaleString('id-ID',{maximumFractionDigits:1}) + ' jt' : 'Rp' + Math.round(n/1e3) + ' rb';
   // Mode sembunyi nominal (ikon mata): semua angka tampil "Rp•••••", kecuali di form isian (pakai fmtR) & teks yang dibagikan
-  let HIDE = false; try { HIDE = localStorage.getItem('hl_hide') === '1' || localStorage.getItem('hl_autohide') === '1'; } catch (e) {}
+  let HIDE = false; try { HIDE = localStorage.getItem('hl_hide') === '1'; } catch (e) {}
   const MASK = 'Rp•••••';
   const fmt = n => HIDE ? MASK : fmtR(n);
   const jt = n => HIDE ? MASK : jtR(n);
@@ -923,17 +884,15 @@
 
   // ---------- Profil & pengaturan ----------
   function openSettings(){
-    $('stAv').innerHTML = av(ME, 72); $('stName').textContent = ME;
+    $('stAv').innerHTML = av(ME, 96); $('stName').textContent = ME;
     $('phDel').classList.toggle('hide', !PHOTOS[ME]);
-    document.querySelectorAll('#setSheet .lx').forEach(e => e.classList.add('hide'));
-    document.querySelectorAll('#setSheet .li.open').forEach(e => e.classList.remove('open'));
     $('setSheet').querySelector('.in').scrollTop = 0;
     setSeg('themeSeg', 'theme', applyTheme());
     paintAcc();
     const url = store.get('hl_sheet');
     $('stSheet').classList.toggle('hide', !url); if (url) $('stSheet').href = url;
-    paintQueue(); paintPrefs();
-    $('stVer').textContent = window.__VER || '-';
+    paintQueue();
+    $('stVer').textContent = 'Versi ' + (window.__VER || '-');
     $('scrim').classList.add('show'); $('setSheet').classList.add('show');
   }
   // warna aplikasi: pilihan cepat + bebas (color picker). Kosong = hijau bawaan.
@@ -948,7 +907,7 @@
     inp.onchange = () => setAccent(inp.value);
   }
   function setAccent(c){
-    store.set('hl_accent', c.toLowerCase() === ACCS[0] ? '' : c); applyTheme(); paintAcc(); setFavicon(); paintPrefs();
+    store.set('hl_accent', c.toLowerCase() === ACCS[0] ? '' : c); applyTheme(); paintAcc(); setFavicon();
   }
   // ikon tab browser ikut warna aplikasi (ikon di layar utama HP tetap, ditentukan saat dipasang)
   function setFavicon(){
@@ -963,52 +922,10 @@
   }
   setFavicon();
   $('themeSeg').querySelectorAll('button').forEach(b => b.onclick = () => {
-    store.set('hl_theme', b.dataset.v); applyTheme(); setSeg('themeSeg', 'theme', b.dataset.v); paintPrefs();
+    store.set('hl_theme', b.dataset.v); applyTheme(); setSeg('themeSeg', 'theme', b.dataset.v);
   });
-  // baris yang bisa dibuka-tutup (satu terbuka sekaligus)
-  document.querySelectorAll('#setSheet .li[data-x]').forEach(b => b.onclick = () => {
-    const x = $(b.dataset.x), open = x.classList.contains('hide');
-    document.querySelectorAll('#setSheet .lx').forEach(e => e.classList.add('hide'));
-    document.querySelectorAll('#setSheet .li.open').forEach(e => e.classList.remove('open'));
-    if (open) { x.classList.remove('hide'); b.classList.add('open'); }
-  });
-  // ---------- Preferensi ----------
-  const quickAmts = () => { try { const a = JSON.parse(store.get('hl_chips') || 'null'); if (Array.isArray(a) && a.length) return a; } catch (e) {} return [100000, 200000, 300000, 500000, 1000000]; };
-  function paintPrefs(){
-    setSeg('startSeg', 'startTab', store.get('hl_start') || 'home');
-    setSeg('defBySeg', 'defByPref', store.get('hl_defby') || 'me');
-    $('defByOther').textContent = other(ME);
-    $('stAutoHide').querySelector('.tg').classList.toggle('on', store.get('hl_autohide') === '1');
-    const amts = quickAmts().map(jtR).map(x => x.replace(/Rp/, '').replace(/ (rb|jt)/, '$1'));
-    $('stChips').value = amts.join(' ');
-    $('vChips').textContent = amts.slice(0, 2).join(' · ') + (amts.length > 2 ? ` +${amts.length - 2}` : '');
-    const th = store.get('hl_theme') || 'auto';
-    $('vTheme').textContent = { auto:'Otomatis', light:'Terang', dark:'Gelap' }[th];
-    $('vAcc').style.background = accentLight();
-    $('vStart').textContent = { home:'Beranda', hist:'Riwayat', stats:'Statistik', pay:'Bayar' }[store.get('hl_start') || 'home'];
-    const db = store.get('hl_defby') || 'me';
-    $('vDef').textContent = db === 'me' ? 'Kamu' : db === 'other' ? other(ME) : 'Terakhir dipakai';
-    const n = Object.keys(CATMAP).length;
-    $('stCatsN').textContent = n ? `${n} manual` : '';
-  }
-  $('startSeg').querySelectorAll('button').forEach(b => b.onclick = () => { store.set('hl_start', b.dataset.v); setSeg('startSeg', 'startTab', b.dataset.v); paintPrefs(); });
-  $('defBySeg').querySelectorAll('button').forEach(b => b.onclick = () => {
-    store.set('hl_defby', b.dataset.v); setSeg('defBySeg', 'defByPref', b.dataset.v); paintPrefs();
-    if (!state.edit) setSeg('by', 'by', defBy());
-  });
-  $('stAutoHide').onclick = () => {
-    const on = store.get('hl_autohide') !== '1';
-    store.set('hl_autohide', on ? '1' : '0'); paintPrefs();
-    snack(on ? 'Nominal akan selalu tersembunyi saat app dibuka' : 'Nominal mengikuti pilihan terakhir');
-  };
-  // "100rb 200rb 1jt" → [100000, 200000, 1000000]
-  $('stChips').onchange = () => {
-    const a = $('stChips').value.split(/[;\s]+|,\s+/).map(num).filter(v => v > 0).map(Math.round);
-    if (!a.length) { store.set('hl_chips', ''); paintPrefs(); return snack('Kembali ke nominal bawaan'); }
-    const u = [...new Set(a)].sort((x, y) => x - y).slice(0, 8);
-    store.set('hl_chips', JSON.stringify(u)); paintPrefs(); if (P.rows.length) renderPay();
-    snack('Nominal cepat disimpan');
-  };
+  ['hl_start','hl_defby','hl_autohide','hl_chips'].forEach(k => { try { localStorage.removeItem(k); } catch (e) {} });
+  const quickAmts = () => [100000, 200000, 300000, 500000, 1000000];
 
   // ambil semua transaksi (pakai yang sudah dimuat kalau ada)
   function withHistory(cb){
@@ -1016,7 +933,7 @@
     google.script.run.withSuccessHandler(rows => { HS.all = rows || []; histStale = false; cb(HS.all); }).withFailureHandler(failSnack).getHistory();
   }
   $('stCsv').onclick = () => {
-    const t2 = $('stCsv').querySelector('.v'), h = t2.textContent; t2.textContent = 'Menyiapkan…';
+    const t2 = $('stCsv').querySelector('.t2'), h = t2.textContent; t2.textContent = 'Menyiapkan…';
     withHistory(rows => {
       const q = v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
       const L = [['Tanggal','Keterangan','Kategori','Dibayar','Total','Bagian Dimbo','Bagian Delpus','Status'].map(q).join(',')];
@@ -1029,49 +946,14 @@
     });
   };
 
-  // ---------- Kelola kategori ----------
-  let CM = [];      // [{ k, desc, n }] keterangan unik, terbanyak dulu
-  $('stCats').onclick = () => {
-    closeSheet(); $('scrim').classList.add('show'); $('catSheet').classList.add('show');
-    $('cmQ').value = ''; $('cmList').innerHTML = '<div class="empty">Memuat…</div>';
-    withHistory(rows => {
-      const g = {};
-      rows.forEach(r => { if (ADJ.test(r.desc)) return; const k = catKey(r.desc); (g[k] = g[k] || { k, desc: r.desc, n: 0 }).n++; });
-      CM = Object.values(g).sort((a, b) => b.n - a.n || a.k.localeCompare(b.k));
-      paintCM();
-    });
-  };
-  $('cmQ').oninput = () => paintCM();
-  function paintCM(openK){
-    const q = catKey($('cmQ').value), list = CM.filter(x => !q || x.k.includes(q)), man = Object.keys(CATMAP).length;
-    $('cmN').textContent = `${CM.length} keterangan · ${man} manual`;
-    $('cmList').innerHTML = list.slice(0, 120).map((x, i) => { const c = catOf(x.desc), manual = !!CATMAP[x.k]; return `<div class="cmw">
-      <button class="cm" data-i="${i}">${cic(x.desc, 36)}<div class="m"><div>${esc(x.desc)}</div>
-        <div class="t2">${x.n} transaksi · ${esc(c[0])} · ${manual ? '<span class="man">manual</span>' : 'otomatis'}</div></div>
-        <span class="ms chev2" aria-hidden="true" style="color:var(--on2)">expand_more</span></button>
-      <div class="chips hide" data-ch="${i}"></div></div>`; }).join('') ||
-      '<div class="empty">Tidak ada yang cocok</div>';
-    $('cmList').querySelectorAll('.cm').forEach(b => b.onclick = () => {
-      const x = list[+b.dataset.i], box = $('cmList').querySelector(`[data-ch="${b.dataset.i}"]`), open = box.classList.contains('hide');
-      $('cmList').querySelectorAll('[data-ch]').forEach(e => e.classList.add('hide'));
-      $('cmList').querySelectorAll('.cm .chev2').forEach(e => e.textContent = 'expand_more');
-      if (!open) return;
-      box.classList.remove('hide'); b.querySelector('.chev2').textContent = 'expand_less';
-      catChips(box, catOf(x.desc)[0], name => setCatFor(x.desc, name, () => paintCM(x.k)));
-      if (CATMAP[x.k]) box.insertAdjacentHTML('afterbegin', `<button class="chip" data-reset><span class="ms" aria-hidden="true" style="font-size:18px">restart_alt</span>Otomatis (${esc(autoCat(x.desc)[0])})</button>`);
-      const rs = box.querySelector('[data-reset]'); if (rs) rs.onclick = () => setCatFor(x.desc, '', () => paintCM(x.k));
-    });
-    if (openK){ const i = list.findIndex(x => x.k === openK); const b = $('cmList').querySelector(`.cm[data-i="${i}"]`); if (b) b.click(); }
-  }
-
   function paintQueue(){
     $('stQueue').classList.toggle('hide', !Q.length);
-    $('stQueueN').textContent = `${Q.length} menunggu`;
+    $('stQueueN').textContent = `${Q.length} transaksi menunggu sinyal`;
   }
   $('stQueue').onclick = () => flushQueue(true);
   // buang cache tampilan app lalu muat ulang dari internet
   $('stReload').onclick = async () => {
-    $('stReload').querySelector('.v').textContent = 'Memuat ulang…';
+    $('stReload').querySelector('.t2').textContent = 'Memuat ulang…';
     try { const ks = await caches.keys(); await Promise.all(ks.map(k => caches.delete(k))); } catch (e) {}
     try { const rs = await navigator.serviceWorker.getRegistrations(); await Promise.all(rs.map(r => r.update())); } catch (e) {}
     location.reload();
@@ -1128,10 +1010,7 @@
     if (!state.edit) setSeg('by', 'by', defBy());
   }
   // yang bayar awal di form: me / other / last (pengaturan)
-  function defBy(){
-    const v = store.get('hl_defby') || 'me';
-    return v === 'other' ? other(ME) : v === 'last' ? (store.get('by') || ME) : ME;
-  }
+  const defBy = () => ME;      // yang bayar awal di form = yang membuka app
 
   // ---------- Navigasi ----------
   // Tab: home / hist / stats / pay. Form tampil penuh tanpa nav.
@@ -1496,7 +1375,7 @@
     if (P.rows.length) renderPay();
     statsStale = true; if (view === 'stats') loadStats(S ? S.ym : '');
   }
-  function closeSheet(){ $('scrim').classList.remove('show'); ['sheet','shareSheet','addSheet','meSheet','photoSheet','setSheet','catSheet'].forEach(id => $(id).classList.remove('show')); }
+  function closeSheet(){ $('scrim').classList.remove('show'); ['sheet','shareSheet','addSheet','meSheet','photoSheet','setSheet'].forEach(id => $(id).classList.remove('show')); }
 
   function startEdit(r){
     closeSheet();
@@ -2146,7 +2025,6 @@
     .withFailureHandler(e => snack(isOffline(e) ? 'Offline: data belum bisa dimuat' : 'Gagal memuat: '+e.message)).getInfo();
   initMe(() => {
     setSeg('by','by', defBy()); if (lastInfo) renderInfo(lastInfo);
-    const st = store.get('hl_start'); if (st && st !== 'home' && VIEWS[st]) setView(st);   // tab pertama (pengaturan)
   });
 </script>
 </body>
