@@ -576,9 +576,11 @@
   <div class="grab"></div>
   <div style="display:flex;justify-content:center;margin-bottom:18px" id="phAv"></div>
   <div class="act" style="margin-top:0">
-    <button class="btn tonal" id="phDel"><span class="ms" aria-hidden="true" style="font-size:20px">delete</span>Hapus</button>
-    <button class="btn fill" id="phPick"><span class="ms" aria-hidden="true" style="font-size:20px">photo_camera</span>Ganti foto</button>
+    <button class="btn fill" id="phCam" data-src="phCamIn"><span class="ms" aria-hidden="true" style="font-size:20px">photo_camera</span>Kamera</button>
+    <button class="btn fill" id="phPick" data-src="phFile"><span class="ms" aria-hidden="true" style="font-size:20px">image</span>Galeri</button>
   </div>
+  <button class="btn tonal" id="phDel" style="width:100%;margin-top:10px"><span class="ms" aria-hidden="true" style="font-size:20px">delete</span>Hapus foto</button>
+  <input type="file" id="phCamIn" accept="image/*" capture="user" class="hide">
   <input type="file" id="phFile" accept="image/*" class="hide">
 </div></div>
 
@@ -765,10 +767,10 @@
       .withFailureHandler(e => { btn.disabled = false; btn.innerHTML = h; snack('Gagal: ' + e.message); openPhoto(); })
       .setPhoto(url);
   }
-  $('phPick').onclick = () => $('phFile').click();
-  $('phFile').onchange = async e => {
+  ['phCam','phPick'].forEach(id => $(id).onclick = () => $($(id).dataset.src).click());
+  $('phCamIn').onchange = $('phFile').onchange = async e => {
     const f = e.target.files[0]; e.target.value = ''; if (!f) return;
-    try { const u = await squarePhoto(f); $('phAv').innerHTML = `<span class="av ${ME}" style="width:96px;height:96px"><img src="${u}" alt=""></span>`; savePhoto(u, $('phPick')); }
+    try { const u = await squarePhoto(f); $('phAv').innerHTML = `<span class="av ${ME}" style="width:96px;height:96px"><img src="${u}" alt=""></span>`; savePhoto(u, $(e.target.id === 'phCamIn' ? 'phCam' : 'phPick')); }
     catch (err) { snack(err.message); }
   };
   $('phDel').onclick = () => savePhoto('', $('phDel'));
