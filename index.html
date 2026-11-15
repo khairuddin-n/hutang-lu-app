@@ -83,7 +83,7 @@
     tok = localStorage.getItem(KEY);
   } catch (e) {}
   window.__PWA = true;
-  window.__VER = '15-11-2026 23:49';
+  window.__VER = '15-11-2026 23:52';
 
   function call(fn, args) {
     return fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -371,7 +371,22 @@
   .cmw + .cmw{ border-top:1px solid var(--line); }
   .cm .m{ flex:1; min-width:0; font-size:14.5px; } .cm .m > div:first-child{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .cm .t2{ font-size:12px; color:var(--on2); margin-top:2px; } .cm .man{ color:var(--acc); font-weight:500; }
-  .sec{ font-size:13px; color:var(--on2); margin:18px 2px 8px; }
+  .prof{ display:flex; align-items:center; gap:16px; margin:4px 2px 4px; }
+  .prof .m{ flex:1; min-width:0; } .prof b{ display:block; font-size:19px; font-weight:500; margin-bottom:8px; }
+  .phbtns{ display:flex; gap:8px; } .phbtns .chip{ height:34px; }
+  .grp{ background:var(--tile); border-radius:18px; overflow:hidden; }
+  .li{ display:flex; align-items:center; gap:14px; width:100%; min-height:54px; padding:0 14px 0 16px; border:0; background:none; color:var(--on); font-size:15px; text-align:left; cursor:pointer; text-decoration:none; }
+  .li:active{ background:rgba(127,127,127,.1); }
+  .grp > .li + .li, .grp > .lx + .li{ border-top:1px solid var(--line); }
+  .li > .ms:first-child{ color:var(--on2); font-size:22px; flex:none; }
+  .li .m{ flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .li .v{ font-size:13.5px; color:var(--on2); white-space:nowrap; max-width:48%; overflow:hidden; text-overflow:ellipsis; display:flex; align-items:center; }
+  .li .chev{ color:var(--on2); font-size:20px; flex:none; transition:transform .2s; } .li.open .chev{ transform:rotate(180deg); }
+  .lx{ padding:0 14px 14px; }
+  .lx .sw{ display:grid; grid-template-columns:repeat(5, 36px); justify-content:space-between; row-gap:12px; }
+  .lx .help{ margin-top:6px; }
+  .dotv{ display:inline-block; width:20px; height:20px; border-radius:50%; box-shadow:inset 0 0 0 1px rgba(0,0,0,.12); }
+  .sec{ font-size:13px; font-weight:500; color:var(--on2); margin:20px 6px 8px; }
   .row{ display:flex; align-items:center; gap:12px; width:100%; border:0; background:var(--tile); border-radius:16px; padding:12px 14px; color:var(--on); font-size:15px; text-align:left; cursor:pointer; text-decoration:none; margin-bottom:8px; }
   .row .m{ flex:1; min-width:0; } .row .t2{ font-size:12px; color:var(--on2); margin-top:2px; } .row > .ms{ color:var(--on2); }
   .crow{ display:flex; align-items:center; gap:10px; padding:8px 0; } .crow + .crow{ border-top:1px solid var(--line); }
@@ -644,47 +659,64 @@
 <!-- Sheet profil & pengaturan -->
 <div class="sheet" id="setSheet" role="dialog" aria-modal="true" aria-label="Profil dan pengaturan"><div class="in">
   <div class="grab"></div>
-  <div style="display:flex;flex-direction:column;align-items:center;gap:8px" id="stAv"></div>
-  <div class="act">
-    <button class="btn tonal" id="phCam" data-src="phCamIn"><span class="ms" aria-hidden="true" style="font-size:20px">photo_camera</span>Kamera</button>
-    <button class="btn tonal" id="phPick" data-src="phFile"><span class="ms" aria-hidden="true" style="font-size:20px">image</span>Galeri</button>
+  <div class="prof">
+    <span id="stAv"></span>
+    <div class="m"><b id="stName"></b>
+      <div class="phbtns">
+        <button class="chip" id="phCam" data-src="phCamIn"><span class="ms" aria-hidden="true" style="font-size:18px">photo_camera</span>Kamera</button>
+        <button class="chip" id="phPick" data-src="phFile"><span class="ms" aria-hidden="true" style="font-size:18px">image</span>Galeri</button>
+        <button class="chip" id="phDel" aria-label="Hapus foto"><span class="ms" aria-hidden="true" style="font-size:18px">delete</span></button>
+      </div></div>
   </div>
-  <div style="text-align:center;margin-top:8px"><button class="linkbtn" id="phDel">Hapus foto</button></div>
   <input type="file" id="phCamIn" accept="image/*" capture="user" class="hide">
   <input type="file" id="phFile" accept="image/*" class="hide">
 
   <div class="sec">Tampilan</div>
-  <div class="seg" id="themeSeg" role="group" aria-label="Tema">
-    <button data-v="auto"><span class="ms" aria-hidden="true" style="font-size:18px">brightness_auto</span>Otomatis</button>
-    <button data-v="light"><span class="ms" aria-hidden="true" style="font-size:18px">light_mode</span>Terang</button>
-    <button data-v="dark"><span class="ms" aria-hidden="true" style="font-size:18px">dark_mode</span>Gelap</button>
-  </div>
-  <div class="sw" id="accSw" style="margin:14px 0 12px"></div>
-  <div class="row" style="cursor:default;display:block"><div style="display:flex;gap:12px;align-items:center"><span class="ms" aria-hidden="true" style="color:var(--on2)">start</span><div class="m">Tab pertama saat dibuka</div></div>
-    <div class="seg sm" id="startSeg" role="group" aria-label="Tab pertama">
+  <div class="grp">
+    <button class="li" data-x="xTheme"><span class="ms" aria-hidden="true">contrast</span><span class="m">Tema</span><span class="v" id="vTheme"></span><span class="ms chev" aria-hidden="true">expand_more</span></button>
+    <div class="lx hide" id="xTheme"><div class="seg" id="themeSeg" role="group" aria-label="Tema">
+      <button data-v="auto"><span class="ms" aria-hidden="true" style="font-size:18px">brightness_auto</span>Otomatis</button>
+      <button data-v="light"><span class="ms" aria-hidden="true" style="font-size:18px">light_mode</span>Terang</button>
+      <button data-v="dark"><span class="ms" aria-hidden="true" style="font-size:18px">dark_mode</span>Gelap</button>
+    </div></div>
+    <button class="li" data-x="xAcc"><span class="ms" aria-hidden="true">palette</span><span class="m">Warna aplikasi</span><span class="v"><i class="dotv" id="vAcc"></i></span><span class="ms chev" aria-hidden="true">expand_more</span></button>
+    <div class="lx hide" id="xAcc"><div class="sw" id="accSw"></div></div>
+    <button class="li" data-x="xStart"><span class="ms" aria-hidden="true">start</span><span class="m">Tab pertama</span><span class="v" id="vStart"></span><span class="ms chev" aria-hidden="true">expand_more</span></button>
+    <div class="lx hide" id="xStart"><div class="seg sm" id="startSeg" role="group" aria-label="Tab pertama">
       <button data-v="home">Beranda</button><button data-v="hist">Riwayat</button><button data-v="stats">Statistik</button><button data-v="pay">Bayar</button>
     </div></div>
-  <button class="row" id="stAutoHide"><span class="ms" aria-hidden="true">visibility_off</span><div class="m">Sembunyikan nominal saat dibuka<div class="t2">Selalu mulai dengan Rp•••••</div></div><span class="tg"></span></button>
+    <button class="li" id="stAutoHide"><span class="ms" aria-hidden="true">visibility_off</span><span class="m">Selalu sembunyikan nominal</span><span class="tg"></span></button>
+  </div>
 
   <div class="sec">Pencatatan</div>
-  <div class="row" style="cursor:default;display:block"><div style="display:flex;gap:12px;align-items:center"><span class="ms" aria-hidden="true" style="color:var(--on2)">person</span><div class="m">Yang bayar (awal)<div class="t2">Pilihan otomatis saat catat transaksi baru</div></div></div>
-    <div class="seg sm" id="defBySeg" role="group" aria-label="Yang bayar awal">
+  <div class="grp">
+    <button class="li" data-x="xDef"><span class="ms" aria-hidden="true">person</span><span class="m">Yang bayar (awal)</span><span class="v" id="vDef"></span><span class="ms chev" aria-hidden="true">expand_more</span></button>
+    <div class="lx hide" id="xDef"><div class="seg sm" id="defBySeg" role="group" aria-label="Yang bayar awal">
       <button data-v="me">Kamu</button><button data-v="other" id="defByOther">Dia</button><button data-v="last">Terakhir</button>
     </div></div>
-  <button class="row" id="stCats"><span class="ms" aria-hidden="true">category</span><div class="m">Kategori<div class="t2" id="stCatsN">Atur kategori tiap keterangan</div></div><span class="ms" aria-hidden="true">chevron_right</span></button>
+    <button class="li" id="stCats"><span class="ms" aria-hidden="true">category</span><span class="m">Kategori</span><span class="v" id="stCatsN"></span><span class="ms chev" aria-hidden="true">chevron_right</span></button>
+  </div>
 
   <div class="sec">Pelunasan</div>
-  <div class="row" style="cursor:default"><span class="ms" aria-hidden="true">bolt</span><div class="m">Nominal cepat di Bayar
-    <input class="chipsin n" id="stChips" autocomplete="off" placeholder="100rb 200rb 500rb 1jt"></div></div>
+  <div class="grp">
+    <button class="li" data-x="xChips"><span class="ms" aria-hidden="true">bolt</span><span class="m">Nominal cepat</span><span class="v n" id="vChips"></span><span class="ms chev" aria-hidden="true">expand_more</span></button>
+    <div class="lx hide" id="xChips"><input class="chipsin n" id="stChips" autocomplete="off" placeholder="100rb 200rb 500rb 1jt" aria-label="Nominal cepat">
+      <div class="help">Pisahkan dengan spasi, contoh 100rb 200rb 1jt</div></div>
+  </div>
 
   <div class="sec">Data</div>
-  <a class="row hide" id="stSheet" target="_blank" rel="noopener"><span class="ms" aria-hidden="true">table_view</span><div class="m">Buka Google Sheet<div class="t2">Data asli semua transaksi</div></div><span class="ms" aria-hidden="true">open_in_new</span></a>
-  <button class="row" id="stCsv"><span class="ms" aria-hidden="true">download</span><div class="m">Ekspor CSV<div class="t2">Semua transaksi, bisa dibuka di Excel</div></div></button>
-  <button class="row hide" id="stQueue"><span class="ms" aria-hidden="true">cloud_upload</span><div class="m">Kirim catatan offline<div class="t2" id="stQueueN"></div></div></button>
+  <div class="grp">
+    <a class="li hide" id="stSheet" target="_blank" rel="noopener"><span class="ms" aria-hidden="true">table_view</span><span class="m">Buka Google Sheet</span><span class="ms chev" aria-hidden="true">open_in_new</span></a>
+    <button class="li" id="stCsv"><span class="ms" aria-hidden="true">download</span><span class="m">Ekspor CSV</span><span class="v"></span></button>
+    <button class="li hide" id="stQueue"><span class="ms" aria-hidden="true">cloud_upload</span><span class="m">Kirim catatan offline</span><span class="v" id="stQueueN"></span></button>
+  </div>
 
   <div class="sec">Aplikasi</div>
-  <button class="row" id="stReload"><span class="ms" aria-hidden="true">refresh</span><div class="m">Muat ulang app<div class="t2">Ambil versi terbaru kalau tampilan belum berubah</div></div></button>
-  <div class="note" id="stVer"></div>
+  <div class="grp">
+    <button class="li" id="stReload"><span class="ms" aria-hidden="true">refresh</span><span class="m">Muat ulang app</span><span class="v"></span></button>
+    <div class="li" style="cursor:default"><span class="ms" aria-hidden="true">info</span><span class="m">Versi</span><span class="v n" id="stVer"></span></div>
+  </div>
+  <div style="height:8px"></div>
 </div></div>
 
 <!-- Sheet kelola kategori -->
@@ -891,14 +923,17 @@
 
   // ---------- Profil & pengaturan ----------
   function openSettings(){
-    $('stAv').innerHTML = `${av(ME, 96)}<b style="font-size:17px;font-weight:500">${esc(ME)}</b>`;
+    $('stAv').innerHTML = av(ME, 72); $('stName').textContent = ME;
     $('phDel').classList.toggle('hide', !PHOTOS[ME]);
+    document.querySelectorAll('#setSheet .lx').forEach(e => e.classList.add('hide'));
+    document.querySelectorAll('#setSheet .li.open').forEach(e => e.classList.remove('open'));
+    $('setSheet').querySelector('.in').scrollTop = 0;
     setSeg('themeSeg', 'theme', applyTheme());
     paintAcc();
     const url = store.get('hl_sheet');
     $('stSheet').classList.toggle('hide', !url); if (url) $('stSheet').href = url;
     paintQueue(); paintPrefs();
-    $('stVer').textContent = 'Versi ' + (window.__VER || '-');
+    $('stVer').textContent = window.__VER || '-';
     $('scrim').classList.add('show'); $('setSheet').classList.add('show');
   }
   // warna aplikasi: pilihan cepat + bebas (color picker). Kosong = hijau bawaan.
@@ -913,7 +948,7 @@
     inp.onchange = () => setAccent(inp.value);
   }
   function setAccent(c){
-    store.set('hl_accent', c.toLowerCase() === ACCS[0] ? '' : c); applyTheme(); paintAcc(); setFavicon();
+    store.set('hl_accent', c.toLowerCase() === ACCS[0] ? '' : c); applyTheme(); paintAcc(); setFavicon(); paintPrefs();
   }
   // ikon tab browser ikut warna aplikasi (ikon di layar utama HP tetap, ditentukan saat dipasang)
   function setFavicon(){
@@ -928,7 +963,14 @@
   }
   setFavicon();
   $('themeSeg').querySelectorAll('button').forEach(b => b.onclick = () => {
-    store.set('hl_theme', b.dataset.v); applyTheme(); setSeg('themeSeg', 'theme', b.dataset.v);
+    store.set('hl_theme', b.dataset.v); applyTheme(); setSeg('themeSeg', 'theme', b.dataset.v); paintPrefs();
+  });
+  // baris yang bisa dibuka-tutup (satu terbuka sekaligus)
+  document.querySelectorAll('#setSheet .li[data-x]').forEach(b => b.onclick = () => {
+    const x = $(b.dataset.x), open = x.classList.contains('hide');
+    document.querySelectorAll('#setSheet .lx').forEach(e => e.classList.add('hide'));
+    document.querySelectorAll('#setSheet .li.open').forEach(e => e.classList.remove('open'));
+    if (open) { x.classList.remove('hide'); b.classList.add('open'); }
   });
   // ---------- Preferensi ----------
   const quickAmts = () => { try { const a = JSON.parse(store.get('hl_chips') || 'null'); if (Array.isArray(a) && a.length) return a; } catch (e) {} return [100000, 200000, 300000, 500000, 1000000]; };
@@ -937,13 +979,21 @@
     setSeg('defBySeg', 'defByPref', store.get('hl_defby') || 'me');
     $('defByOther').textContent = other(ME);
     $('stAutoHide').querySelector('.tg').classList.toggle('on', store.get('hl_autohide') === '1');
-    $('stChips').value = quickAmts().map(jtR).join(' ').replace(/Rp/g, '').replace(/ (rb|jt)/g, '$1');
+    const amts = quickAmts().map(jtR).map(x => x.replace(/Rp/, '').replace(/ (rb|jt)/, '$1'));
+    $('stChips').value = amts.join(' ');
+    $('vChips').textContent = amts.slice(0, 2).join(' · ') + (amts.length > 2 ? ` +${amts.length - 2}` : '');
+    const th = store.get('hl_theme') || 'auto';
+    $('vTheme').textContent = { auto:'Otomatis', light:'Terang', dark:'Gelap' }[th];
+    $('vAcc').style.background = accentLight();
+    $('vStart').textContent = { home:'Beranda', hist:'Riwayat', stats:'Statistik', pay:'Bayar' }[store.get('hl_start') || 'home'];
+    const db = store.get('hl_defby') || 'me';
+    $('vDef').textContent = db === 'me' ? 'Kamu' : db === 'other' ? other(ME) : 'Terakhir dipakai';
     const n = Object.keys(CATMAP).length;
-    $('stCatsN').textContent = n ? `${n} keterangan diatur manual` : 'Atur kategori tiap keterangan';
+    $('stCatsN').textContent = n ? `${n} manual` : '';
   }
-  $('startSeg').querySelectorAll('button').forEach(b => b.onclick = () => { store.set('hl_start', b.dataset.v); setSeg('startSeg', 'startTab', b.dataset.v); });
+  $('startSeg').querySelectorAll('button').forEach(b => b.onclick = () => { store.set('hl_start', b.dataset.v); setSeg('startSeg', 'startTab', b.dataset.v); paintPrefs(); });
   $('defBySeg').querySelectorAll('button').forEach(b => b.onclick = () => {
-    store.set('hl_defby', b.dataset.v); setSeg('defBySeg', 'defByPref', b.dataset.v);
+    store.set('hl_defby', b.dataset.v); setSeg('defBySeg', 'defByPref', b.dataset.v); paintPrefs();
     if (!state.edit) setSeg('by', 'by', defBy());
   });
   $('stAutoHide').onclick = () => {
@@ -966,7 +1016,7 @@
     google.script.run.withSuccessHandler(rows => { HS.all = rows || []; histStale = false; cb(HS.all); }).withFailureHandler(failSnack).getHistory();
   }
   $('stCsv').onclick = () => {
-    const t2 = $('stCsv').querySelector('.t2'), h = t2.textContent; t2.textContent = 'Menyiapkan…';
+    const t2 = $('stCsv').querySelector('.v'), h = t2.textContent; t2.textContent = 'Menyiapkan…';
     withHistory(rows => {
       const q = v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
       const L = [['Tanggal','Keterangan','Kategori','Dibayar','Total','Bagian Dimbo','Bagian Delpus','Status'].map(q).join(',')];
@@ -1016,12 +1066,12 @@
 
   function paintQueue(){
     $('stQueue').classList.toggle('hide', !Q.length);
-    $('stQueueN').textContent = `${Q.length} transaksi menunggu sinyal`;
+    $('stQueueN').textContent = `${Q.length} menunggu`;
   }
   $('stQueue').onclick = () => flushQueue(true);
   // buang cache tampilan app lalu muat ulang dari internet
   $('stReload').onclick = async () => {
-    $('stReload').querySelector('.t2').textContent = 'Memuat ulang…';
+    $('stReload').querySelector('.v').textContent = 'Memuat ulang…';
     try { const ks = await caches.keys(); await Promise.all(ks.map(k => caches.delete(k))); } catch (e) {}
     try { const rs = await navigator.serviceWorker.getRegistrations(); await Promise.all(rs.map(r => r.update())); } catch (e) {}
     location.reload();
