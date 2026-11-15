@@ -84,7 +84,7 @@
     tok = localStorage.getItem(KEY);
   } catch (e) {}
   window.__PWA = true;
-  window.__VER = '16-11-2026 03:01';
+  window.__VER = '16-11-2026 06:34';
 
   function call(fn, args) {
     return fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -482,6 +482,8 @@
   .snack.show{ opacity:1; transform:none; }
   .snack{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
   .snackbtn{ border:0; background:none; color:var(--accl); font-size:14px; font-weight:500; cursor:pointer; padding:4px 0; flex:none; text-transform:uppercase; letter-spacing:.3px; }
+  .scanbtn.pulse{ animation:pulse 0.8s ease-in-out 3; }
+  @keyframes pulse{ 50%{ box-shadow:0 0 0 6px var(--brandsoft); } }
   /* Wrapped */
   .wrban{ display:flex; align-items:center; gap:12px; width:100%; border:0; border-radius:20px; padding:16px; margin-bottom:12px; color:#fff; font-size:16px; font-weight:500; cursor:pointer; text-align:left; font-family:inherit; }
   .wrban .ms{ font-size:28px; } .wrban small{ display:block; font-size:12.5px; font-weight:400; opacity:.85; margin-top:2px; }
@@ -2384,9 +2386,20 @@
   if (Q.length) renderRecent();
   google.script.run.withSuccessHandler(info => { lastInfo = info; if (ME) renderInfo(info); flushQueue(); })
     .withFailureHandler(e => snack(isOffline(e) ? 'Offline: data belum bisa dimuat' : 'Gagal memuat: '+e.message)).getInfo();
+  // Shortcut ikon app (tekan lama ikon): ?a=direct|split|scan|pay
+  const SC = new URLSearchParams(location.search).get('a');
+  if (SC) history.replaceState(null, '', location.pathname + location.hash);
+  function runShortcut(k){
+    if (k === 'pay') return setView('pay');
+    if (!/^(direct|split|scan)$/.test(k)) return;
+    resetForm(); setSeg('mode','mode', k === 'direct' ? 'direct' : 'split'); renderMode(); setView('form');
+    if (k === 'scan') { const b = document.querySelector('#scanRow [data-src="scanCam"]'); if (b) { b.focus(); b.classList.add('pulse'); setTimeout(() => b.classList.remove('pulse'), 2400); } }   // kamera butuh tap
+    else setTimeout(() => $('desc').focus(), 80);
+  }
   initMe(() => {
     setSeg('by','by', defBy()); if (lastInfo) renderInfo(lastInfo);
     try { localStorage.removeItem('hl_sav'); } catch (e) {}
+    if (SC) runShortcut(SC);
   });
 </script>
 </body>
