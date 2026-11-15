@@ -115,9 +115,11 @@
   .av{ border-radius:50%; display:grid; place-items:center; color:#FFFFFF; font-weight:500; flex:none; overflow:hidden; }
   .av svg, .av img{ width:100%; height:100%; display:block; object-fit:cover; }
   .cicw{ position:relative; flex:none; display:block; }
-  .cicw > .av{ position:absolute; right:-4px; bottom:-4px; border:2px solid var(--card); box-sizing:content-box; }
-  .sub .cicw > .av{ border-color:var(--tile); }
-  .av.Dimbo{ background:#3949AB; } .av.Delpus{ background:#C2410C; }
+  .cicw > .av{ position:absolute; right:-4px; bottom:-4px; box-shadow:0 0 0 2px var(--card); }
+  .sub .cicw > .av{ box-shadow:0 0 0 2px var(--tile); }
+  /* bingkai warna pemilik: tetap kelihatan siapa walau sudah pakai foto */
+  .av.Dimbo{ background:#3949AB; border:2px solid #3949AB; } .av.Delpus{ background:#C2410C; border:2px solid #C2410C; }
+  html.dk .av.Dimbo{ border-color:#7986CB; } html.dk .av.Delpus{ border-color:#F4703A; }
   .c-Dimbo{ color:var(--dim); } .c-Delpus{ color:var(--del); }
 
   /* Hero */
@@ -126,8 +128,6 @@
   .hero .bar h1{ margin:0; flex:1; font-size:20px; font-weight:500; display:flex; align-items:center; gap:10px; }
   .hero .bar h1 i{ width:28px; height:28px; border-radius:8px; background:rgba(255,255,255,.18); display:grid; place-items:center; font-style:normal; }
   .who{ display:flex; align-items:center; gap:6px; padding:8px 20px 0; font-size:14px; min-height:36px; }
-  .who .av{ border:2px solid rgba(255,255,255,.6); }
-  .who .avs{ display:flex; } .who .avs .av{ border:2px solid var(--brand); } .who .avs .av + .av{ margin-left:-8px; }
   .hero .big{ padding:6px 20px 0; font-size:36px; font-weight:500; letter-spacing:-.5px; }
   .mini{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; padding:16px 20px 0; }
   .mini div{ background:rgba(255,255,255,.12); border-radius:14px; padding:8px 12px; display:flex; align-items:center; gap:10px; }
@@ -180,7 +180,6 @@
   .addgrid b{ font-size:14px; font-weight:500; } .addgrid small{ font-size:11.5px; color:var(--on2); margin-top:-6px; }
   .k-dir{ background:var(--dimsoft); color:var(--dim); } .k-split{ background:var(--delsoft); color:var(--del); } .k-scan{ background:var(--brandsoft); color:var(--onbrandsoft); }
 
-  #meBtn .av{ border:2px solid rgba(255,255,255,.6); }
   .who .av, .mini .av, .split2l .av, .flow .av, .lg2 .av{ cursor:pointer; }
   .tagih{ display:flex; gap:12px; align-items:center; }
   .tagih .m{ flex:1; min-width:0; font-size:13px; color:var(--on2); }
@@ -649,7 +648,7 @@
   // Foto profil (dari server, disimpan juga di HP supaya langsung tampil)
   let PHOTOS = {}; try { PHOTOS = JSON.parse(store.get('hl_photos') || '{}') || {}; } catch (e) {}
   const face = p => PHOTOS[p] ? `<img src="${PHOTOS[p]}" alt="">` : (FACE[p] || ini(p));
-  const av = (p, s=32) => `<span class="av ${p}" style="width:${s}px;height:${s}px" title="${p}">${face(p)}</span>`;
+  const av = (p, s=32) => `<span class="av ${p}" style="width:${s}px;height:${s}px;border-width:${s >= 64 ? 4 : s <= 24 ? 2 : 2.5}px" title="${p}">${face(p)}</span>`;
   // gambar ulang semua avatar yang sudah ada di halaman
   const paintAvs = () => document.querySelectorAll('span.av.Dimbo, span.av.Delpus').forEach(e => { e.innerHTML = face(e.classList.contains('Dimbo') ? 'Dimbo' : 'Delpus'); });
   paintAvs();   // avatar yang ditulis langsung di HTML (pilihan pembayar, pilih pengguna)

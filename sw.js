@@ -2,7 +2,7 @@
 // Strategi: halaman app selalu diambil dari internet dulu (cache HTTP dilewati), cache hanya cadangan saat offline.
 // File lain (ikon, font): dari cache dulu, diperbarui di belakang.
 // Panggilan API (script.google.com) tidak pernah di-cache.
-const CACHE = 'hutang-lu-b3896a8ad7';
+const CACHE = 'hutang-lu-7a720889ff';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
