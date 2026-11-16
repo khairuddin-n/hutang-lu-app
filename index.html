@@ -84,7 +84,7 @@
     tok = localStorage.getItem(KEY);
   } catch (e) {}
   window.__PWA = true;
-  window.__VER = '16-11-2026 16:52';
+  window.__VER = '16-11-2026 16:53';
 
   function call(fn, args) {
     return fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -578,7 +578,7 @@
       <section class="card scancard" id="scanCard">
         <div class="sc-hd">
           <span class="sc-ic" id="scIc"><span class="ms" aria-hidden="true">receipt_long</span></span>
-          <div style="min-width:0"><div class="sc-t"><span id="scT">Isi dari struk</span><button type="button" class="tip" data-tip="Item, ongkir, total, dan tanggal terisi otomatis." aria-label="Info"><span class="ms" aria-hidden="true">error</span></button></div><div class="sc-s" id="scS"></div></div>
+          <div style="min-width:0"><div class="sc-t"><span id="scT">Isi dari struk</span><button type="button" class="tip" data-tip="Item, ongkir, total, dan tanggal terisi otomatis." aria-label="Info"><span class="ms" aria-hidden="true">info</span></button></div><div class="sc-s" id="scS"></div></div>
         </div>
         <div class="scanrow" id="scanRow">
           <button class="scanbtn" data-src="scanCam"><span class="ms" aria-hidden="true">photo_camera</span>Foto struk</button>
@@ -618,14 +618,14 @@
       <!-- PATUNGAN -->
       <div id="split" class="hide">
         <section class="card">
-          <div class="ch"><h2>Item<button type="button" class="tip" data-tip="Isi harga menu sebelum diskon." aria-label="Info"><span class="ms" aria-hidden="true">error</span></button></h2></div>
+          <div class="ch"><h2>Item<button type="button" class="tip" data-tip="Isi harga menu sebelum diskon." aria-label="Info"><span class="ms" aria-hidden="true">info</span></button></h2></div>
           <div class="scaninfo hide" id="scanInfo"></div>
           <div id="items"></div>
           <button class="addi" id="addItem"><span class="ms" aria-hidden="true" style="font-size:18px">add</span>Tambah item</button>
         </section>
         <section class="card">
           <div class="two">
-            <div style="min-width:0"><div class="lbl"><label for="fee">Ongkir + layanan</label><button type="button" class="tip" data-tip="Ongkir dibagi rata, diskon & pajak ikut porsi. Bisa ketik 5000+2000 atau 12000*2." aria-label="Info"><span class="ms" aria-hidden="true">error</span></button></div><div class="inp"><span class="pre">Rp</span><input id="fee" class="n" inputmode="text" enterkeyhint="done" autocomplete="off" data-calc placeholder="0"></div></div>
+            <div style="min-width:0"><div class="lbl"><label for="fee">Ongkir + layanan</label><button type="button" class="tip" data-tip="Ongkir dibagi rata, diskon & pajak ikut porsi. Bisa ketik 5000+2000 atau 12000*2." aria-label="Info"><span class="ms" aria-hidden="true">info</span></button></div><div class="inp"><span class="pre">Rp</span><input id="fee" class="n" inputmode="text" enterkeyhint="done" autocomplete="off" data-calc placeholder="0"></div></div>
             <div style="min-width:0"><div class="lbl"><label for="total">Total bayar</label></div><div class="inp"><span class="pre">Rp</span><input id="total" class="n" inputmode="text" enterkeyhint="done" autocomplete="off" data-calc placeholder="0"></div></div>
           </div>
         </section>
