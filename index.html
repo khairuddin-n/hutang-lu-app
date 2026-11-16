@@ -84,7 +84,7 @@
     tok = localStorage.getItem(KEY);
   } catch (e) {}
   window.__PWA = true;
-  window.__VER = '16-11-2026 06:34';
+  window.__VER = '16-11-2026 16:52';
 
   function call(fn, args) {
     return fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -484,6 +484,13 @@
   .snackbtn{ border:0; background:none; color:var(--accl); font-size:14px; font-weight:500; cursor:pointer; padding:4px 0; flex:none; text-transform:uppercase; letter-spacing:.3px; }
   .scanbtn.pulse{ animation:pulse 0.8s ease-in-out 3; }
   @keyframes pulse{ 50%{ box-shadow:0 0 0 6px var(--brandsoft); } }
+  .tip{ all:unset; cursor:pointer; display:inline-grid; place-items:center; width:22px; height:22px; margin-left:4px; vertical-align:middle; border-radius:50%; color:var(--on2); -webkit-tap-highlight-color:transparent; }
+  .tip .ms{ font-size:16px; }
+  .tip:active, .tip.on{ color:var(--brand); }
+  .lbl .tip{ margin:-4px 0 -4px 2px; }
+  .sc-s:empty{ display:none; }
+  #tipBox{ position:fixed; z-index:90; max-width:260px; padding:9px 12px; border-radius:12px; background:var(--on, #1f1f1f); color:var(--page, #fff); font-size:12.5px; line-height:1.45; box-shadow:0 4px 16px rgba(0,0,0,.2); opacity:0; transform:translateY(-4px); transition:opacity .15s, transform .15s; pointer-events:none; }
+  #tipBox.show{ opacity:1; transform:none; }
   /* Wrapped */
   .wrban{ display:flex; align-items:center; gap:12px; width:100%; border:0; border-radius:20px; padding:16px; margin-bottom:12px; color:#fff; font-size:16px; font-weight:500; cursor:pointer; text-align:left; font-family:inherit; }
   .wrban .ms{ font-size:28px; } .wrban small{ display:block; font-size:12.5px; font-weight:400; opacity:.85; margin-top:2px; }
@@ -571,7 +578,7 @@
       <section class="card scancard" id="scanCard">
         <div class="sc-hd">
           <span class="sc-ic" id="scIc"><span class="ms" aria-hidden="true">receipt_long</span></span>
-          <div style="min-width:0"><div class="sc-t" id="scT">Isi dari struk</div><div class="sc-s" id="scS">Item, ongkir, total, dan tanggal terisi otomatis</div></div>
+          <div style="min-width:0"><div class="sc-t"><span id="scT">Isi dari struk</span><button type="button" class="tip" data-tip="Item, ongkir, total, dan tanggal terisi otomatis." aria-label="Info"><span class="ms" aria-hidden="true">error</span></button></div><div class="sc-s" id="scS"></div></div>
         </div>
         <div class="scanrow" id="scanRow">
           <button class="scanbtn" data-src="scanCam"><span class="ms" aria-hidden="true">photo_camera</span>Foto struk</button>
@@ -611,17 +618,16 @@
       <!-- PATUNGAN -->
       <div id="split" class="hide">
         <section class="card">
-          <div class="ch"><h2>Item</h2><span>harga menu sebelum diskon</span></div>
+          <div class="ch"><h2>Item<button type="button" class="tip" data-tip="Isi harga menu sebelum diskon." aria-label="Info"><span class="ms" aria-hidden="true">error</span></button></h2></div>
           <div class="scaninfo hide" id="scanInfo"></div>
           <div id="items"></div>
           <button class="addi" id="addItem"><span class="ms" aria-hidden="true" style="font-size:18px">add</span>Tambah item</button>
         </section>
         <section class="card">
           <div class="two">
-            <div style="min-width:0"><div class="lbl"><label for="fee">Ongkir + layanan</label></div><div class="inp"><span class="pre">Rp</span><input id="fee" class="n" inputmode="text" enterkeyhint="done" autocomplete="off" data-calc placeholder="0"></div></div>
+            <div style="min-width:0"><div class="lbl"><label for="fee">Ongkir + layanan</label><button type="button" class="tip" data-tip="Ongkir dibagi rata, diskon & pajak ikut porsi. Bisa ketik 5000+2000 atau 12000*2." aria-label="Info"><span class="ms" aria-hidden="true">error</span></button></div><div class="inp"><span class="pre">Rp</span><input id="fee" class="n" inputmode="text" enterkeyhint="done" autocomplete="off" data-calc placeholder="0"></div></div>
             <div style="min-width:0"><div class="lbl"><label for="total">Total bayar</label></div><div class="inp"><span class="pre">Rp</span><input id="total" class="n" inputmode="text" enterkeyhint="done" autocomplete="off" data-calc placeholder="0"></div></div>
           </div>
-          <div class="help">Ongkir dibagi rata, diskon & pajak ikut porsi. Bisa ketik 5000+2000 atau 12000*2.</div>
         </section>
         <section class="card pv" id="preview"></section>
       </div>
@@ -1724,7 +1730,7 @@
     $('scIc').innerHTML = `<span class="ms" aria-hidden="true">${kind==='ok'?'check_circle':kind==='err'?'error':kind==='wait'?'hourglass_top':'receipt_long'}</span>`;
     $('scT').textContent = title; $('scS').innerHTML = sub;
   }
-  const scanReset = () => scanState('', 'Isi dari struk', 'Item, ongkir, total, dan tanggal terisi otomatis');
+  const scanReset = () => scanState('', 'Isi dari struk', '');
   function flashFields(ids){
     ids.forEach(id => { const el = $(id) && ($(id).closest('.inp') || $(id)); if (!el) return; el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); });
   }
@@ -2386,6 +2392,23 @@
   if (Q.length) renderRecent();
   google.script.run.withSuccessHandler(info => { lastInfo = info; if (ME) renderInfo(info); flushQueue(); })
     .withFailureHandler(e => snack(isOffline(e) ? 'Offline: data belum bisa dimuat' : 'Gagal memuat: '+e.message)).getInfo();
+  // Petunjuk kecil (ikon !): tap untuk lihat, tap di mana saja untuk tutup
+  const tipBox = document.body.appendChild(Object.assign(document.createElement('div'), { id: 'tipBox', role: 'tooltip' }));
+  let tipOn = null;
+  const hideTip = () => { tipBox.classList.remove('show'); if (tipOn) tipOn.classList.remove('on'); tipOn = null; };
+  document.addEventListener('click', e => {
+    const t = e.target.closest && e.target.closest('.tip');
+    if (!t || t === tipOn) return hideTip();
+    e.preventDefault(); e.stopPropagation(); hideTip();
+    tipOn = t; t.classList.add('on'); tipBox.textContent = t.dataset.tip;
+    const r = t.getBoundingClientRect(), w = Math.min(260, innerWidth - 32);
+    tipBox.style.maxWidth = w + 'px';
+    tipBox.style.left = Math.max(16, Math.min(r.left + r.width / 2 - w / 2, innerWidth - 16 - w)) + 'px';
+    tipBox.style.top = (r.bottom + 6) + 'px';
+    requestAnimationFrame(() => tipBox.classList.add('show'));
+  }, true);
+  addEventListener('scroll', hideTip, { passive: true });
+
   // Shortcut ikon app (tekan lama ikon): ?a=direct|split|scan|pay
   const SC = new URLSearchParams(location.search).get('a');
   if (SC) history.replaceState(null, '', location.pathname + location.hash);
