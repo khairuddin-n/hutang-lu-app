@@ -737,7 +737,7 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
   <button class="row" id="stGem" aria-expanded="false"><span class="ms" aria-hidden="true">document_scanner</span><div class="m">Scan struk</div><span id="stGemS" style="color:var(--on2);font-size:14px"></span></button>
   <div class="hide" id="stGemBox" style="margin:-2px 0 10px">
     <div class="inp"><input id="stGemIn" type="password" autocomplete="off" placeholder="API key Gemini" aria-label="API key Gemini"></div>
-    <div class="help">Buat gratis di <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>. Disimpan di HP ini saja. Kosongkan untuk mematikan.</div>
+    <div class="help">Buat gratis di <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>. Cukup diisi salah satu dari kalian, berlaku untuk berdua. Kosongkan untuk mematikan.</div>
     <button class="btn fill" id="stGemOk" style="width:100%;margin-top:10px">Simpan</button>
   </div>
   <button class="row" id="stReload"><span class="ms" aria-hidden="true">refresh</span><div class="m">Muat ulang app</div></button>
@@ -1114,11 +1114,16 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
     $('stGem').setAttribute('aria-expanded', open);
     if (open) { $('stGemIn').value = HL.geminiKey(); $('stGemIn').focus(); }
   };
-  $('stGemOk').onclick = () => {
-    const k = $('stGemIn').value.trim();
-    if (k) store.set('hl_gemini', k); else store.del('hl_gemini', 'hl_gem_model');
-    $('stGemS').textContent = k ? 'Aktif' : 'Mati'; $('stGemBox').classList.add('hide');
-    renderMode(); snack(k ? 'Scan struk aktif' : 'Scan struk dimatikan');
+  // kunci disimpan di sheet bersama: pasangan otomatis bisa scan tanpa mengisi lagi
+  $('stGemOk').onclick = async () => {
+    const k = $('stGemIn').value.trim(), b = $('stGemOk');
+    b.disabled = true; b.innerHTML = '<span class="spin"></span>';
+    try {
+      await HL.setGeminiKey(k);
+      $('stGemS').textContent = k ? 'Aktif' : 'Mati'; $('stGemBox').classList.add('hide');
+      renderMode(); snack(k ? `Scan struk aktif untuk kamu & ${NAME(other(ME))}` : 'Scan struk dimatikan');
+    } catch (e) { snack(errMsg(e)); }
+    finally { b.disabled = false; b.textContent = 'Simpan'; }
   };
   // keluar: hapus semua data akun ini dari HP (sheet di Drive tetap ada)
   $('stOut').onclick = () => {

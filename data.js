@@ -434,7 +434,13 @@
   const SCHEMA_STRUK = { type: 'OBJECT', properties: { merchant: { type: 'STRING' }, date: { type: 'STRING' },
     items: { type: 'ARRAY', items: { type: 'OBJECT', properties: { name: { type: 'STRING' }, qty: { type: 'NUMBER' }, price: { type: 'NUMBER' } }, required: ['name', 'price'] } },
     fee: { type: 'NUMBER' }, total: { type: 'NUMBER' } }, required: ['items', 'total'] };
-  const geminiKey = () => { try { return localStorage.getItem('hl_gemini') || ''; } catch (e) { return ''; } };
+  // kunci Gemini: milik HP ini, atau yang sudah diisi pasangan (tersimpan di metadata sheet bersama)
+  const geminiKey = () => { let k = ''; try { k = localStorage.getItem('hl_gemini') || ''; } catch (e) {} return k || String(md('hl_gemini', '') || ''); };
+  async function setGeminiKey(k) {
+    k = String(k || '').trim();
+    try { k ? localStorage.setItem('hl_gemini', k) : localStorage.removeItem('hl_gemini'); localStorage.removeItem('hl_gem_model'); } catch (e) {}
+    if (SID) { await load(); await setMd({ hl_gemini: k }); await load(); }
+  }
   const ver = n => { const m = n.match(/(\d+(?:\.\d+)?)/); return m ? parseFloat(m[1]) : 0; };
   async function gfetch(url, key, body) {
     let r;
@@ -544,40 +550,95 @@
     await setMd({ hl_members: em });
     await load();
   }
-  // Sheet baru untuk pengguna baru: format yang sama persis (Debt Tracker + Summary), rapi dan siap dibaca
+  // Sheet baru untuk pengguna baru: desain sama dengan sheet Hutang Lu asli (tabel, warna, dropdown, font Lexend, Summary)
+  const RGB = (r, g, b) => ({ red: r, green: g, blue: b });
+  const YELLOW = RGB(1, .8980392, .6), BLUE = RGB(.6431373, .7607843, .95686275), GREEN = RGB(.20784314, .40784314, .32941177);
+  const BAND2 = RGB(.9647059, .972549, .9764706), WHITE = RGB(1, 1, 1);
+  const FONT = { fontFamily: 'Lexend', fontSize: 10 };
+  const RP = { type: 'CURRENCY', pattern: '[$Rp ]#,##0' };
+  const BORDER = { style: 'SOLID', width: 1, colorStyle: { rgbColor: {} } };
   async function create(names, email) {
     const [a, b] = names.map(n => String(n).trim().slice(0, 24));
+    const ROWS = 1000;
     const f = await G.createSheet('Hutang Lu');
     SID = f.id;
-    let m = readMeta(await G.meta(SID));
-    const first = Object.values(m.tabs)[0].id;
-    const money = { numberFormat: { type: 'CURRENCY', pattern: '"Rp"#,##0' } };
-    const colW = (c0, c1, px) => ({ updateDimensionProperties: { range: { sheetId: first, dimension: 'COLUMNS', startIndex: c0, endIndex: c1 }, properties: { pixelSize: px }, fields: 'pixelSize' } });
+    const dt = Object.values(readMeta(await G.meta(SID)).tabs)[0].id;
+    const rng = (sid, r0, r1, c0, c1) => Object.assign({ sheetId: sid }, r0 != null ? { startRowIndex: r0, endRowIndex: r1 } : {}, c0 != null ? { startColumnIndex: c0, endColumnIndex: c1 } : {});
+    const fmt = (range, format, fields) => ({ repeatCell: { range, cell: { userEnteredFormat: format }, fields: 'userEnteredFormat(' + fields + ')' } });
+    const width = (sid, c, px) => ({ updateDimensionProperties: { range: { sheetId: sid, dimension: 'COLUMNS', startIndex: c, endIndex: c + 1 }, properties: { pixelSize: px }, fields: 'pixelSize' } });
+    const height = (sid, n) => ({ updateDimensionProperties: { range: { sheetId: sid, dimension: 'ROWS', startIndex: 0, endIndex: n }, properties: { pixelSize: 20 }, fields: 'pixelSize' } });
+    const heads = ['Date', 'Description', 'Paid By', a + ' Price', b + ' Price', 'Fixed Fee (Split 50/50)', 'Total Paid (Final)', a + ' Share', b + ' Share', 'Paid'];
+
+    // 1. kerangka: nama tab, ukuran, beku, Summary, bahasa formula en_US (rumus memakai koma)
     await G.batch(SID, [
-      { updateSheetProperties: { properties: { sheetId: first, title: TAB, gridProperties: { frozenRowCount: 1, rowCount: 500, columnCount: 10 } }, fields: 'title,gridProperties.frozenRowCount,gridProperties.rowCount,gridProperties.columnCount' } },
-      { addSheet: { properties: { title: SUM, gridProperties: { rowCount: 20, columnCount: 4 } } } },
-      { repeatCell: { range: { sheetId: first, startRowIndex: 0, endRowIndex: 1 }, cell: { userEnteredFormat: { textFormat: { bold: true }, backgroundColor: { red: .93, green: .95, blue: .94 } } }, fields: 'userEnteredFormat(textFormat,backgroundColor)' } },
-      { repeatCell: { range: { sheetId: first, startRowIndex: 1, startColumnIndex: 0, endColumnIndex: 1 }, cell: { userEnteredFormat: { numberFormat: { type: 'DATE', pattern: 'd mmm yyyy' } } }, fields: 'userEnteredFormat.numberFormat' } },
-      { repeatCell: { range: { sheetId: first, startRowIndex: 1, startColumnIndex: 3, endColumnIndex: 9 }, cell: { userEnteredFormat: money }, fields: 'userEnteredFormat.numberFormat' } },
-      colW(0, 1, 110), colW(1, 2, 220), colW(2, 3, 90), colW(3, 9, 110), colW(9, 10, 70)
+      { updateSpreadsheetProperties: { properties: { locale: 'en_US', timeZone: 'Asia/Jakarta' }, fields: 'locale,timeZone' } },
+      { updateSheetProperties: { properties: { sheetId: dt, title: TAB, gridProperties: { frozenRowCount: 1, frozenColumnCount: 2, rowCount: ROWS, columnCount: 10 } },
+        fields: 'title,gridProperties.frozenRowCount,gridProperties.frozenColumnCount,gridProperties.rowCount,gridProperties.columnCount' } },
+      { addSheet: { properties: { title: SUM, gridProperties: { rowCount: 20, columnCount: 4 } } } }
     ]);
-    m = readMeta(await G.meta(SID));
+    const sm = readMeta(await G.meta(SID)).tabs[SUM].id;
+
+    // 2. isi: judul kolom + Summary (rumus sama dengan sheet asli)
     const D = Q(TAB);
     await G.put(SID, [
-      { range: `${D}!A1:J1`, values: [['Date', 'Description', 'Paid By', a + ' Items', b + ' Items', 'Fee', 'Total', a + ' Share', b + ' Share', 'Status']] },
+      { range: `${D}!A1:J1`, values: [heads] },
       { range: `${Q(SUM)}!A1:B5`, values: [
-        ['Ringkasan', 'Belum lunas'],
-        [`Utang ${a}`, `=SUMIFS(${D}!H2:H, ${D}!C2:C, "${b}", ${D}!J2:J, "<>Paid")`],
-        [`Utang ${b}`, `=SUMIFS(${D}!I2:I, ${D}!C2:C, "${a}", ${D}!J2:J, "<>Paid")`],
-        [`${a} harus bayar`, '=MAX(0, B2-B3)'],
-        [`${b} harus bayar`, '=MAX(0, B3-B2)']] }
+        ['Summary', ''],
+        [`Utang ${a}`, `=SUMIFS(${D}!$H:$H,${D}!$C:$C,"${b}",${D}!$J:$J,"")`],
+        [`Utang ${b}`, `=SUMIFS(${D}!$I:$I,${D}!$C:$C,"${a}",${D}!$J:$J,"")`],
+        [`Total Utang ${a}`, '=IF(B2>B3,B2-B3,0)'],
+        [`Total Utang ${b}`, '=IF(B2>B3,0,B3-B2)']] }
     ]);
-    const sumId = m.tabs[SUM].id;
+
+    // 3. tampilan Debt Tracker
+    const widths = [102, 205, 119, 145, 145, 225, 186, 157, 159, 99];
     await G.batch(SID, [
-      { repeatCell: { range: { sheetId: sumId, startRowIndex: 1, endRowIndex: 5, startColumnIndex: 1, endColumnIndex: 2 }, cell: { userEnteredFormat: money }, fields: 'userEnteredFormat.numberFormat' } },
-      { repeatCell: { range: { sheetId: sumId, startRowIndex: 0, endRowIndex: 1 }, cell: { userEnteredFormat: { textFormat: { bold: true } } }, fields: 'userEnteredFormat.textFormat' } },
-      { updateDimensionProperties: { range: { sheetId: sumId, dimension: 'COLUMNS', startIndex: 0, endIndex: 2 }, properties: { pixelSize: 160 }, fields: 'pixelSize' } }
+      fmt(rng(dt), { textFormat: FONT }, 'textFormat'),
+      fmt(rng(dt, 0, 1, 0, 9), { backgroundColorStyle: { rgbColor: YELLOW }, horizontalAlignment: 'CENTER', textFormat: Object.assign({ bold: true }, FONT) }, 'backgroundColorStyle,horizontalAlignment,textFormat'),
+      fmt(rng(dt, 0, 1, 1, 2), { horizontalAlignment: 'LEFT' }, 'horizontalAlignment'),
+      fmt(rng(dt, 0, 1, 7, 9), { backgroundColorStyle: { rgbColor: BLUE } }, 'backgroundColorStyle'),
+      fmt(rng(dt, 1, ROWS, 0, 1), { horizontalAlignment: 'CENTER', numberFormat: { type: 'DATE', pattern: 'd" "mmm" "yyyy' } }, 'horizontalAlignment,numberFormat'),
+      fmt(rng(dt, 1, ROWS, 3, 9), { horizontalAlignment: 'CENTER', numberFormat: RP }, 'horizontalAlignment,numberFormat'),
+      height(dt, ROWS)
+    ].concat(widths.map((px, i) => width(dt, i, px))));
+
+    // 4. tabel dengan dropdown & warna selang-seling (kalau API tabel tidak tersedia: pita warna + dropdown biasa)
+    try {
+      await G.batch(SID, [{ addTable: { table: {
+        name: 'HUTANG LU', range: rng(dt, 0, ROWS, 0, 10),
+        rowsProperties: { headerColorStyle: { rgbColor: GREEN }, firstBandColorStyle: { rgbColor: WHITE }, secondBandColorStyle: { rgbColor: BAND2 } },
+        columnProperties: heads.map((h, i) => Object.assign({ columnIndex: i, columnName: h },
+          i === 0 ? { columnType: 'DATE' } : i === 2 ? { columnType: 'DROPDOWN', dataValidationRule: { condition: { type: 'ONE_OF_LIST', values: [{ userEnteredValue: a }, { userEnteredValue: b }] } } }
+          : i === 9 ? { columnType: 'DROPDOWN', dataValidationRule: { condition: { type: 'ONE_OF_LIST', values: [{ userEnteredValue: 'Paid' }] } } }
+          : i >= 3 ? { columnType: 'CURRENCY' } : {}))
+      } } }]);
+    } catch (e) {
+      const list = (r, vals) => ({ setDataValidation: { range: r, rule: { condition: { type: 'ONE_OF_LIST', values: vals.map(v => ({ userEnteredValue: v })) }, showCustomUi: true, strict: false } } });
+      await G.batch(SID, [
+        { addBanding: { bandedRange: { range: rng(dt, 0, ROWS, 0, 10), rowProperties: { headerColorStyle: { rgbColor: GREEN }, firstBandColorStyle: { rgbColor: WHITE }, secondBandColorStyle: { rgbColor: BAND2 } } } } },
+        list(rng(dt, 1, ROWS, 2, 3), [a, b]), list(rng(dt, 1, ROWS, 9, 10), ['Paid'])
+      ]).catch(() => {});
+    }
+
+    // warna judul kolom dipasang lagi setelah tabel (gaya tabel bisa menimpa)
+    await G.batch(SID, [
+      fmt(rng(dt, 0, 1, 0, 9), { backgroundColorStyle: { rgbColor: YELLOW }, horizontalAlignment: 'CENTER', textFormat: Object.assign({ bold: true }, FONT) }, 'backgroundColorStyle,horizontalAlignment,textFormat'),
+      fmt(rng(dt, 0, 1, 1, 2), { horizontalAlignment: 'LEFT' }, 'horizontalAlignment'),
+      fmt(rng(dt, 0, 1, 7, 9), { backgroundColorStyle: { rgbColor: BLUE } }, 'backgroundColorStyle')
+    ]).catch(() => {});
+
+    // 5. tampilan Summary
+    const box = { top: BORDER, bottom: BORDER, left: BORDER, right: BORDER };
+    await G.batch(SID, [
+      fmt(rng(sm), { textFormat: FONT }, 'textFormat'),
+      { mergeCells: { range: rng(sm, 0, 1, 0, 2), mergeType: 'MERGE_ALL' } },
+      fmt(rng(sm, 0, 1, 0, 2), { backgroundColorStyle: { rgbColor: BLUE }, horizontalAlignment: 'CENTER', textFormat: Object.assign({ bold: true }, FONT), borders: box }, 'backgroundColorStyle,horizontalAlignment,textFormat,borders'),
+      fmt(rng(sm, 1, 5, 0, 2), { borders: box }, 'borders'),
+      fmt(rng(sm, 1, 5, 1, 2), { numberFormat: RP }, 'numberFormat'),
+      fmt(rng(sm, 3, 5, 0, 2), { textFormat: Object.assign({ bold: true }, FONT) }, 'textFormat'),
+      width(sm, 0, 153), width(sm, 1, 110), height(sm, 20)
     ]);
+
     await load();
     await setMd({ hl_members: { A: email, B: '' } });
     await load();
@@ -610,7 +671,7 @@
     meId: slot => slot || '',
     sheetId: () => SID,
     forget: () => { SID = null; DB = null; META = null; },
-    geminiKey,
+    geminiKey, setGeminiKey,
     canScan: () => !!(G.relay || geminiKey()),
     setPhotoOf: (slot, url) => setPhoto(url, slot),
     photoOf: slot => { const p = md('hl_photo_' + slot, null); return (p && p.u) || ''; }
