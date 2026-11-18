@@ -392,10 +392,10 @@
     return out;
   }
   async function getPhotos() { await load(); return photos(); }
-  async function setPhoto(url) {
+  async function setPhoto(url, slot) {
     if (url && (!/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(url) || url.length > 49000)) throw new Error('Foto terlalu besar');
     await load();
-    const m = DB.members.find(x => x.id === ME_ID);
+    const m = DB.members.find(x => x.id === (slot ? DB.ID[slot] : ME_ID));
     if (!m) throw new Error('Akun ini belum terhubung ke anggota');
     await G.put(SID, [{ range: `Anggota!D${m.row}:E${m.row}`, values: [[url || '', String(Date.now())]] }]);
     await load();
@@ -457,6 +457,7 @@
     } catch (e) { return { ok: false, code: 0, error: 'Hasil Gemini tidak bisa dibaca' }; }
   }
   async function scanReceipt(img) {
+    if (G.relay) return G.relayCall('scanReceipt', [img]);          // HP lama: scan lewat Apps Script seperti dulu
     const key = geminiKey();
     if (!key) return { ok: false, error: 'Isi kunci Gemini di Pengaturan dulu' };
     if (!img || !img.data) throw new Error('Gambar kosong');
@@ -585,6 +586,9 @@
     meId: slot => (DB && DB.ID[slot]) || '',
     sheetId: () => SID,
     forget: () => { SID = null; DB = null; TABID = {}; },
-    geminiKey
+    geminiKey,
+    canScan: () => !!(G.relay || geminiKey()),
+    setPhotoOf: (slot, url) => setPhoto(url, slot),
+    photoOf: slot => { const m = DB && DB.members.find(x => x.id === DB.ID[slot]); return m ? m.photo : ''; }
   };
 })();

@@ -819,7 +819,13 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
     set(k,v){ try { localStorage.setItem(k,v); } catch(e){} },
     del(...ks){ ks.forEach(k => { try { localStorage.removeItem(k); } catch(e){} }); }
   };
-  if (!store.get('hl_sid')) store.del('hl_key', 'hl_me', 'me', 'hl_info', 'hl_photos', 'hl_photover', 'hl_cats', 'hl_queue', 'hl_sheet', 'hl_sav', 'hl_mems');
+  // Link pribadi lama (#k=…) → mode jembatan lewat Apps Script, tanpa login Google (HP Delpus)
+  (() => { const m = location.hash.match(/k=([A-Za-z0-9]{20,})/); if (m) { store.set('hl_key', m[1]); history.replaceState(null, '', location.pathname + location.search); } })();
+  const RELAY = !!store.get('hl_key') && !store.get('hl_email');
+  if (RELAY) {
+    HLG.useRelay(HL_CONFIG.relayUrl, store.get('hl_key'));
+    if (store.get('hl_relay') !== '2') { store.del('hl_me', 'me', 'hl_info', 'hl_photos', 'hl_photover', 'hl_cats', 'hl_queue', 'hl_sheet', 'hl_sav', 'hl_mems', 'hl_sid'); store.set('hl_relay', '2'); }
+  } else if (!store.get('hl_sid')) store.del('hl_key', 'hl_me', 'me', 'hl_info', 'hl_photos', 'hl_photover', 'hl_cats', 'hl_queue', 'hl_sheet', 'hl_sav', 'hl_mems');
   const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   // Dua anggota pertama di sheet = slot 'A' dan 'B'. Nama tampil dari tab Anggota (disimpan juga di HP).
   let MEMS = {}; try { MEMS = JSON.parse(localStorage.getItem('hl_mems') || '{}') || {}; } catch (e) {}
@@ -996,7 +1002,7 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
       $('who').innerHTML = '<div class="sk" style="width:150px;height:44px;border-radius:22px"></div>';
       $('bigAmt').innerHTML = '<div class="sk" style="width:200px;height:44px"></div>'; $('eyeBtn').classList.remove('hide');
       $('recentList').innerHTML = '<div class="empty">Memuat…</div>';
-      if (au) connectGoogle(); else loadInfo();
+      if (au) connectGoogle(); else if (RELAY && !HL.sheetId()) bootRelay(); else loadInfo();
     };
   }
   const nm = p => p === ME ? 'Kamu' : NAME(p);       // awal kalimat
@@ -1036,7 +1042,8 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
     $('stSheet').classList.toggle('hide', !url); if (url) $('stSheet').href = url;
     paintQueue();
     const o = other(ME), oe = MEMS[o] && MEMS[o].email;
-    $('stInvite').classList.toggle('hide', !!oe);
+    $('stInvite').classList.toggle('hide', !!oe || RELAY);
+    ['stGem', 'stOut'].forEach(id => $(id).classList.toggle('hide', RELAY));
     $('stInviteT').textContent = 'Undang ' + NAME(o);
     $('stGemS').textContent = HL.geminiKey() ? 'Aktif' : 'Mati';
     $('stGemBox').classList.add('hide'); $('stGem').setAttribute('aria-expanded', 'false');
@@ -1252,7 +1259,7 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
 
   // Tombol tengah: tap = catat langsung · tahan = pilih Patungan / Scan struk
   let fabLP = null, fabHeld = false;
-  $('addBtn').addEventListener('pointerdown', () => { fabHeld = false; clearTimeout(fabLP); fabLP = setTimeout(() => { fabHeld = true; if (navigator.vibrate) navigator.vibrate(12); document.querySelector('#addSheet [data-add=scan]').classList.toggle('hide', !HL.geminiKey()); showSheet('addSheet'); }, 450); });
+  $('addBtn').addEventListener('pointerdown', () => { fabHeld = false; clearTimeout(fabLP); fabLP = setTimeout(() => { fabHeld = true; if (navigator.vibrate) navigator.vibrate(12); document.querySelector('#addSheet [data-add=scan]').classList.toggle('hide', !HL.canScan()); showSheet('addSheet'); }, 450); });
   ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => $('addBtn').addEventListener(ev, () => clearTimeout(fabLP)));
   $('addBtn').oncontextmenu = e => e.preventDefault();
   $('addBtn').onclick = () => { if (fabHeld) { fabHeld = false; return; } openNew('direct'); };
@@ -1280,7 +1287,7 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
 
   function renderMode(){
     if (!state.edit) $('formTitle').textContent = 'Catat';
-    $('scanCard').classList.toggle('hide', !!state.edit || state.mode!=='split' || !HL.geminiKey());
+    $('scanCard').classList.toggle('hide', !!state.edit || state.mode!=='split' || !HL.canScan());
     $('direct').classList.toggle('hide', state.mode!=='direct');
     $('split').classList.toggle('hide', state.mode!=='split');
     if (state.mode==='split' && state.items.length===0){ addItem('A', true); addItem('B', true); renderItems(); }
@@ -2649,7 +2656,7 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
     if (k === 'pay') return setView('pay');
     if (!/^(direct|split|scan)$/.test(k)) return;
     resetForm(); setSeg('mode','mode', k === 'direct' ? 'direct' : 'split'); renderMode(); setView('form');
-    if (k === 'scan' && !HL.geminiKey()) return snack('Isi kunci Gemini di Pengaturan untuk scan struk');
+    if (k === 'scan' && !HL.canScan()) return snack('Isi kunci Gemini di Pengaturan untuk scan struk');
     if (k === 'scan') { const b = document.querySelector('#scanRow [data-src="scanCam"]'); if (b) { b.focus(); b.classList.add('pulse'); setTimeout(() => b.classList.remove('pulse'), 2400); } }   // kamera butuh tap
     else setTimeout(() => (k === 'direct' ? $('amount') : $('desc')).focus(), 80);
   }
@@ -2864,7 +2871,61 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
     };
   }
 
+  // HP jembatan: siapa aku dari kunci link lama, sheet = sheet tempat Apps Script terpasang
+  async function bootRelay(){
+    try {
+      const w = await HLG.whoami();
+      await HL.connect(w.sid);
+      const m = HL.members().find(x => x.name.toLowerCase() === String(w.me || '').toLowerCase());
+      if (!m) throw new Error('Nama ' + w.me + ' tidak ada di tab Anggota');
+      ME = m.key; store.set('me', ME);
+      HL.setMe(HL.meId(ME)); setMembers(HL.members());
+      applyMe(); setSeg('by', 'by', defBy());
+      loadInfo();
+      oldPhotos();
+      if (SC) runShortcut(SC); else restoreDraft();
+    } catch (e) { if (lastInfo) { INFO_AT = INFO_AT || Date.now(); paintStale(); snack(errMsg(e)); } else heroError(e); }
+  }
+  // foto profil lama (Script Properties) → tab Anggota, sekali saja, kalau di sheet belum ada foto
+  async function oldPhotos(){
+    if (store.get('hl_oldphotos')) return;
+    try {
+      const r = await HLG.relayCall('getPhotos', []);
+      for (const s of ['A', 'B']) {
+        const url = r && r.photos && r.photos[NAME(s)];
+        if (!url || HL.photoOf(s)) continue;
+        const small = await shrinkPhoto(url);
+        if (small) await HL.setPhotoOf(s, small);
+      }
+      store.set('hl_oldphotos', '1');
+      API.run.withSuccessHandler(x => { setPhotos(x.photos); store.set('hl_photover', JSON.stringify(x.ver)); }).getPhotos();
+    } catch (e) {}
+  }
+  function shrinkPhoto(url){
+    return new Promise(res => {
+      const img = new Image();
+      img.onload = () => {
+        const S = 200, c = document.createElement('canvas'); c.width = c.height = S;
+        const k = Math.min(img.width, img.height), g = c.getContext('2d');
+        g.drawImage(img, (img.width - k) / 2, (img.height - k) / 2, k, k, 0, 0, S, S);
+        let q = .9, u; do { u = c.toDataURL('image/jpeg', q); q -= .08; } while (u.length > 45000 && q > .3);
+        res(u.length <= 49000 ? u : null);
+      };
+      img.onerror = () => res(null);
+      img.src = url;
+    });
+  }
+
   function boot(){
+    if (RELAY) {
+      if (HL.sheetId() && ME) {            // buka cepat dari cache, lalu segarkan
+        HL.setMe(HL.meId(ME)); applyMe(); setSeg('by', 'by', defBy());
+        if (lastInfo) renderInfo(lastInfo);
+        paintStale();
+      }
+      bootRelay();
+      return;
+    }
     HLG.init().catch(() => {});        // muat login Google lebih awal supaya ketukan "Masuk" langsung membuka jendela
     pendingJoin();
     if (store.get('hl_join') || !HL.sheetId() || !ME) { HLG.token() ? afterLogin() : suWelcome(); return; }

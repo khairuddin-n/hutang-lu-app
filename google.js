@@ -128,7 +128,28 @@
     });
   }
 
+  // ---------- Mode jembatan: HP lama dengan link pribadi (#k=...), tanpa login Google ----------
+  // Operasi sheet dikirim ke Apps Script (Relay.js) yang terpasang di sheet itu sendiri.
+  function useRelay(url, key) {
+    const call = (fn, args) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ fn, args, k: key }) })
+      .then(r => r.json(), () => { throw new Error('Tidak ada koneksi internet'); })
+      .then(j => { if (!j.ok) throw new Error(j.error); return j.data; });
+    const rel = (op, a) => call('relay', [op, a]);
+    Object.assign(window.HLG, {
+      relay: true, relayCall: call,
+      token: () => 'relay', init: async () => {}, signIn: async () => 'relay', forget() {}, signOut() {},
+      whoami: () => call('whoami', []),
+      meta: () => rel('meta', {}),
+      get: (id, ranges) => rel('get', { ranges }),
+      append: (id, tab, rows) => rel('append', { tab, rows }),
+      put: (id, data) => rel('put', { data }),
+      batch: (id, requests) => rel('batch', { requests }),
+      tagSheet: async () => ({})
+    });
+  }
+
   window.HLG = {
+    useRelay: (url, key) => useRelay(url, key),
     AuthError, init, signIn, signOut, token, forget, api, pick,
     me: () => api(`${DRIVE}/about?fields=user(emailAddress,displayName)`)
       .then(r => ({ email: String(r.user.emailAddress || '').toLowerCase(), name: r.user.displayName || '' })),
