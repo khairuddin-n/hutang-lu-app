@@ -521,7 +521,9 @@
       const r = await G.get(id, ['Debt Tracker!A1:J1', 'Debt Tracker!A2:J']);
       const head = (r.valueRanges[0].values || [])[0] || [];
       const rows = (r.valueRanges[1].values || []).filter(x => typeof x[0] === 'number' && String(x[2] || '').trim());
-      return { kind: 'legacy', title: meta.properties.title, n: rows.length, names: rows.length ? legacyNames(head, rows) : [] };
+      // tab baru tidak boleh bentrok dengan tab yang sudah ada di file lama
+      const clash = Object.keys(TABS).filter(t => titles.indexOf(t) >= 0);
+      return { kind: 'legacy', title: meta.properties.title, n: rows.length, names: rows.length ? legacyNames(head, rows) : [], clash };
     }
     return { kind: 'unknown', title: meta.properties.title };
   }
@@ -531,18 +533,27 @@
     const seen = [];
     src.forEach(x => { const n = String(x[2]).trim(); if (seen.indexOf(n) < 0) seen.push(n); });
     const pickFor = col => seen.find(n => String(head[col] || '').toLowerCase().indexOf(n.toLowerCase()) >= 0);
-    let a = pickFor(7) || pickFor(3), b = pickFor(8) || pickFor(4);
-    if (!a || !b || a === b) { a = seen[0]; b = seen[1]; }
+    const fromHead = col => String(head[col] || '').replace(/\b(share|items?|bagian|item)\b/ig, '').trim();   // "Dimbo Share" → "Dimbo"
+    let a = pickFor(7) || pickFor(3) || fromHead(7) || fromHead(3), b = pickFor(8) || pickFor(4) || fromHead(8) || fromHead(4);
+    if (!a || !b || a.toLowerCase() === b.toLowerCase()) { a = seen[0]; b = seen[1]; }
     return [a, b || 'Pasangan'].filter(Boolean);
   }
-  async function importLegacy(srcId, email, meName) {
+  // inPlace = tab baru ditambahkan ke file lama itu sendiri (tab "Debt Tracker" & lainnya tidak diubah, jadi arsip);
+  // kalau tidak, isinya disalin ke file Hutang Lu baru.
+  async function importLegacy(srcId, email, meName, inPlace) {
     const r = await G.get(srcId, ['Debt Tracker!A1:J1', 'Debt Tracker!A2:J']);
     const head = (r.valueRanges[0].values || [])[0] || [];
     const src = (r.valueRanges[1].values || []).filter(x => typeof x[0] === 'number' && String(x[2] || '').trim());
     if (!src.length) throw new Error('Tidak ada transaksi di sheet lama');
     const names = legacyNames(head, src);
-    const f = await G.createSheet('Hutang Lu');
+    if (inPlace) {
+      const meta = await G.meta(srcId), titles = meta.sheets.map(x => x.properties.title);
+      const clash = Object.keys(TABS).filter(t => titles.indexOf(t) >= 0);
+      if (clash.length) throw new Error('File ini sudah punya tab ' + clash.join(', ') + '. Pakai "Salin ke file baru".');
+    }
+    const f = inPlace ? { id: srcId } : await G.createSheet('Hutang Lu');
     await connect(f.id);
+    if (inPlace) await G.tagSheet(f.id).catch(() => {});
     const now = new Date().toISOString(), ids = [uid() + 'a', uid() + 'b'];
     await G.append(f.id, 'Anggota', names.slice(0, 2).map((n, i) => [ids[i], n, n === meName ? email : '', '', '0', now]));
     const idOf = n => ids[names.indexOf(n)];

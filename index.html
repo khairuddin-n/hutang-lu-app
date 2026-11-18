@@ -520,6 +520,7 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
   .setup .pick{ display:flex; align-items:center; gap:14px; width:100%; border:1.5px solid var(--line); background:var(--card); border-radius:18px; padding:14px 16px; margin-bottom:10px; text-align:left; color:var(--on); font:inherit; cursor:pointer; }
   .setup .pick .m{ flex:1; min-width:0; } .setup .pick b{ display:block; font-size:16px; font-weight:600; } .setup .pick small{ color:var(--on2); font-size:13px; }
   .setup .pick:disabled{ opacity:.5; cursor:default; }
+  .setup .pick.on{ border-color:var(--acc); background:var(--brandsoft); }
   .setup .back{ align-self:flex-start; margin:-8px 0 16px -12px; }
 
   /* Wrapped */
@@ -2758,17 +2759,31 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
       suNone(`"${x.title}" bukan sheet Hutang Lu. Pilih sheet lain, atau buat baru.`);
     } catch (e) { suFail(e); }
   }
-  // sheet versi lama (tab "Debt Tracker"): salin ke sheet baru, sheet lama tidak diubah
-  function suImport(id, x){
-    su(`<h2>Sheet lama ditemukan</h2>
-      <p><b>${esc(x.title)}</b> berisi ${x.n} transaksi. Hutang Lu akan menyalinnya ke sheet baru di Drive kamu. Sheet lama tidak diubah.</p>
+  // sheet versi lama (tab "Debt Tracker"): pakai file itu (tab baru ditambahkan, tab lama jadi arsip) atau salin ke file baru
+  async function suImport(id, x){
+    let canEdit = true;
+    try { const f = await HLG.fileInfo(id); canEdit = !(f.capabilities && f.capabilities.canEdit === false); } catch (e) {}
+    const inPlaceOk = canEdit && !x.clash.length;
+    let who = '';
+    const draw = () => su(`<h2>Sheet lama ditemukan</h2>
+      <p><b>${esc(x.title)}</b> berisi ${x.n} transaksi.</p>
       <p style="margin-bottom:12px">Kamu yang mana?</p>
-      ${x.names.map(n => `<button class="pick" data-n="${esc(n)}"><span class="av A" style="width:40px;height:40px;font-size:17px"><b class="ini">${esc((n[0] || '?').toUpperCase())}</b></span><div class="m"><b>${esc(n)}</b></div></button>`).join('')}`, () => suNone());
-    SU.querySelectorAll('.pick').forEach(b => b.onclick = async () => {
-      suBusy(`Menyalin ${x.n} transaksi…`);
-      try { const r = await HL.importLegacy(id, U.email, b.dataset.n); finish(r.names.indexOf(b.dataset.n) === 1 ? 'B' : 'A', true); }
+      ${x.names.map(n => `<button class="pick ${who === n ? 'on' : ''}" data-n="${esc(n)}" aria-pressed="${who === n}"><span class="av ${x.names.indexOf(n) ? 'B' : 'A'}" style="width:40px;height:40px;font-size:17px"><b class="ini">${esc((n[0] || '?').toUpperCase())}</b></span><div class="m"><b>${esc(n)}</b></div>${who === n ? '<span class="ms f" aria-hidden="true" style="color:var(--acc)">check_circle</span>' : ''}</button>`).join('')}
+      <div class="grow"></div>
+      ${who ? `<p style="margin:16px 0 0;font-size:14px">${inPlaceOk ? '<b>Pakai file ini:</b> tab baru ditambahkan ke file itu, tab lama dibiarkan sebagai arsip. ' : ''}<b>Salin ke file baru:</b> file lama tidak disentuh sama sekali.${!canEdit ? ' Akun ini hanya bisa melihat file lama, jadi hanya bisa disalin.' : x.clash.length ? ' File ini sudah punya tab ' + esc(x.clash.join(', ')) + ', jadi hanya bisa disalin.' : ''}</p>
+        ${inPlaceOk ? '<button class="btn fill" id="suInPlace">Pakai file ini</button>' : ''}
+        <button class="btn ${inPlaceOk ? 'line' : 'fill'}" id="suCopyNew">Salin ke file baru</button>` : ''}`, () => suNone());
+    const go = async inPlace => {
+      suBusy(inPlace ? `Menyiapkan file lama (${x.n} transaksi)…` : `Menyalin ${x.n} transaksi…`);
+      try { const r = await HL.importLegacy(id, U.email, who, inPlace); finish(r.names.indexOf(who) === 1 ? 'B' : 'A', true); }
       catch (e) { suFail(e); }
-    });
+    };
+    const bind = () => {
+      SU.querySelectorAll('.pick[data-n]').forEach(b => b.onclick = () => { who = b.dataset.n; draw(); bind(); });
+      if ($('suInPlace')) $('suInPlace').onclick = () => go(true);
+      if ($('suCopyNew')) $('suCopyNew').onclick = () => go(false);
+    };
+    draw(); bind();
   }
   function suJoin(id){
     su(`<div class="slip"><div class="logo"><span class="ms f" aria-hidden="true">mail</span></div><h1>Undangan</h1><p>Satu langkah lagi: buka sheet yang dibagikan ke kamu.</p></div>
