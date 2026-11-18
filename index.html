@@ -206,15 +206,18 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
   .errc .m{ flex:1; min-width:0; } .errc b{ display:block; color:var(--on); font-weight:600; } .errc small{ display:block; font-size:12px; margin-top:2px; overflow-wrap:anywhere; }
   .errc .chip{ color:var(--on); }
 
-  /* Nav */
-  .nav{ position:fixed; left:0; right:0; bottom:0; background:var(--card); z-index:5; box-shadow:0 -1px 0 var(--line); padding-bottom:env(safe-area-inset-bottom); }
-  .nav .in{ max-width:600px; margin:0 auto; display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); height:72px; }
-  .nav button{ border:0; background:none; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; font-size:12px; font-weight:600; color:var(--on2); cursor:pointer; font-family:inherit; }
-  .nav button i{ width:64px; height:32px; border-radius:16px; display:grid; place-items:center; font-style:normal; }
+  /* Nav: melayang (kaca buram, sudut bulat) */
+  .nav{ position:fixed; left:0; right:0; bottom:0; z-index:5; background:transparent; pointer-events:none; padding:0 12px calc(10px + env(safe-area-inset-bottom)); }
+  .nav .in{ pointer-events:auto; max-width:456px; margin:0 auto; display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); height:68px; border-radius:26px;
+    background:color-mix(in srgb, var(--card) 84%, transparent); -webkit-backdrop-filter:saturate(160%) blur(18px); backdrop-filter:saturate(160%) blur(18px);
+    box-shadow:0 10px 30px -8px rgba(40,28,14,.28), 0 0 0 1px var(--line); }
+  html.dk .nav .in{ box-shadow:0 10px 30px -8px rgba(0,0,0,.7), 0 0 0 1px var(--line); }
+  .nav button{ border:0; background:none; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; font-size:11px; font-weight:600; color:var(--on2); cursor:pointer; font-family:inherit; }
+  .nav button i{ width:52px; height:30px; border-radius:15px; display:grid; place-items:center; font-style:normal; transition:background .15s; }
   .nav button.on{ color:var(--on); } .nav button.on i{ background:var(--brandsoft); color:var(--onbrandsoft); }
-  .nav button i{ transition:background .15s; }
   .nav .add{ position:relative; }
-  .nav .add b{ position:absolute; top:-20px; left:50%; transform:translateX(-50%); width:60px; height:60px; border-radius:50%; background:var(--pri); color:var(--onpri); display:grid; place-items:center; box-shadow:var(--fab-shadow); border:5px solid var(--page); transition:transform .15s; }
+  .nav .add b{ position:absolute; top:-24px; left:50%; transform:translateX(-50%); width:58px; height:58px; border-radius:20px; background:var(--pri); color:var(--onpri); display:grid; place-items:center;
+    box-shadow:0 10px 22px -6px color-mix(in srgb, var(--pri) 70%, #000); transition:transform .12s; }
   .nav .add b .ms{ font-size:30px; }
   .nav .add:active b{ transform:translateX(-50%) scale(.94); }
   .addgrid{ display:flex; gap:10px; } .addgrid > button{ flex:1; }
@@ -492,7 +495,7 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
 
   .spin{ width:18px; height:18px; border-radius:50%; border:2.5px solid currentColor; border-right-color:transparent; animation:sp .7s linear infinite; flex:none; }
   @keyframes sp{ to{ transform:rotate(360deg);} }
-  .snack{ position:fixed; left:16px; right:16px; bottom:calc(96px + env(safe-area-inset-bottom)); max-width:568px; margin:0 auto; background:#2A2622; color:#F5F0E8; padding:14px 16px; border-radius:12px; font-size:14px; box-shadow:0 4px 12px rgba(0,0,0,.2); opacity:0; transform:translateY(8px); transition:all .2s; pointer-events:none; z-index:20; }
+  .snack{ position:fixed; left:16px; right:16px; bottom:calc(92px + env(safe-area-inset-bottom)); max-width:568px; margin:0 auto; background:#2A2622; color:#F5F0E8; padding:14px 16px; border-radius:12px; font-size:14px; box-shadow:0 4px 12px rgba(0,0,0,.2); opacity:0; transform:translateY(8px); transition:all .2s; pointer-events:none; z-index:20; }
   .snack.show{ opacity:1; transform:none; }
   body.sheeton .snack{ bottom:auto; top:calc(12px + env(safe-area-inset-top)); }
   .sheet .in:focus{ outline:none; }
