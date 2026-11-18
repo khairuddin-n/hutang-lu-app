@@ -2,7 +2,7 @@
 // File app (halaman & script) diambil dari internet dulu supaya selalu versi terbaru; cache hanya cadangan saat offline.
 // Font dari cache dulu. Panggilan Google API (Sheets, Drive, login, Gemini) tidak pernah di-cache.
 // Naikkan VERSION setiap rilis.
-const VERSION = '2.4.2';
+const VERSION = '2.4.3';
 const CACHE = 'hutang-lu-' + VERSION;
 const SHELL = ['./', './index.html', './config.js', './google.js', './data.js', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
