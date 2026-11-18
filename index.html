@@ -241,7 +241,19 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
   @media (prefers-reduced-motion: reduce){ .view-in, .form-in{ animation:none; } }
   #formTitle.sw{ cursor:pointer; display:flex; align-items:center; gap:2px; }
   #formTitle .ms{ font-size:22px; color:var(--on2); margin-left:6px; }
-  #vForm.reading .card:not(#scanCard), #vForm.reading .owe{ opacity:.4; pointer-events:none; transition:opacity .2s; }
+  #vForm.reading .card:not(#amtCard), #vForm.reading .owe{ opacity:.4; pointer-events:none; transition:opacity .2s; }
+  .scanin{ flex:none; width:44px; height:44px; margin-right:-8px; border:0; border-radius:14px; background:var(--brandsoft); color:var(--onbrandsoft); display:grid; place-items:center; cursor:pointer; }
+  .scanin:active{ filter:brightness(.95); } .scanin:disabled{ opacity:.5; }
+  .scanin.pulse{ animation:pulse .8s ease-in-out 3; }
+  .itemlink{ all:unset; display:inline-flex; align-items:center; gap:6px; margin:12px 0 -4px 2px; padding:6px 0; font-size:14px; font-weight:600; color:var(--acc); cursor:pointer; }
+  .itemlink .ms{ font-size:19px; } .itemlink:focus-visible{ outline:2px solid var(--acc); outline-offset:2px; border-radius:6px; }
+  .scanst{ display:flex; align-items:center; gap:10px; margin-top:10px; font-size:13px; color:var(--on2); }
+  .scanst img{ width:32px; height:32px; border-radius:8px; object-fit:cover; flex:none; }
+  .scanst .ms{ font-size:20px; flex:none; } .scanst.ok .ms{ color:var(--green); } .scanst.err .ms{ color:var(--red); }
+  .scanst b{ color:var(--on); font-weight:600; }
+  #vForm.reading .itemlink{ visibility:hidden; }
+  .feerow{ margin-top:16px; padding-top:14px; border-top:1px solid var(--line); }
+  #split .ch h2{ display:flex; align-items:center; }
   .sc-ic img{ width:40px; height:40px; border-radius:13px; object-fit:cover; display:block; }
 
   /* Beranda: bulan ini */
@@ -622,30 +634,32 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
     <div style="padding:4px 16px 0">
       <div id="editinfo" class="editinfo hide"><span class="ms" aria-hidden="true" style="font-size:18px">edit</span><span id="editText"></span></div>
 
-      <div class="seg" id="mode" role="group" aria-label="Jenis transaksi" style="margin-bottom:12px">
-        <button data-v="direct"><span class="ms" aria-hidden="true" style="font-size:18px">swap_horiz</span>Langsung</button>
-        <button data-v="split"><span class="ms" aria-hidden="true" style="font-size:18px">call_split</span>Patungan</button>
-      </div>
+      <!-- jenis transaksi tetap disimpan di sini (tersembunyi): langsung / patungan -->
+      <div class="seg hide" id="mode" role="group" aria-hidden="true"><button data-v="direct"></button><button data-v="split"></button></div>
+      <input type="file" id="scanFile" accept="image/*" class="hide">
 
-      <section class="card scancard" id="scanCard">
-        <div class="sc-hd">
-          <span class="sc-ic" id="scIc"><span class="ms" aria-hidden="true">receipt_long</span></span>
-          <div style="min-width:0"><div class="sc-t"><span id="scT">Isi dari struk</span><button type="button" class="tip" data-tip="Item, ongkir, total, dan tanggal terisi otomatis." aria-label="Info"><span class="ms" aria-hidden="true">info</span></button></div><div class="sc-s" id="scS"></div></div>
-        </div>
-        <div class="scanrow" id="scanRow">
-          <button class="scanbtn" data-src="scanCam"><span class="ms" aria-hidden="true">photo_camera</span>Foto struk</button>
-          <button class="scanbtn" data-src="scanFile"><span class="ms" aria-hidden="true">image</span>Dari galeri</button>
-        </div>
-        <input type="file" id="scanCam" accept="image/*" capture="environment" class="hide">
-        <input type="file" id="scanFile" accept="image/*" class="hide">
-      </section>
-
-      <!-- LANGSUNG -->
-      <section class="card" id="direct">
+      <!-- NOMINAL (langsung) / TOTAL DI STRUK (rincian per item) -->
+      <section class="card" id="amtCard">
         <div class="lbl"><label for="amount" id="amtLabel">Nominal</label></div>
-        <div class="inp big"><span class="pre">Rp</span><input id="amount" class="n" inputmode="text" enterkeyhint="next" autocomplete="off" data-calc placeholder="0"></div>
-        <div class="help" id="amtHelp"></div>
+        <div class="inp big"><span class="pre">Rp</span><input id="amount" class="n" inputmode="text" enterkeyhint="next" autocomplete="off" data-calc placeholder="0">
+          <button type="button" class="scanin hide" id="scanBtn" aria-label="Scan struk"><span class="ms" aria-hidden="true">photo_camera</span></button></div>
+        <div class="scanst hide" id="scanStat" role="status"></div>
+        <button type="button" class="itemlink" id="itemsOpen"><span class="ms" aria-hidden="true">receipt_long</span>Rincian per item</button>
       </section>
+
+      <!-- RINCIAN PER ITEM -->
+      <div id="split" class="hide">
+        <section class="card">
+          <div class="ch"><h2>Rincian per item<button type="button" class="tip" data-tip="Isi harga menu sebelum diskon. Diskon, pajak, dan ongkir dibagi otomatis." aria-label="Info"><span class="ms" aria-hidden="true">info</span></button></h2>
+            <button type="button" class="ib" id="itemsClose" aria-label="Tutup rincian, kembali ke nominal saja" style="width:40px;height:40px;margin:-8px -8px -8px 0;color:var(--on2)"><span class="ms" aria-hidden="true" style="font-size:20px">close</span></button></div>
+          <div class="scaninfo hide" id="scanInfo"></div>
+          <div id="items"></div>
+          <button class="addi" id="addItem"><span class="ms" aria-hidden="true" style="font-size:18px">add</span>Tambah item</button>
+          <div class="feerow"><div class="lbl"><label for="fee">Ongkir + layanan</label><button type="button" class="tip" data-tip="Dibagi rata berdua. Bisa ketik 5000+2000." aria-label="Info"><span class="ms" aria-hidden="true">info</span></button></div>
+            <div class="inp"><span class="pre">Rp</span><input id="fee" class="n" inputmode="text" enterkeyhint="done" autocomplete="off" data-calc placeholder="0"></div></div>
+        </section>
+        <section class="card pv" id="preview"></section>
+      </div>
 
       <section class="card">
         <div class="lbl"><label for="desc">Keterangan</label></div>
@@ -661,23 +675,6 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
           <button data-v="B"><span class="ms f ck" aria-hidden="true">check_circle</span><span class="av B" style="width:40px;height:40px;font-size:17px">B</span>B</button>
         </div>
       </section>
-
-      <!-- PATUNGAN -->
-      <div id="split" class="hide">
-        <section class="card">
-          <div class="ch"><h2>Item<button type="button" class="tip" data-tip="Isi harga menu sebelum diskon." aria-label="Info"><span class="ms" aria-hidden="true">info</span></button></h2></div>
-          <div class="scaninfo hide" id="scanInfo"></div>
-          <div id="items"></div>
-          <button class="addi" id="addItem"><span class="ms" aria-hidden="true" style="font-size:18px">add</span>Tambah item</button>
-        </section>
-        <section class="card">
-          <div class="two">
-            <div style="min-width:0"><div class="lbl"><label for="fee">Ongkir + layanan</label><button type="button" class="tip" data-tip="Ongkir dibagi rata, diskon & pajak ikut porsi. Bisa ketik 5000+2000 atau 12000*2." aria-label="Info"><span class="ms" aria-hidden="true">info</span></button></div><div class="inp"><span class="pre">Rp</span><input id="fee" class="n" inputmode="text" enterkeyhint="done" autocomplete="off" data-calc placeholder="0"></div></div>
-            <div style="min-width:0"><div class="lbl"><label for="total">Total bayar</label></div><div class="inp"><span class="pre">Rp</span><input id="total" class="n" inputmode="text" enterkeyhint="done" autocomplete="off" data-calc placeholder="0"></div></div>
-          </div>
-        </section>
-        <section class="card pv" id="preview"></section>
-      </div>
 
       <section class="card">
         <div class="lbl"><label for="date">Tanggal</label></div>
@@ -709,7 +706,7 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
 <nav class="nav" id="nav"><div class="in">
   <button data-v="home" class="on"><i class="ms" aria-hidden="true">home</i>Beranda</button>
   <button data-v="hist"><i class="ms" aria-hidden="true">receipt_long</i>Riwayat</button>
-  <button class="add" id="addBtn" aria-label="Catat transaksi (tahan untuk pilihan lain)"><b><span class="ms" aria-hidden="true">add</span></b></button>
+  <button class="add" id="addBtn" aria-label="Catat transaksi"><b><span class="ms" aria-hidden="true">add</span></b></button>
   <button data-v="stats"><i class="ms" aria-hidden="true">bar_chart</i>Statistik</button>
   <button data-v="pay" id="payTab"><i class="ms" aria-hidden="true">handshake</i><span>Lunasi</span></button>
 </div></nav>
@@ -934,7 +931,7 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
     if (!calcF && e.target.id !== 'desc') return;
     e.preventDefault();
     if (calcF) evalField(e.target);
-    if (view === 'form' && /^(amount|desc|total)$/.test(e.target.id)) enterSave(e.target);
+    if (view === 'form' && /^(amount|desc)$/.test(e.target.id)) enterSave(e.target);
   });
   // Enter di form: lanjut ke kolom yang masih kosong, atau langsung simpan kalau sudah lengkap
   function enterSave(t){
@@ -945,7 +942,8 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
       return save();
     }
     const c = calc();
-    if (t.id === 'total' && desc && c && c.ok) save();
+    if (!desc) return $('desc').focus();
+    if (c && c.ok) save();
   }
 
   // pesan error yang bisa dibaca orang: offline beda dengan error server
@@ -1270,6 +1268,15 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
   }
   document.querySelectorAll('#nav button[data-v]').forEach(b => b.onclick = () => setView(b.dataset.v));
   function closeForm(){ resetForm(); setView(lastTab); }
+  // rincian per item: kolom besar jadi "Total di struk"; tutup = kembali ke nominal saja
+  $('itemsOpen').onclick = () => {
+    setSeg('mode', 'mode', 'split'); renderMode();
+    const first = $('items').querySelector('input[data-k="name"]'); if (first) first.focus();
+  };
+  $('itemsClose').onclick = () => {
+    state.items = []; $('fee').value = ''; $('scanInfo').classList.add('hide');
+    setSeg('mode', 'mode', 'direct'); renderMode(); $('amount').focus();
+  };
   $('closeForm').onclick = closeForm;
   // buka form baru; Langsung langsung fokus ke nominal (kolom yang selalu baru)
   function openNew(k, quiet){
@@ -1279,19 +1286,15 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
 
   // Tombol tengah: tap = catat langsung · tahan = pilih Patungan / Scan struk
   let fabLP = null, fabHeld = false;
-  $('addBtn').addEventListener('pointerdown', () => { fabHeld = false; clearTimeout(fabLP); fabLP = setTimeout(() => { fabHeld = true; if (navigator.vibrate) navigator.vibrate(12); document.querySelector('#addSheet [data-add=scan]').classList.toggle('hide', !HL.canScan()); showSheet('addSheet'); }, 450); });
-  ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => $('addBtn').addEventListener(ev, () => clearTimeout(fabLP)));
-  $('addBtn').oncontextmenu = e => e.preventDefault();
-  $('addBtn').onclick = () => { if (fabHeld) { fabHeld = false; return; } openNew('direct'); };
+  $('addBtn').onclick = () => openNew('direct');
   document.querySelectorAll('#addSheet [data-add]').forEach(b => b.onclick = () => {
     const k = b.dataset.add;
     closeSheet();
-    if (k === 'scan'){ scanFromAdd = true; $('scanCam').click(); return; }   // batal kamera = tetap di halaman ini
+    if (k === 'scan'){ openNew('direct', true); $('scanFile').click(); return; }
     openNew(k);
   });
 
   let scanFromAdd = false;
-  $('scanCam').addEventListener('cancel', () => { scanFromAdd = false; });
 
   // ---------- State form ----------
   const state = { mode:'direct', by: 'B', items: [], edit: null, recent: [], suggest: [] };
@@ -1305,11 +1308,14 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
     $(id).querySelectorAll('button[data-v]').forEach(x => { const on = x.dataset.v === v; x.classList.toggle('on', on); x.setAttribute('aria-pressed', on); });
   }
 
+  // Satu form: nominal saja (langsung) atau dengan rincian per item (patungan). Kolom besar = nominal / total di struk.
   function renderMode(){
     if (!state.edit) $('formTitle').textContent = 'Catat';
-    $('scanCard').classList.toggle('hide', !!state.edit || state.mode!=='split' || !HL.canScan());
-    $('direct').classList.toggle('hide', state.mode!=='direct');
-    $('split').classList.toggle('hide', state.mode!=='split');
+    const sp = state.mode === 'split';
+    $('scanBtn').classList.toggle('hide', !!state.edit || !HL.canScan());
+    $('amtLabel').textContent = sp ? 'Total di struk' : 'Nominal';
+    $('itemsOpen').classList.toggle('hide', sp);
+    $('split').classList.toggle('hide', !sp);
     if (state.mode==='split' && state.items.length===0){ addItem('A', true); addItem('B', true); renderItems(); }
     renderSuggest();
     if (state.mode==='direct') renderDirect(); else calc();
@@ -1317,8 +1323,6 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
 
   function renderDirect(){
     const deb = other(state.by);
-    $('amtLabel').textContent = 'Nominal';
-    $('amtHelp').textContent = '';
     if (state.mode === 'direct') showOwe(num($('amount').value));
   }
 
@@ -1395,7 +1399,7 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
       const p = num(it.price); if (isNaN(p)) { bad=true; return; }
       if (it.owner==='A') D+=p; else if (it.owner==='B') E+=p; else { D+=p/2; E+=p/2; }
     });
-    const F = num($('fee').value) || 0, G = num($('total').value) || 0;
+    const F = num($('fee').value) || 0, G = num($('amount').value) || 0;
     let H=0, I=0, warn='';
     if (bad) warn = 'Ada harga yang formatnya tidak terbaca';
     else if (D+E>0 && G>0){ H = F/2 + D/(D+E)*(G-F); I = G-H; }
@@ -1427,7 +1431,7 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
     $('formTitle').textContent = 'Catat';
     try { localStorage.removeItem('hl_draft'); } catch (e) {}
     $('editinfo').classList.add('hide');
-    $('desc').value=''; $('amount').value=''; $('fee').value=''; $('total').value='';
+    $('desc').value=''; $('amount').value=''; $('fee').value='';
     $('date').value = todayIso();
     state.items = [];
     $('scanInfo').classList.add('hide');
@@ -1442,7 +1446,7 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
   function saveDraft(){
     if (view !== 'form' || state.edit) return;
     const d = { t: Date.now(), mode: state.mode, by: state.by, cat: state.cat || null, desc: $('desc').value, amount: $('amount').value,
-                fee: $('fee').value, total: $('total').value, date: $('date').value, items: state.items };
+                fee: $('fee').value, total: '', date: $('date').value, items: state.items };
     const empty = !d.desc.trim() && !d.amount && !d.total && !state.items.some(x => x.name || x.price);
     try { empty ? localStorage.removeItem('hl_draft') : localStorage.setItem('hl_draft', JSON.stringify(d)); } catch (e) {}
   }
@@ -1451,7 +1455,7 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
     let d = null; try { d = JSON.parse(localStorage.getItem('hl_draft') || 'null'); } catch (e) {}
     if (!d || Date.now() - d.t > 6 * 3600e3) return false;
     openNew(d.mode === 'split' ? 'split' : 'direct', true);
-    $('desc').value = d.desc || ''; $('amount').value = d.amount || ''; $('fee').value = d.fee || ''; $('total').value = d.total || '';
+    $('desc').value = d.desc || ''; $('amount').value = d.amount || ''; $('fee').value = d.fee || ''; if (!d.amount && d.total) $('amount').value = d.total;
     if (d.date) $('date').value = d.date;
     if (d.by) setSeg('by', 'by', d.by);
     state.cat = d.cat || null;
@@ -1702,7 +1706,6 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
     const w = r.raw;
     resetForm();
     state.edit = { row: r.row, key: r.key, prev: rawPayload(w) };
-    $('scanCard').classList.add('hide');
     $('formTitle').textContent = 'Edit transaksi';
     $('editText').textContent = `${r.desc} · ${r.date}`;
     $('editinfo').classList.remove('hide');
@@ -1715,7 +1718,7 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
       if (w.E>0) state.items.push({ owner:'B', price:String(w.E), name:'' });
       if (!state.items.length) state.items.push({ owner:'Berdua', price:String(w.G), name:'' });
       $('fee').value = w.F ? String(w.F) : '';
-      $('total').value = String(w.G);
+      $('amount').value = fmtN(w.G);
       setSeg('mode','mode','split');
       renderMode(); renderItems();
     } else {
@@ -1965,13 +1968,17 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
       img.src = URL.createObjectURL(file);
     });
   }
+  // status scan: satu baris di bawah kolom nominal (gambar struk / ikon, judul tebal, keterangan)
+  let scanThumb = '';
   function scanState(kind, title, sub){
-    $('scanCard').classList.toggle('done', kind === 'ok');
-    $('scIc').className = 'sc-ic' + (kind === 'ok' ? ' ok' : kind === 'err' ? ' err' : '');
-    $('scIc').innerHTML = `<span class="ms" aria-hidden="true">${kind==='ok'?'check_circle':kind==='err'?'error':kind==='wait'?'hourglass_top':'receipt_long'}</span>`;
-    $('scT').textContent = title; $('scS').innerHTML = sub;
+    const el = $('scanStat');
+    if (!kind) { el.classList.add('hide'); el.innerHTML = ''; return; }
+    el.className = 'scanst ' + kind;
+    const ic = kind === 'wait' ? (scanThumb ? `<img src="${scanThumb}" alt="">` : '<span class="spin"></span>')
+             : `<span class="ms" aria-hidden="true">${kind === 'ok' ? 'check_circle' : 'error'}</span>`;
+    el.innerHTML = `${ic}<div><b>${esc(title)}</b>${sub ? ' · <span id="scS">' + sub + '</span>' : '<span id="scS"></span>'}</div>`;
   }
-  const scanReset = () => scanState('', 'Isi dari struk', '');
+  const scanReset = () => { scanThumb = ''; scanState('', '', ''); };
   function flashFields(ids){
     ids.forEach(id => { const el = $(id) && ($(id).closest('.inp') || $(id)); if (!el) return; el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); });
   }
@@ -1979,29 +1986,23 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
     $('scanInfo').innerHTML = `<span class="ms" aria-hidden="true">${icon}</span><div>${html}</div>`;
     $('scanInfo').classList.remove('hide');
   }
-  const scanBtns = () => document.querySelectorAll('#scanRow .scanbtn');
-  scanBtns().forEach(b => { b._html = b.innerHTML; b.onclick = () => $(b.dataset.src).click(); });
-  $('scanCam').onchange = $('scanFile').onchange = async e => {
+  $('scanBtn').onclick = () => $('scanFile').click();      // Android/iOS menawarkan kamera atau galeri
+  $('scanFile').onchange = async e => {
     const f = e.target.files[0]; e.target.value = '';
-    const fromAdd = scanFromAdd; scanFromAdd = false;
     if (!f) return;
-    if (fromAdd || view !== 'form'){ resetForm(); setSeg('mode','mode','split'); renderMode(); setView('form'); }
-    const thumb = URL.createObjectURL(f);
-    scanState('wait', 'Membaca struk…', 'Biasanya sekitar 5 detik');
+    if (view !== 'form') openNew('direct', true);
+    scanThumb = URL.createObjectURL(f);
+    scanState('wait', 'Membaca struk…', 'biasanya 5 detik');
     $('vForm').classList.add('reading');
-    $('scIc').innerHTML = `<img src="${thumb}" alt="">`;
-    const btn = document.querySelector(`#scanRow [data-src="${e.target.id}"]`) || scanBtns()[0];
-    scanBtns().forEach(b => b.disabled = true);
-    btn.innerHTML = '<span class="spin" style="width:16px;height:16px"></span>Membaca…';
+    $('scanBtn').disabled = true;
     const token = (window._scanTok = (window._scanTok || 0) + 1), t0 = Date.now();
     const timer = setInterval(() => {
       const sec = Math.round((Date.now() - t0) / 1000);
-      btn.innerHTML = `<span class="spin" style="width:16px;height:16px"></span>Membaca… ${sec}s`;
-      if (sec < 30) $('scS').textContent = `Biasanya sekitar 5 detik · ${sec} dtk`;
-      if (sec === 30) { scanState('wait', 'Masih membaca…', 'Gemini sedang lambat. <button class="linkbtn" id="scanCancel">Batalkan</button> dan isi manual?');
-        $('scanCancel').onclick = () => { window._scanTok++; done(); scanState('err', 'Scan dibatalkan', 'Isi manual, atau coba lagi nanti'); }; }
+      if (sec < 30 && $('scS')) $('scS').textContent = `${sec} dtk`;
+      if (sec === 30) { scanState('wait', 'Masih membaca…', 'Gemini lambat. <button class="linkbtn" id="scanCancel">Batalkan</button>');
+        $('scanCancel').onclick = () => { window._scanTok++; done(); scanState('err', 'Scan dibatalkan', 'isi manual saja'); }; }
     }, 1000);
-    const done = () => { clearInterval(timer); $('vForm').classList.remove('reading'); scanBtns().forEach(b => { b.disabled = false; b.innerHTML = b._html; }); };
+    const done = () => { clearInterval(timer); $('vForm').classList.remove('reading'); $('scanBtn').disabled = false; };
     let img;
     try { img = await shrink(f); } catch (err) { done(); return snack(err.message); }
     API.run
@@ -2009,19 +2010,19 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
         if (token !== window._scanTok) return;   // sudah dibatalkan
         done();
         const how = '';
-        if (!r || !r.ok){ scanState('err', 'Struk tidak terbaca', 'Coba foto lebih dekat & terang, atau isi manual'); return; }
+        if (!r || !r.ok){ scanState('err', 'Struk tidak terbaca', esc(r && r.error && /kunci|key/i.test(r.error) ? r.error : 'foto lebih dekat & terang, atau isi manual')); return; }
         state.items = r.items.map(x => ({ name: x.name, price: fmtN(x.price), owner: 'Berdua' }));
         $('fee').value = r.fee ? fmtN(r.fee) : '';
-        $('total').value = fmtN(r.total);
-        const filled = ['fee', 'total'];
+        $('amount').value = fmtN(r.total);
+        const filled = ['fee', 'amount'];
         if (!$('desc').value.trim() && r.merchant){ $('desc').value = r.merchant; filled.push('desc'); }
         if (r.date && !state.edit){ $('date').value = r.date; filled.push('date'); }
         setSeg('mode','mode','split'); renderMode(); renderItems();
         flashFields(filled.concat(['items']));
-        scanState('ok', 'Terisi dari struk', `${esc(r.merchant || 'Struk')} · ${r.items.length} item · ${fmtR(r.total)}`);
+        scanState('ok', 'Terisi dari struk', `${esc(r.merchant || 'struk')} · ${r.items.length} item`);
         const sum = r.items.reduce((a,b)=>a+b.price,0);
         scanInfo(r.via==='ocr' ? 'warning' : 'check_circle',
-          `Pilih pemilik tiap item (awalnya Berdua).${r.via==='ocr' ? ' Dibaca lewat OCR cadangan, <b>cek lagi angkanya</b>.' : ''}` +
+          `Ketuk avatar untuk memilih pemilik tiap item (awalnya berdua).${r.via==='ocr' ? ' Dibaca lewat OCR cadangan, <b>cek lagi angkanya</b>.' : ''}` +
           (Math.abs(sum + r.fee - r.total) > r.total*0.25 ? '<br>Total jauh beda dari jumlah item, cek diskon/ongkir.' : '') + how);
       })
       .withFailureHandler(err => { if (token !== window._scanTok) return; done(); scanState('err', 'Scan gagal', esc(err.message)); })
@@ -2644,8 +2645,8 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
   $('desc').addEventListener('input', () => { if (!state.cat) renderCatPick(); });
   segInit('mode','mode', renderMode);
   segInit('by','by', () => { renderDirect(); calc(); });
-  $('amount').oninput = renderDirect;
-  $('fee').oninput = calc; $('total').oninput = calc;
+  $('amount').oninput = () => { if (state.mode === 'split') calc(); else renderDirect(); };
+  $('fee').oninput = calc;
   $('addItem').onclick = () => addItem();
   $('save').onclick = save;
   renderMode();
@@ -2675,10 +2676,11 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
   function runShortcut(k){
     if (k === 'pay') return setView('pay');
     if (!/^(direct|split|scan)$/.test(k)) return;
-    resetForm(); setSeg('mode','mode', k === 'direct' ? 'direct' : 'split'); renderMode(); setView('form');
+    resetForm(); setSeg('mode','mode', k === 'split' ? 'split' : 'direct'); renderMode(); setView('form');
     if (k === 'scan' && !HL.canScan()) return snack('Isi kunci Gemini di Pengaturan untuk scan struk');
-    if (k === 'scan') { const b = document.querySelector('#scanRow [data-src="scanCam"]'); if (b) { b.focus(); b.classList.add('pulse'); setTimeout(() => b.classList.remove('pulse'), 2400); } }   // kamera butuh tap
-    else setTimeout(() => (k === 'direct' ? $('amount') : $('desc')).focus(), 80);
+    if (k === 'scan') { const b = $('scanBtn'); b.focus(); b.classList.add('pulse'); setTimeout(() => b.classList.remove('pulse'), 2400); }   // kamera butuh ketukan
+    else if (k === 'split') { const n = $('items').querySelector('input[data-k="name"]'); setTimeout(() => n && n.focus(), 80); }
+    else setTimeout(() => $('amount').focus(), 80);
   }
 
   // ---------- Masuk: Google → cari sheet → (buat / pilih / impor) → kamu yang mana → undang ----------

@@ -33,7 +33,7 @@ A shared receipt between two people. The hero is a colored receipt slip with a s
 
 ## Interaction rules
 
-- FAB tap opens Langsung, with focus on the amount. A long press opens the Langsung / Patungan / Scan sheet.
+- One entry form. FAB tap opens it with focus on the amount (direct: the partner's share). The camera button inside the amount field scans a receipt. "Rincian per item" expands item rows; the big field then becomes "Total di struk", and × collapses back to a single amount.
 - The Save button and the live owe pill sit in a sticky bottom bar. Enter moves to the next empty field or saves.
 - Form, sheets and Wrapped push one history layer, so Android back closes them. Sheets take focus, trap Tab and close on Esc.
 - Destructive or money actions confirm on a second tap. The confirm state shows avatar→avatar + amount.
