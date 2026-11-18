@@ -5,5 +5,5 @@ window.HL_CONFIG = {
   clientId: '1071117815376-mccs6fmahh0jefov74i90bcuv80u40a6.apps.googleusercontent.com',
   apiKey: 'AIzaSyAeEhlKWeA0Jv1rmOLmbvBzaLOO3j2ejg0',
   appId: '1071117815376',
-  version: '2.0.0'
+  version: '2.0.1'
 };
