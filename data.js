@@ -493,10 +493,14 @@
     for (let i = 0; i < Math.min(3, list.length); i++) {
       if (i > 0 && Date.now() - t0 > 40000) break;
       res = await scanOne(key, list[i], img);
-      if (res.ok || [404, 429, 500, 502, 503, 504].indexOf(res.code) < 0) break;
+      res.model = list[i];
+      // coba model berikutnya kalau model ini penuh/tidak ada, atau jawabannya tidak bisa dipakai
+      if (res.ok || [0, 404, 429, 500, 502, 503, 504].indexOf(res.code) < 0) break;
     }
     if (res.ok) { try { localStorage.setItem('hl_gem_model', res.via); } catch (e) {} res.via = 'gemini'; }
-    else if (res.code === 400 || res.code === 403) res.error = 'Kunci Gemini tidak valid: ' + res.error;
+    else if (res.code === 400 || res.code === 401 || res.code === 403) res.error = 'Kunci Gemini ditolak (' + res.code + '): ' + res.error;
+    else if (res.code === 429) res.error = 'Kuota Gemini habis untuk kunci ini, coba lagi nanti (' + (res.model || '') + ')';
+    else if (res.error) res.error = res.error + (res.model ? ' (' + res.model + (res.code ? ', ' + res.code : '') + ')' : '');
     return res;
   }
 

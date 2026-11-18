@@ -2010,7 +2010,7 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
         if (token !== window._scanTok) return;   // sudah dibatalkan
         done();
         const how = '';
-        if (!r || !r.ok){ scanState('err', 'Struk tidak terbaca', esc(r && r.error && /kunci|key/i.test(r.error) ? r.error : 'foto lebih dekat & terang, atau isi manual')); return; }
+        if (!r || !r.ok){ scanState('err', 'Scan gagal', esc((r && r.error) || 'struk tidak terbaca, coba foto lebih dekat & terang')); return; }
         state.items = r.items.map(x => ({ name: x.name, price: fmtN(x.price), owner: 'Berdua' }));
         $('fee').value = r.fee ? fmtN(r.fee) : '';
         $('amount').value = fmtN(r.total);
