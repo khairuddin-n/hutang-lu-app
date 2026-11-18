@@ -1,9 +1,10 @@
-// Service worker Hutang Lu: tampilan app disimpan di HP supaya cepat dibuka.
-// Strategi: halaman app selalu diambil dari internet dulu (cache HTTP dilewati), cache hanya cadangan saat offline.
-// File lain (ikon, font): dari cache dulu, diperbarui di belakang.
-// Panggilan API (script.google.com) tidak pernah di-cache.
-const CACHE = 'hutang-lu-6c696d97a0';
-const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
+// Service worker Hutang Lu: app tetap bisa dibuka tanpa sinyal.
+// File app (halaman & script) diambil dari internet dulu supaya selalu versi terbaru; cache hanya cadangan saat offline.
+// Font dari cache dulu. Panggilan Google API (Sheets, Drive, login, Gemini) tidak pernah di-cache.
+// Naikkan VERSION setiap rilis.
+const VERSION = '2.0.0';
+const CACHE = 'hutang-lu-' + VERSION;
+const SHELL = ['./', './index.html', './config.js', './google.js', './data.js', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
@@ -14,21 +15,21 @@ self.addEventListener('activate', e => {
 });
 self.addEventListener('fetch', e => {
   const req = e.request, url = new URL(req.url);
-  if (req.method !== 'GET' || url.hostname.endsWith('script.google.com') || url.hostname.endsWith('googleusercontent.com')) return;
+  if (req.method !== 'GET') return;
   const sameApp = url.origin === location.origin;
   const isFont = /fonts\.(googleapis|gstatic)\.com$/.test(url.hostname);
   if (!sameApp && !isFont) return;
   e.respondWith(caches.open(CACHE).then(async c => {
-    const key = sameApp && req.mode === 'navigate' ? './index.html' : req;
-    if (sameApp && req.mode === 'navigate') {
+    if (sameApp) {
+      const key = req.mode === 'navigate' ? './index.html' : req;
       try {
         const r = await fetch(req.url, { cache: 'no-cache' });
         if (r.ok) { c.put(key, r.clone()); return r; }
       } catch (err) {}
-      return (await c.match(key)) || Response.error();
+      return (await c.match(key, { ignoreSearch: true })) || Response.error();
     }
-    const hit = await c.match(key, { ignoreSearch: sameApp });
-    const net = fetch(req).then(r => { if (r.ok || r.type === 'opaque') c.put(key, r.clone()); return r; }).catch(() => hit);
+    const hit = await c.match(req);
+    const net = fetch(req).then(r => { if (r.ok || r.type === 'opaque') c.put(req, r.clone()); return r; }).catch(() => hit);
     return hit || net;
   }));
 });

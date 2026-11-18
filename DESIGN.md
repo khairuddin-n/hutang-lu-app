@@ -1,6 +1,6 @@
 # Design
 
-Source of truth: `hutang-lu/Index.html` (built into this repo by `tools/build_pwa.py`). Product context: [PRODUCT.md](PRODUCT.md).
+Source of truth: this repo (`index.html` + `data.js` + `google.js`). Product context: [PRODUCT.md](PRODUCT.md).
 
 ## World: "struk"
 
@@ -38,3 +38,5 @@ A shared receipt between two people. The hero is a colored receipt slip with a s
 - Form, sheets and Wrapped push one history layer, so Android back closes them. Sheets take focus, trap Tab and close on Esc.
 - Destructive or money actions confirm on a second tap. The confirm state shows avatar→avatar + amount.
 - Home renders from the cached `hl_info` first. A stale chip (`cloud_off` + age) shows until the server answers. Failed loads show "Coba lagi".
+- Sign-in screens (`#setup`) reuse the receipt slip as a header, show at most two choices as large `.pick` cards, and put the primary action at the bottom within thumb reach.
+- Avatars without a photo show the person's initial on their slot color. There are no illustrated faces.

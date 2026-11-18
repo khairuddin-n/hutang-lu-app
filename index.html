@@ -71,58 +71,20 @@
   applyTheme();
 })();
 </script>
+<script src="config.js"></script>
+<script src="google.js"></script>
+<script src="data.js"></script>
 <script>
-// ---------- Mode PWA ----------
-// Di luar Apps Script, google.script.run diganti panggilan ke API (Api.js) dengan kunci pribadi.
-// Kunci datang dari link pribadi (#k=...), disimpan di HP, lalu dihapus dari alamat.
-(function () {
-  if (window.google && google.script) return;              // dibuka dari Apps Script / tes
-  var API = 'https://script.google.com/macros/s/AKfycbwl4NwoO1TL92RBnMmYRqB0StzXuofTRwdoBeWm20p0-rVCG3jlpoDUh3Ru_dF1se0T/exec', KEY = 'hl_key';
-  var m = location.hash.match(/k=([A-Za-z0-9]+)/), tok = null;
-  try {
-    if (m) { localStorage.setItem(KEY, m[1]); history.replaceState(null, '', location.pathname + location.search); }
-    tok = localStorage.getItem(KEY);
-  } catch (e) {}
-  window.__PWA = true;
-  window.__VER = '18-11-2026 19:54';
-
-  function call(fn, args) {
-    return fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                        body: JSON.stringify({ fn: fn, args: args, k: tok }) })
-      .then(function (r) { return r.json(); }, function () { throw new Error('Tidak ada koneksi internet'); })
-      .then(function (j) { if (!j.ok) throw new Error(j.error); return j.data; });
-  }
-  function runner() {
-    var ok = function () {}, fail = function (e) { console.error(e); }, p;
-    p = new Proxy({}, { get: function (t, k) {
-      if (k === 'withSuccessHandler') return function (f) { ok = f; return p; };
-      if (k === 'withFailureHandler') return function (f) { fail = f; return p; };
-      return function () { call(k, [].slice.call(arguments)).then(function (d) { ok(d); }, function (e) { fail(e); }); };
-    } });
-    return p;
-  }
-  window.google = { script: {
-    get run() { return runner(); },
-    url: { getLocation: function (cb) {
-      var last = null; try { last = localStorage.getItem('hl_me'); } catch (e) {}
-      call('whoami', []).then(function (d) {
-        try { localStorage.setItem('hl_me', d.me); } catch (e) {}
-        cb({ parameter: { u: d.me } });
-      }, function (e) {
-        if (/Link tidak valid/.test(e.message)) { try { localStorage.removeItem(KEY); localStorage.removeItem('hl_me'); } catch (x) {} return gate('Link ini tidak berlaku. Minta link pribadi yang baru ke Dimbo.'); }
-        cb({ parameter: { u: last } });                   // offline: pakai identitas terakhir
-      });
-    } }
-  } };
-
-  function gate(msg) {
-    var show = function () { document.body.innerHTML = '<div style="font:16px/1.5 Plus Jakarta Sans,system-ui,sans-serif;max-width:420px;margin:18vh auto;padding:0 24px;text-align:center">' +
-      '<h2 style="font-weight:600;margin:0 0 8px">Hutang Lu</h2><p style="color:#62666D">' + msg + '</p></div>'; };
-    if (document.body) show(); else document.addEventListener('DOMContentLoaded', show);
-  }
-  if (!tok) gate('Buka lewat link pribadi dari Dimbo dulu, baru pasang ke layar utama HP.');
-  if ('serviceWorker' in navigator) window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js'); });
-})();
+// UI memanggil data dengan gaya lama: API.run.withSuccessHandler(f).withFailureHandler(g).fungsi(...)
+window.API = { get run() {
+  let ok = () => {}, fail = e => console.error(e), p;
+  p = new Proxy({}, { get: (t, k) => k === 'withSuccessHandler' ? (f => { ok = f; return p; })
+    : k === 'withFailureHandler' ? (f => { fail = f; return p; })
+    : (...a) => { HL.call(k, a).then(d => ok(d), e => fail(e)); } });
+  return p;
+} };
+window.__VER = HL_CONFIG.version;
+if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js'));
 </script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -166,14 +128,15 @@
 
   .av{ border-radius:50%; display:grid; place-items:center; color:#FFFFFF; font-weight:600; flex:none; overflow:hidden; }
   .av svg, .av img{ width:100%; height:100%; display:block; object-fit:cover; }
+  .av .ini{ font-family:var(--display); font-weight:700; line-height:1; }
   .cicw{ position:relative; flex:none; display:block; }
   .cicw > .av{ position:absolute; right:-4px; bottom:-4px; box-shadow:0 0 0 2px var(--card); }
   .sub .cicw > .av{ box-shadow:0 0 0 2px var(--tile); }
   /* bingkai warna pemilik: tetap kelihatan siapa walau sudah pakai foto */
-  .av.Dimbo{ background:#3949AB; border:2px solid #3949AB; } .av.Delpus{ background:#C2410C; border:2px solid #C2410C; }
-  .bg-Dimbo{ background:var(--dim); } .bg-Delpus{ background:var(--del); }
-  html.dk .av.Dimbo{ border-color:#7986CB; } html.dk .av.Delpus{ border-color:#F4703A; }
-  .c-Dimbo{ color:var(--dim); } .c-Delpus{ color:var(--del); }
+  .av.A{ background:#3949AB; border:2px solid #3949AB; } .av.B{ background:#C2410C; border:2px solid #C2410C; }
+  .bg-A{ background:var(--dim); } .bg-B{ background:var(--del); }
+  html.dk .av.A{ border-color:#7986CB; } html.dk .av.B{ border-color:#F4703A; }
+  .c-A{ color:var(--dim); } .c-B{ color:var(--del); }
 
   /* Hero: struk berwarna aplikasi, tepi bawah bergerigi seperti kertas struk */
   .hero{ background:var(--brand); color:var(--onbrand); padding:0 0 34px; position:relative; }
@@ -182,7 +145,9 @@
   .hero .bar{ display:flex; align-items:center; gap:8px; height:60px; padding:0 8px 0 20px; }
   .hero .bar h1{ margin:0; flex:1; font:700 19px/1 var(--display); letter-spacing:-.01em; display:flex; align-items:center; gap:10px; }
   .hero .bar h1 i{ width:30px; height:30px; border-radius:9px; background:rgba(255,255,255,.16); display:grid; place-items:center; font-style:normal; }
-  .stale{ display:flex; align-items:center; gap:4px; font-size:12px; font-weight:600; padding:0 10px; height:28px; border-radius:14px; background:rgba(0,0,0,.18); }
+  .stale{ display:flex; align-items:center; gap:4px; font:inherit; font-size:12px; font-weight:600; padding:0 12px; height:32px; border-radius:16px; border:0; color:inherit; background:rgba(0,0,0,.18); cursor:default; }
+  .stale.auth{ background:var(--onbrand); color:var(--brand); cursor:pointer; font-size:13px; height:36px; padding:0 14px 0 10px; }
+  html.dk .stale.auth{ background:var(--pri); color:var(--onpri); }
   .stale .ms{ font-size:16px; }
   .who{ display:flex; align-items:center; gap:10px; padding:14px 20px 0; min-height:58px; }
   .who .lane{ flex:none; width:44px; height:2px; border-radius:1px; background:repeating-linear-gradient(90deg, currentColor 0 6px, transparent 6px 11px); opacity:.55; position:relative; }
@@ -240,7 +205,7 @@
   .nav .add b{ position:absolute; top:-20px; left:50%; transform:translateX(-50%); width:60px; height:60px; border-radius:50%; background:var(--pri); color:var(--onpri); display:grid; place-items:center; box-shadow:var(--fab-shadow); border:5px solid var(--page); transition:transform .15s; }
   .nav .add b .ms{ font-size:30px; }
   .nav .add:active b{ transform:translateX(-50%) scale(.94); }
-  .addgrid{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+  .addgrid{ display:flex; gap:10px; } .addgrid > button{ flex:1; }
   .addgrid button{ border:0; background:var(--tile); border-radius:20px; padding:16px 8px 14px; display:flex; flex-direction:column; align-items:center; gap:10px; color:var(--on); cursor:pointer; min-width:0; }
   .addgrid button:active{ filter:brightness(.95); }
   .addgrid .cic{ width:52px; height:52px; border-radius:17px; } .addgrid .cic .ms{ font-size:28px; }
@@ -311,11 +276,11 @@
   .payer button{ border:1.5px solid var(--line); background:var(--card); border-radius:16px; padding:14px 12px; display:flex; flex-direction:column; align-items:center; gap:8px; font-size:14px; font-weight:600; color:var(--on); cursor:pointer; position:relative; min-width:0; }
   .payer button .av{ opacity:.45; }
   .payer button.on .av{ opacity:1; }
-  .payer button.on[data-v=Dimbo]{ border-color:var(--dim); background:var(--dimsoft); }
-  .payer button.on[data-v=Delpus]{ border-color:var(--del); background:var(--delsoft); }
+  .payer button.on[data-v=A]{ border-color:var(--dim); background:var(--dimsoft); }
+  .payer button.on[data-v=B]{ border-color:var(--del); background:var(--delsoft); }
   .payer button .ck{ position:absolute; top:8px; right:8px; font-size:20px; display:none; }
   .payer button.on .ck{ display:block; }
-  .payer button.on[data-v=Dimbo] .ck{ color:var(--dim); } .payer button.on[data-v=Delpus] .ck{ color:var(--del); }
+  .payer button.on[data-v=A] .ck{ color:var(--dim); } .payer button.on[data-v=B] .ck{ color:var(--del); }
   .item{ padding:12px 0; border-top:1px solid var(--line); }
   .item:first-child{ border-top:0; padding-top:0; }
   .item .r1{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,128px); gap:8px; }
@@ -417,6 +382,7 @@
   .sec{ font-size:13px; font-weight:600; color:var(--on2); margin:20px 6px 8px; }
   .row{ display:flex; align-items:center; gap:12px; width:100%; border:0; background:var(--tile); border-radius:16px; padding:12px 14px; color:var(--on); font-size:15px; text-align:left; cursor:pointer; text-decoration:none; margin-bottom:8px; }
   .row .m{ flex:1; min-width:0; } .row .t2{ font-size:12px; color:var(--on2); margin-top:2px; } .row > .ms{ color:var(--on2); }
+  .row.arm{ background:var(--redsoft); color:var(--red); } .row.arm > .ms{ color:var(--red); }
   .crow{ display:flex; align-items:center; gap:10px; padding:8px 0; } .crow + .crow{ border-top:1px solid var(--line); }
   .crow .m{ flex:1; min-width:0; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .crow .t2{ font-size:12px; color:var(--on2); }
   .sheet .grab{ width:36px; height:4px; border-radius:2px; background:var(--outline); margin:10px auto 18px; }
@@ -530,6 +496,32 @@
   .sc-s:empty{ display:none; }
   #tipBox{ position:fixed; z-index:90; max-width:260px; padding:9px 12px; border-radius:12px; background:var(--on, #1f1f1f); color:var(--page, #fff); font-size:13px; line-height:1.45; box-shadow:0 4px 16px rgba(0,0,0,.2); opacity:0; transform:translateY(-4px); transition:opacity .15s, transform .15s; pointer-events:none; }
   #tipBox.show{ opacity:1; transform:none; }
+  /* Layar masuk */
+  .setup{ position:fixed; inset:0; z-index:30; background:var(--page); overflow-y:auto; }
+  body.setupon{ overflow:hidden; } body.setupon .nav{ display:none; }
+  .setup .si{ max-width:420px; margin:0 auto; min-height:100%; padding:calc(56px + env(safe-area-inset-top)) 24px calc(32px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; }
+  .setup .slip{ background:var(--brand); color:var(--onbrand); margin:calc(-56px - env(safe-area-inset-top)) -24px 28px; padding:calc(48px + env(safe-area-inset-top)) 24px 34px; position:relative; }
+  .setup .slip::after{ content:''; position:absolute; left:0; right:0; bottom:-1px; height:9px; background:radial-gradient(circle at 7px 9px, var(--page) 5.5px, transparent 6px) 0 0/14px 9px repeat-x; }
+  .setup .logo{ width:52px; height:52px; border-radius:15px; background:rgba(255,255,255,.16); display:grid; place-items:center; margin-bottom:18px; }
+  .setup .logo .ms{ font-size:30px; }
+  .setup h1{ margin:0; font:800 34px/1.05 var(--display); letter-spacing:-.025em; }
+  .setup .slip p{ margin:10px 0 0; font-size:16px; line-height:1.5; opacity:.92; max-width:30ch; }
+  .setup h2{ margin:0 0 8px; font:700 24px/1.15 var(--display); letter-spacing:-.015em; }
+  .setup p{ color:var(--on2); font-size:15px; line-height:1.55; margin:0 0 20px; }
+  .setup p b{ color:var(--on); font-weight:600; }
+  .setup .btn{ width:100%; margin-top:10px; }
+  .setup .btn.line{ border:1.5px solid var(--outline); background:transparent; color:var(--on); }
+  .setup .grow{ flex:1; }
+  .setup .err{ background:var(--redsoft); color:var(--red); border-radius:14px; padding:12px 14px; font-size:14px; margin:0 0 16px; }
+  .setup .fine{ text-align:center; font-size:13px; color:var(--on2); margin-top:18px; }
+  .setup .fine a{ color:var(--on2); }
+  .setup .busy{ display:flex; align-items:center; gap:12px; color:var(--on2); font-size:15px; margin-top:8vh; }
+  .setup .fld{ margin-bottom:14px; } .setup .fld .lbl{ margin-left:2px; }
+  .setup .pick{ display:flex; align-items:center; gap:14px; width:100%; border:1.5px solid var(--line); background:var(--card); border-radius:18px; padding:14px 16px; margin-bottom:10px; text-align:left; color:var(--on); font:inherit; cursor:pointer; }
+  .setup .pick .m{ flex:1; min-width:0; } .setup .pick b{ display:block; font-size:16px; font-weight:600; } .setup .pick small{ color:var(--on2); font-size:13px; }
+  .setup .pick:disabled{ opacity:.5; cursor:default; }
+  .setup .back{ align-self:flex-start; margin:-8px 0 16px -12px; }
+
   /* Wrapped */
   .wrban{ display:flex; align-items:center; gap:12px; width:100%; border:0; border-radius:20px; padding:16px; margin-bottom:12px; color:#fff; font-size:16px; font-weight:600; cursor:pointer; text-align:left; font-family:inherit; }
   .wrban .ms{ font-size:28px; } .wrban small{ display:block; font-size:13px; font-weight:400; opacity:.85; margin-top:2px; }
@@ -547,12 +539,13 @@
 </head>
 <body>
 <div class="snack" id="snack" role="status"></div>
+<div class="setup hide" id="setup" role="dialog" aria-modal="true" aria-label="Masuk Hutang Lu"></div>
 
 <!-- ============ BERANDA ============ -->
 <div id="vHome">
   <div class="hero"><div class="wrap">
     <div class="bar"><h1><i class="ms f" aria-hidden="true" style="font-size:18px">handshake</i>Hutang Lu</h1>
-      <span class="stale hide" id="stale" role="status"><span class="ms" aria-hidden="true">cloud_off</span><span id="staleT"></span></span>
+      <button class="stale hide" id="stale"><span class="ms" aria-hidden="true" id="staleI">cloud_off</span><span id="staleT"></span></button>
       <button class="ib" id="meBtn" aria-label="Profil & pengaturan"></button></div>
     <div class="who" id="who"><div class="sk" style="width:150px;height:44px;border-radius:22px"></div></div>
     <div class="big n"><span id="bigAmt"><div class="sk" style="width:200px;height:44px"></div></span>
@@ -648,8 +641,8 @@
       <section class="card">
         <div class="lbl">Yang bayar</div>
         <div class="payer" id="by" role="group" aria-label="Yang bayar">
-          <button data-v="Dimbo"><span class="ms f ck" aria-hidden="true">check_circle</span><span class="av Dimbo" style="width:40px;height:40px;font-size:17px">D</span>Dimbo</button>
-          <button data-v="Delpus"><span class="ms f ck" aria-hidden="true">check_circle</span><span class="av Delpus" style="width:40px;height:40px;font-size:17px">P</span>Delpus</button>
+          <button data-v="A"><span class="ms f ck" aria-hidden="true">check_circle</span><span class="av A" style="width:40px;height:40px;font-size:17px">A</span>A</button>
+          <button data-v="B"><span class="ms f ck" aria-hidden="true">check_circle</span><span class="av B" style="width:40px;height:40px;font-size:17px">B</span>B</button>
         </div>
       </section>
 
@@ -705,17 +698,6 @@
   <button data-v="pay" id="payTab"><i class="ms" aria-hidden="true">handshake</i><span>Lunasi</span></button>
 </div></nav>
 
-<!-- Sheet pilih pengguna -->
-<div class="sheet" id="meSheet" role="dialog" aria-modal="true" aria-label="Kamu siapa"><div class="in" tabindex="-1">
-  <div class="grab"></div>
-  <div class="ch" style="margin-bottom:6px"><h2 style="font-size:18px">Kamu siapa?</h2></div>
-  <div class="help" style="margin:0 0 14px">Tampilan menyesuaikan: utangmu, tagihanmu, dan siapa yang bayar.</div>
-  <div class="payer" id="mePick">
-    <button data-v="Dimbo"><span class="av Dimbo" style="width:48px;height:48px;font-size:20px">D</span>Dimbo</button>
-    <button data-v="Delpus"><span class="av Delpus" style="width:48px;height:48px;font-size:20px">P</span>Delpus</button>
-  </div>
-</div></div>
-
 <!-- Sheet lihat foto (orang lain) -->
 <div class="sheet" id="photoSheet" role="dialog" aria-modal="true" aria-label="Foto profil"><div class="in" tabindex="-1">
   <div class="grab"></div>
@@ -748,9 +730,17 @@
   <a class="row hide" id="stSheet" target="_blank" rel="noopener"><span class="ms" aria-hidden="true">table_view</span><div class="m">Buka Google Sheet</div><span class="ms" aria-hidden="true">open_in_new</span></a>
   <button class="row" id="stCsv"><span class="ms" aria-hidden="true">download</span><div class="m">Ekspor CSV</div></button>
   <button class="row hide" id="stQueue"><span class="ms" aria-hidden="true">cloud_upload</span><div class="m">Kirim catatan offline</div><span class="n" id="stQueueN" style="color:var(--on2);font-size:14px"></span></button>
+  <button class="row hide" id="stInvite"><span class="ms" aria-hidden="true">person_add</span><div class="m" id="stInviteT">Undang</div></button>
 
   <div class="sec">Aplikasi</div>
+  <button class="row" id="stGem" aria-expanded="false"><span class="ms" aria-hidden="true">document_scanner</span><div class="m">Scan struk</div><span id="stGemS" style="color:var(--on2);font-size:14px"></span></button>
+  <div class="hide" id="stGemBox" style="margin:-2px 0 10px">
+    <div class="inp"><input id="stGemIn" type="password" autocomplete="off" placeholder="API key Gemini" aria-label="API key Gemini"></div>
+    <div class="help">Buat gratis di <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>. Disimpan di HP ini saja. Kosongkan untuk mematikan.</div>
+    <button class="btn fill" id="stGemOk" style="width:100%;margin-top:10px">Simpan</button>
+  </div>
   <button class="row" id="stReload"><span class="ms" aria-hidden="true">refresh</span><div class="m">Muat ulang app</div></button>
+  <button class="row" id="stOut"><span class="ms" aria-hidden="true">logout</span><div class="m">Keluar<div class="t2" id="stEmail"></div></div></button>
   <div class="note" id="stVer"></div>
 </div></div>
 
@@ -825,25 +815,29 @@
   const jt = n => HIDE ? MASK : jtR(n);
   const store = {
     get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } },
-    set(k,v){ try { localStorage.setItem(k,v); } catch(e){} }
+    set(k,v){ try { localStorage.setItem(k,v); } catch(e){} },
+    del(...ks){ ks.forEach(k => { try { localStorage.removeItem(k); } catch(e){} }); }
   };
+  if (!store.get('hl_sid')) store.del('hl_key', 'hl_me', 'me', 'hl_info', 'hl_photos', 'hl_photover', 'hl_cats', 'hl_queue', 'hl_sheet', 'hl_sav', 'hl_mems');
   const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-  const ini = p => p==='Dimbo' ? 'D' : 'P';
-  const other = p => p==='Dimbo' ? 'Delpus' : 'Dimbo';
+  // Dua anggota pertama di sheet = slot 'A' dan 'B'. Nama tampil dari tab Anggota (disimpan juga di HP).
+  let MEMS = {}; try { MEMS = JSON.parse(localStorage.getItem('hl_mems') || '{}') || {}; } catch (e) {}
+  const NAME = p => (MEMS[p] && MEMS[p].name) || (p === 'A' ? 'Kamu' : 'Pasangan');
+  const ini = p => (NAME(p).trim()[0] || '?').toUpperCase();
+  const other = p => p==='A' ? 'B' : 'A';
   const MON = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
   const MONF = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
   const digits = s => { const m = String(s||'').replace(/[^\d]/g,''); return m ? parseInt(m,10) : 0; };
-  // Avatar ilustrasi sederhana: Dimbo (cowok, rambut pendek) · Delpus (cewek, rambut panjang)
-  const FACE = {
-    Dimbo: '<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M5 41c1.5-8 7.5-12 15-12s13.5 4 15 12z" fill="#C9CFF6"/><rect x="17" y="22" width="6" height="7" rx="2" fill="#E8B48F"/><circle cx="20" cy="17" r="8" fill="#F3C9A7"/><path d="M11.6 16.5c-.4-6.3 3.6-9.8 8.6-9.8 5.2 0 8.9 3.3 8.3 9.3-1.2-2.4-3.2-3.6-5.6-3.9-1.5 1.4-5.6 2.4-11.3 4.4z" fill="#2B1B12"/></svg>',
-    Delpus: '<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M9.5 33c-1.8-10-.6-24 10.5-24s12.3 14 10.5 24z" fill="#3B2314"/><path d="M5 41c1.5-8 7.5-12 15-12s13.5 4 15 12z" fill="#FFD7C2"/><rect x="17" y="22" width="6" height="7" rx="2" fill="#E8B48F"/><circle cx="20" cy="17" r="8" fill="#F6CDB0"/><path d="M11.8 17.5c.2-6 3.6-9.4 8.2-9.4s8 3.4 8.2 9.4c-2.6-1-5.8-3.4-7.6-5.9-1.6 2.9-4.9 5-8.8 5.9z" fill="#3B2314"/></svg>'
-  };
   // Foto profil (dari server, disimpan juga di HP supaya langsung tampil)
   let PHOTOS = {}; try { PHOTOS = JSON.parse(store.get('hl_photos') || '{}') || {}; } catch (e) {}
-  const face = p => PHOTOS[p] ? `<img src="${PHOTOS[p]}" alt="">` : (FACE[p] || ini(p));
-  const av = (p, s=32) => `<span class="av ${p}" role="img" aria-label="${p}" style="width:${s}px;height:${s}px;border-width:${s >= 64 ? 4 : s <= 24 ? 2 : 2.5}px" title="${p}">${face(p)}</span>`;
+  const face = p => PHOTOS[p] ? `<img src="${PHOTOS[p]}" alt="">` : `<b class="ini">${esc(ini(p))}</b>`;
+  const av = (p, s=32) => `<span class="av ${p}" role="img" aria-label="${esc(NAME(p))}" style="width:${s}px;height:${s}px;font-size:${Math.round(s*.42)}px;border-width:${s >= 64 ? 4 : s <= 24 ? 2 : 2.5}px" title="${esc(NAME(p))}">${face(p)}</span>`;
   // gambar ulang semua avatar yang sudah ada di halaman
-  const paintAvs = () => document.querySelectorAll('span.av.Dimbo, span.av.Delpus').forEach(e => { e.innerHTML = face(e.classList.contains('Dimbo') ? 'Dimbo' : 'Delpus'); });
+  const paintAvs = () => document.querySelectorAll('span.av.A, span.av.B').forEach(e => {
+    const p = e.classList.contains('A') ? 'A' : 'B';
+    e.innerHTML = face(p); e.setAttribute('aria-label', NAME(p)); e.title = NAME(p);
+    if (!e.style.fontSize) e.style.fontSize = Math.round(e.offsetWidth * .42 || 16) + 'px';
+  });
   paintAvs();   // avatar yang ditulis langsung di HTML (pilihan pembayar, pilih pengguna)
   function setPhotos(ph){
     if (!ph) return;
@@ -933,14 +927,16 @@
   }
 
   // pesan error yang bisa dibaca orang: offline beda dengan error server
-  const errMsg = e => isOffline(e) ? 'Tidak ada koneksi. Coba lagi nanti.' : 'Gagal: ' + String(e && e.message || e || 'tidak diketahui');
+  const errMsg = e => { if (e && e.code === 'auth') { needAuth(); return 'Sambungkan ke Google dulu'; }
+    return isOffline(e) ? 'Tidak ada koneksi. Coba lagi nanti.' : 'Gagal: ' + String(e && e.message || e || 'tidak diketahui'); };
   // kartu "gagal memuat" dengan tombol coba lagi
   function errCard(box, e, retry){
-    const off = isOffline(e);
-    box.innerHTML = `<section class="card"><div class="errc"><span class="ms" aria-hidden="true">${off ? 'cloud_off' : 'error'}</span>
-      <div class="m"><b>${off ? 'Tidak ada koneksi' : 'Gagal memuat'}</b>${off ? '' : `<small>${esc(e && e.message || e)}</small>`}</div>
-      <button class="chip">Coba lagi</button></div></section>`;
-    box.querySelector('.errc button').onclick = retry;
+    const off = isOffline(e), au = e && e.code === 'auth';
+    if (au) needAuth();
+    box.innerHTML = `<section class="card"><div class="errc"><span class="ms" aria-hidden="true">${au ? 'sync' : off ? 'cloud_off' : 'error'}</span>
+      <div class="m"><b>${au ? 'Belum tersambung ke Google' : off ? 'Tidak ada koneksi' : 'Gagal memuat'}</b>${off ? '' : `<small>${esc(e && e.message || e)}</small>`}</div>
+      <button class="chip">${au ? 'Sambungkan' : 'Coba lagi'}</button></div></section>`;
+    box.querySelector('.errc button').onclick = au ? () => connectGoogle(retry) : retry;
   }
 
   // snack(pesan) atau snack(pesan, 'Batalkan', fungsi)
@@ -955,11 +951,18 @@
   // ---------- Siapa yang membuka ----------
   // Dari link (?u=dimbo / ?u=delpus), disimpan di HP. Kalau tidak ada, tanya sekali.
   let ME = null, lastInfo = null;
+  if (store.get('hl_sid') && /^[AB]$/.test(store.get('me') || '')) ME = store.get('me');
   // Beranda dari cache HP dulu (langsung tampil walau sinyal jelek), lalu diganti data server
   let INFO_AT = 0, CACHED_INFO = null;
   try { const c = JSON.parse(localStorage.getItem('hl_info') || 'null'); if (c && c.info) { lastInfo = CACHED_INFO = c.info; INFO_AT = c.t || 1; } } catch (e) {}
+  let NEED_AUTH = false;
+  function needAuth(){ NEED_AUTH = true; paintStale(); }
   function paintStale(){
     const el = document.getElementById('stale'); if (!el) return;
+    el.classList.toggle('auth', NEED_AUTH);
+    el.disabled = !NEED_AUTH;
+    if (NEED_AUTH){ el.classList.remove('hide'); $('staleI').textContent = 'sync'; $('staleT').textContent = 'Sambungkan'; el.setAttribute('aria-label', 'Sambungkan ke Google'); return; }
+    $('staleI').textContent = 'cloud_off';
     el.classList.toggle('hide', !INFO_AT);
     if (!INFO_AT) return;
     const m = Math.max(1, Math.round((Date.now() - INFO_AT) / 60000));
@@ -969,13 +972,22 @@
   let infoLoading = false;
   function loadInfo(){
     if (infoLoading) return; infoLoading = true;
-    google.script.run.withSuccessHandler(info => { infoLoading = false; INFO_AT = 0; paintStale(); lastInfo = info; if (ME) renderInfo(info); flushQueue(); })
-      .withFailureHandler(e => { infoLoading = false; if (lastInfo) { paintStale(); snack(errMsg(e)); } else heroError(e); }).getInfo();
+    API.run.withSuccessHandler(info => { infoLoading = false; INFO_AT = 0; NEED_AUTH = false; paintStale(); lastInfo = info; HL.setMe(HL.meId(ME)); if (ME) renderInfo(info); flushQueue(); })
+      .withFailureHandler(e => { infoLoading = false; if (isAuth(e)) { needAuth(); if (!lastInfo) heroError(e); return; } if (lastInfo) { paintStale(); snack(errMsg(e)); } else heroError(e); }).getInfo();
   }
+  // token Google habis (±1 jam): satu ketukan untuk sambung lagi, lalu muat ulang & kirim antrean
+  let connecting = false;
+  async function connectGoogle(after){
+    if (connecting) return; connecting = true;
+    try { await HLG.signIn({ prompt: '' }); NEED_AUTH = false; paintStale(); loadInfo(); flushQueue(); after && after(); }
+    catch (e) { snack(e.message || 'Login gagal'); }
+    finally { connecting = false; }
+  }
+  document.getElementById('stale').onclick = () => { if (NEED_AUTH) connectGoogle(); };
   // gagal muat & belum ada cache: jangan skeleton selamanya
   function heroError(e){
-    const off = isOffline(e);
-    $('who').innerHTML = `<div class="herr"><span class="ms" aria-hidden="true">${off ? 'cloud_off' : 'error'}</span>${off ? 'Offline' : 'Gagal memuat'}<button id="heroRetry">Coba lagi</button></div>`;
+    const off = isOffline(e), au = isAuth(e);
+    $('who').innerHTML = `<div class="herr"><span class="ms" aria-hidden="true">${au ? 'sync' : off ? 'cloud_off' : 'error'}</span>${au ? 'Belum tersambung' : off ? 'Offline' : 'Gagal memuat'}<button id="heroRetry">${au ? 'Sambungkan' : 'Coba lagi'}</button></div>`;
     $('bigAmt').innerHTML = ''; $('eyeBtn').classList.add('hide');
     errCard($('recentList'), e, () => $('heroRetry').click());
     $('recentList').firstChild.classList.remove('card');
@@ -983,51 +995,38 @@
       $('who').innerHTML = '<div class="sk" style="width:150px;height:44px;border-radius:22px"></div>';
       $('bigAmt').innerHTML = '<div class="sk" style="width:200px;height:44px"></div>'; $('eyeBtn').classList.remove('hide');
       $('recentList').innerHTML = '<div class="empty">Memuat…</div>';
-      loadInfo();
+      if (au) connectGoogle(); else loadInfo();
     };
   }
-  const nm = p => p === ME ? 'Kamu' : p;       // awal kalimat
-  const nml = p => p === ME ? 'kamu' : p;      // tengah kalimat
-  const normMe = v => /^dim/i.test(v || '') ? 'Dimbo' : /^del/i.test(v || '') ? 'Delpus' : null;
-  function initMe(cb){
-    const fin = p => {
-      if (p){ ME = p; store.set('me', p); } else ME = normMe(store.get('me'));
-      if (!ME) return askMe(cb);
-      applyMe(); cb();
-    };
-    try { google.script.url.getLocation(loc => fin(normMe(loc && loc.parameter && loc.parameter.u))); } catch (e) { fin(null); }
+  const nm = p => p === ME ? 'Kamu' : NAME(p);       // awal kalimat
+  const nml = p => p === ME ? 'kamu' : NAME(p);      // tengah kalimat
+  // nama & email anggota dari data terbaru
+  function setMembers(list){
+    if (!list || !list.length) return;
+    const m = {}; list.forEach(x => { m[x.key] = { name: x.name, email: x.email }; });
+    if (JSON.stringify(m) === JSON.stringify(MEMS)) return;
+    MEMS = m; store.set('hl_mems', JSON.stringify(m));
+    paintAvs(); applyMe();
   }
-  let meCb = null;
-  function askMe(cb){
-    meCb = cb;
-    $('mePick').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === ME));
-    showSheet('meSheet');
-  }
-  $('mePick').querySelectorAll('button').forEach(b => b.onclick = () => {
-    ME = b.dataset.v; store.set('me', ME);
-    closeSheet(); applyMe();
-    const cb = meCb; meCb = null;
-    if (cb) cb(); else if (lastInfo) { renderInfo(lastInfo); if (view === 'pay') renderPay(); }
-  });
-  $('meBtn').onclick = () => window.__PWA ? openSettings() : askMe(null);
+  $('meBtn').onclick = () => openSettings();
   // tap avatar di beranda, halaman Bayar, statistik → lihat foto (avatar di dalam baris transaksi tidak ikut)
   document.addEventListener('click', e => {
     const a = e.target.closest && e.target.closest('.who .av, .split2l .av, .flow .av, .lg2 .av');
     if (!a) return;
     e.stopPropagation();
-    openPhoto(a.classList.contains('Dimbo') ? 'Dimbo' : 'Delpus');
+    openPhoto(a.classList.contains('A') ? 'A' : 'B');
   }, true);
   // ---------- Foto profil ----------
   // Avatar sendiri = profil & pengaturan (PWA); avatar orang lain = lihat fotonya
   function openPhoto(p){
-    if (p === ME && window.__PWA) return openSettings();
-    $('phAv').innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;gap:10px">${av(p, 200)}<b style="font-size:17px;font-weight:600">${esc(p)}</b></div>`;
+    if (p === ME) return openSettings();
+    $('phAv').innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;gap:10px">${av(p, 200)}<b style="font-size:17px;font-weight:600">${esc(NAME(p))}</b></div>`;
     showSheet('photoSheet');
   }
 
   // ---------- Profil & pengaturan ----------
   function openSettings(){
-    $('stAv').innerHTML = av(ME, 96); $('stName').textContent = ME;
+    $('stAv').innerHTML = av(ME, 96); $('stName').textContent = NAME(ME);
     $('phDel').classList.toggle('hide', !PHOTOS[ME]);
     $('setSheet').querySelector('.in').scrollTop = 0;
     setSeg('themeSeg', 'theme', applyTheme());
@@ -1035,6 +1034,13 @@
     const url = store.get('hl_sheet');
     $('stSheet').classList.toggle('hide', !url); if (url) $('stSheet').href = url;
     paintQueue();
+    const o = other(ME), oe = MEMS[o] && MEMS[o].email;
+    $('stInvite').classList.toggle('hide', !!oe);
+    $('stInviteT').textContent = 'Undang ' + NAME(o);
+    $('stGemS').textContent = HL.geminiKey() ? 'Aktif' : 'Mati';
+    $('stGemBox').classList.add('hide'); $('stGem').setAttribute('aria-expanded', 'false');
+    $('stEmail').textContent = store.get('hl_email') || '';
+    const so = $('stOut'); so.classList.remove('arm'); so.querySelector('.m').firstChild.textContent = 'Keluar';
     $('stVer').textContent = 'Versi ' + (window.__VER || '-');
     showSheet('setSheet');
   }
@@ -1073,15 +1079,15 @@
   // ambil semua transaksi (pakai yang sudah dimuat kalau ada)
   function withHistory(cb){
     if (HS.all.length && !histStale) return cb(HS.all);
-    google.script.run.withSuccessHandler(rows => { HS.all = rows || []; histStale = false; cb(HS.all); }).withFailureHandler(failSnack).getHistory();
+    API.run.withSuccessHandler(rows => { HS.all = rows || []; histStale = false; cb(HS.all); }).withFailureHandler(failSnack).getHistory();
   }
   $('stCsv').onclick = () => {
     const t2 = $('stCsv').querySelector('.m'), h = t2.textContent; t2.textContent = 'Menyiapkan…';
     withHistory(rows => {
       const q = v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
-      const L = [['Tanggal','Keterangan','Kategori','Dibayar','Total','Bagian Dimbo','Bagian Delpus','Status'].map(q).join(',')];
+      const L = [['Tanggal','Keterangan','Kategori','Dibayar','Total','Bagian ' + NAME('A'),'Bagian ' + NAME('B'),'Status'].map(q).join(',')];
       rows.slice().reverse().forEach(r => { const w = r.raw;
-        L.push([w.date, w.desc, catOf(w.desc)[0], w.by, w.G || '', Math.round(w.H * 100) / 100, Math.round(w.I * 100) / 100, r.paid ? 'Lunas' : 'Belum'].map(q).join(',')); });
+        L.push([w.date, w.desc, catOf(w.desc)[0], NAME(w.by), w.G || '', Math.round(w.H * 100) / 100, Math.round(w.I * 100) / 100, r.paid ? 'Lunas' : 'Belum'].map(q).join(',')); });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(new Blob(['\ufeff' + L.join('\r\n')], { type: 'text/csv;charset=utf-8' }));
       a.download = `hutang-lu-${todayIso()}.csv`; document.body.appendChild(a); a.click(); a.remove();
@@ -1094,6 +1100,26 @@
     $('stQueueN').textContent = Q.length;
   }
   $('stQueue').onclick = () => flushQueue(true);
+  $('stInvite').onclick = () => { closeSheet(); showInvite(); };
+  $('stGem').onclick = () => {
+    const open = $('stGemBox').classList.toggle('hide') === false;
+    $('stGem').setAttribute('aria-expanded', open);
+    if (open) { $('stGemIn').value = HL.geminiKey(); $('stGemIn').focus(); }
+  };
+  $('stGemOk').onclick = () => {
+    const k = $('stGemIn').value.trim();
+    if (k) store.set('hl_gemini', k); else store.del('hl_gemini', 'hl_gem_model');
+    $('stGemS').textContent = k ? 'Aktif' : 'Mati'; $('stGemBox').classList.add('hide');
+    renderMode(); snack(k ? 'Scan struk aktif' : 'Scan struk dimatikan');
+  };
+  // keluar: hapus semua data akun ini dari HP (sheet di Drive tetap ada)
+  $('stOut').onclick = () => {
+    const so = $('stOut'), t = so.querySelector('.m').firstChild;
+    if (!so.classList.contains('arm')) { so.classList.add('arm'); t.textContent = Q.length ? `Yakin? ${Q.length} catatan offline ikut hilang` : 'Yakin keluar?'; return; }
+    HLG.signOut();
+    store.del('hl_sid', 'me', 'hl_mems', 'hl_info', 'hl_photos', 'hl_photover', 'hl_cats', 'hl_queue', 'hl_sheet', 'hl_draft', 'hl_email', 'hl_gname', 'hl_join', 'hl_gemini', 'hl_gem_model', 'hl_gem_models');
+    location.replace(location.pathname);
+  };
   // buang cache tampilan app lalu muat ulang dari internet
   $('stReload').onclick = async () => {
     $('stReload').querySelector('.m').textContent = 'Memuat ulang…';
@@ -1103,7 +1129,7 @@
   };
   function savePhoto(url, btn){
     const h = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<span class="spin"></span>';
-    google.script.run
+    API.run
       .withSuccessHandler(r => { btn.disabled = false; btn.innerHTML = h; setPhotos(r.photos); store.set('hl_photover', JSON.stringify(r.ver)); closeSheet(); openSettings(); snack(url ? 'Foto disimpan' : 'Foto dihapus'); })
       .withFailureHandler(e => { btn.disabled = false; btn.innerHTML = h; snack(errMsg(e)); })
       .setPhoto(url);
@@ -1112,7 +1138,7 @@
   function syncPhotos(ver){
     if (!ver) return;
     if (JSON.stringify(ver) === store.get('hl_photover')) return;
-    google.script.run.withSuccessHandler(r => { setPhotos(r.photos); store.set('hl_photover', JSON.stringify(r.ver)); }).withFailureHandler(() => {}).getPhotos();
+    API.run.withSuccessHandler(r => { setPhotos(r.photos); store.set('hl_photover', JSON.stringify(r.ver)); }).withFailureHandler(() => {}).getPhotos();
   }
   ['phCam','phPick'].forEach(id => $(id).onclick = () => $($(id).dataset.src).click());
   $('phCamIn').onchange = $('phFile').onchange = e => {
@@ -1162,10 +1188,10 @@
   $('cropCancel').onclick = () => { closeSheet(); openSettings(); };
   $('cropOk').onclick = () => {
     if (!CR.w) return;
-    const S = 320, c = document.createElement('canvas'); c.width = c.height = S;
+    const S = 200, c = document.createElement('canvas'); c.width = c.height = S;
     const g = c.getContext('2d'); g.imageSmoothingQuality = 'high';
     g.drawImage($('cropImg'), -CR.x / CR.s, -CR.y / CR.s, CR.V / CR.s, CR.V / CR.s, 0, 0, S, S);
-    let q = .9, u; do { u = c.toDataURL('image/jpeg', q); q -= .08; } while (u.length > 85000 && q > .4);
+    let q = .9, u; do { u = c.toDataURL('image/jpeg', q); q -= .08; } while (u.length > 45000 && q > .3);
     savePhoto(u, $('cropOk'));
   };
   $('phDel').onclick = () => savePhoto('', $('phDel'));
@@ -1225,7 +1251,7 @@
 
   // Tombol tengah: tap = catat langsung · tahan = pilih Patungan / Scan struk
   let fabLP = null, fabHeld = false;
-  $('addBtn').addEventListener('pointerdown', () => { fabHeld = false; clearTimeout(fabLP); fabLP = setTimeout(() => { fabHeld = true; if (navigator.vibrate) navigator.vibrate(12); showSheet('addSheet'); }, 450); });
+  $('addBtn').addEventListener('pointerdown', () => { fabHeld = false; clearTimeout(fabLP); fabLP = setTimeout(() => { fabHeld = true; if (navigator.vibrate) navigator.vibrate(12); document.querySelector('#addSheet [data-add=scan]').classList.toggle('hide', !HL.geminiKey()); showSheet('addSheet'); }, 450); });
   ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => $('addBtn').addEventListener(ev, () => clearTimeout(fabLP)));
   $('addBtn').oncontextmenu = e => e.preventDefault();
   $('addBtn').onclick = () => { if (fabHeld) { fabHeld = false; return; } openNew('direct'); };
@@ -1240,7 +1266,7 @@
   $('scanCam').addEventListener('cancel', () => { scanFromAdd = false; });
 
   // ---------- State form ----------
-  const state = { mode:'direct', by: 'Delpus', items: [], edit: null, recent: [], suggest: [] };
+  const state = { mode:'direct', by: 'B', items: [], edit: null, recent: [], suggest: [] };
 
   function segInit(id, key, cb){
     $(id).querySelectorAll('button[data-v]').forEach(b => b.onclick = () => { setSeg(id, key, b.dataset.v); cb && cb(); });
@@ -1253,10 +1279,10 @@
 
   function renderMode(){
     if (!state.edit) $('formTitle').textContent = 'Catat';
-    $('scanCard').classList.toggle('hide', !!state.edit || state.mode!=='split');
+    $('scanCard').classList.toggle('hide', !!state.edit || state.mode!=='split' || !HL.geminiKey());
     $('direct').classList.toggle('hide', state.mode!=='direct');
     $('split').classList.toggle('hide', state.mode!=='split');
-    if (state.mode==='split' && state.items.length===0){ addItem('Dimbo', true); addItem('Delpus', true); renderItems(); }
+    if (state.mode==='split' && state.items.length===0){ addItem('A', true); addItem('B', true); renderItems(); }
     renderSuggest();
     if (state.mode==='direct') renderDirect(); else calc();
   }
@@ -1272,7 +1298,7 @@
     const deb = other(state.by);
     const ok = v > 0 && !isNaN(v);
     $('owe').classList.toggle('hide', !ok);
-    if (ok) $('owe').innerHTML = `${av(deb, 30)}<span class="ms" aria-hidden="true" style="font-size:18px">arrow_forward</span>${av(state.by, 30)}<b class="n" aria-label="${deb} utang ke ${state.by}">${fmtR(v)}</b>`;
+    if (ok) $('owe').innerHTML = `${av(deb, 30)}<span class="ms" aria-hidden="true" style="font-size:18px">arrow_forward</span>${av(state.by, 30)}<b class="n" aria-label="${esc(NAME(deb))} utang ke ${esc(NAME(state.by))}">${fmtR(v)}</b>`;
   }
 
   // kategori di form: null = ikut tebakan/ingatan dari keterangan
@@ -1316,7 +1342,7 @@
         </div>
         <div class="r2">
           <div class="seg sm" role="group" aria-label="Pemilik item ${i+1}">
-            ${['Dimbo','Delpus','Berdua'].map(o=>`<button data-v="${o}" class="${it.owner===o?'on':''}" aria-label="${o}" aria-pressed="${it.owner===o}">${o === 'Berdua' ? `<span class="pair">${av('Dimbo', 22)}${av('Delpus', 22)}</span>` : av(o, 22)}</button>`).join('')}
+            ${['A','B','Berdua'].map(o=>`<button data-v="${o}" class="${it.owner===o?'on':''}" aria-label="${o === 'Berdua' ? 'Berdua' : esc(NAME(o))}" aria-pressed="${it.owner===o}">${o === 'Berdua' ? `<span class="pair">${av('A', 22)}${av('B', 22)}</span>` : av(o, 22)}</button>`).join('')}
           </div>
           <button class="ib" data-x aria-label="Hapus item ${i+1}" style="color:var(--on2);width:40px;height:40px"><span class="ms" aria-hidden="true" style="font-size:20px">delete</span></button>
         </div>`;
@@ -1339,7 +1365,7 @@
     let D=0, E=0, bad=false;
     state.items.forEach(it=>{
       const p = num(it.price); if (isNaN(p)) { bad=true; return; }
-      if (it.owner==='Dimbo') D+=p; else if (it.owner==='Delpus') E+=p; else { D+=p/2; E+=p/2; }
+      if (it.owner==='A') D+=p; else if (it.owner==='B') E+=p; else { D+=p/2; E+=p/2; }
     });
     const F = num($('fee').value) || 0, G = num($('total').value) || 0;
     let H=0, I=0, warn='';
@@ -1354,15 +1380,15 @@
       <div class="ch"><h2>Pembagian</h2><span class="n">${G>0?'total '+fmt(G):''}</span></div>
       <div class="bar2"><i class="d" style="width:${pd}%"></i><i class="p" style="width:${100-pd}%"></i></div>
       <div class="tw n">
-        <div class="d">${nm('Dimbo')}<b>${ready?fmt(H):'–'}</b>item ${fmt(D)}</div>
-        <div class="p">${nm('Delpus')}<b>${ready?fmt(I):'–'}</b>item ${fmt(E)}</div>
+        <div class="d">${nm('A')}<b>${ready?fmt(H):'–'}</b>item ${fmt(D)}</div>
+        <div class="p">${nm('B')}<b>${ready?fmt(I):'–'}</b>item ${fmt(E)}</div>
       </div>
       <div class="rows n">
         <div><span>Ongkir + layanan</span><span>${fmt(F)}</span></div>
         <div><span>${adj<0?'Diskon':'Pajak / lainnya'}</span><span>${G>0 ? (adj<0?'−':'')+fmt(Math.abs(adj)) : '–'}</span></div>
       </div>
       ${warn?`<div class="warn"><span class="ms" aria-hidden="true" style="font-size:18px">warning</span>${warn}</div>`:''}`;
-    showOwe(ready ? (state.by==='Delpus' ? H : I) : 0);
+    showOwe(ready ? (state.by==='B' ? H : I) : 0);
     return { D:Math.round(D*100)/100, E:Math.round(E*100)/100, F, G, ok: ready };
   }
 
@@ -1379,7 +1405,7 @@
     $('scanInfo').classList.add('hide');
     scanReset();
     setSeg('mode','mode','direct');
-    setSeg('by','by', ME ? defBy() : (store.get('by') || 'Delpus'));
+    setSeg('by','by', ME ? defBy() : (store.get('by') || 'B'));
     renderMode();
     renderCatPick();
   }
@@ -1410,20 +1436,21 @@
   // ---------- Beranda ----------
   function renderInfo(info){
     lastInfo = info;
+    setMembers(info.members);
     if (info !== CACHED_INFO){      // data segar dari server: simpan untuk dibuka offline
       INFO_AT = 0; paintStale();
       try { const c = Object.assign({}, info); delete c.photos; store.set('hl_info', JSON.stringify({ t: Date.now(), info: c })); } catch (e) {}
     }
     statsStale = true;
     const s = info.summary;
-    const nD = digits(s.netDimbo), nP = digits(s.netDelpus);
+    const nD = digits(s.netA), nP = digits(s.netB);
     let from = '', to = '', amt = 0;
-    if (nD > 0){ from='Dimbo'; to='Delpus'; amt=nD; } else if (nP > 0){ from='Delpus'; to='Dimbo'; amt=nP; }
+    if (nD > 0){ from='A'; to='B'; amt=nD; } else if (nP > 0){ from='B'; to='A'; amt=nP; }
     // satu jawaban saja: siapa → siapa, berapa. Rincian kotor ada di halaman Bayar.
     const wasZero = $('bigAmt').dataset.zero === '1';
     $('who').innerHTML = from ? `${av(from, 44)}<span class="lane" aria-hidden="true"></span>${av(to, 44)}`
-      : `<span class="pair">${av(ME === 'Delpus' ? 'Delpus' : 'Dimbo', 44)}${av(ME === 'Delpus' ? 'Dimbo' : 'Delpus', 44)}</span>`;
-    $('who').setAttribute('aria-label', from ? `${from} utang ke ${to}` : 'Semua lunas');
+      : `<span class="pair">${av(ME === 'B' ? 'B' : 'A', 44)}${av(ME === 'B' ? 'A' : 'B', 44)}</span>`;
+    $('who').setAttribute('aria-label', from ? `${NAME(from)} utang ke ${NAME(to)}` : 'Semua lunas');
     $('who').setAttribute('role', 'img');
     $('eyeBtn').classList.remove('hide');
     if (from) $('bigAmt').textContent = fmt(amt);
@@ -1453,7 +1480,7 @@
           <div class="t2 n">${m.n} transaksi${m.prev ? ` · <span class="${chg>0?'up':'down'}">${chg>0?'▲':'▼'} ${Math.abs(Math.round(chg*100))}%</span>` : ''}</div></div>
         <span class="ms" aria-hidden="true" style="color:var(--on2)">chevron_right</span></button>
         ${m.total > 0 ? (() => {
-          const a = ME === 'Delpus' ? ['Delpus', m.del] : ['Dimbo', m.dim], b = ME === 'Delpus' ? ['Dimbo', m.dim] : ['Delpus', m.del];
+          const a = ME === 'B' ? ['B', m.del] : ['A', m.dim], b = ME === 'B' ? ['A', m.dim] : ['B', m.del];
           const pa = a[1] / (m.total || 1) * 100;
           return `<div class="split2"><i class="bg-${a[0]}" style="width:${pa}%"></i><i class="bg-${b[0]}" style="width:${100-pa}%"></i></div>
             <div class="split2l n"><span style="display:flex;align-items:center;gap:6px">${av(a[0], 20)}<b>${fmt(a[1])}</b></span><span style="display:flex;align-items:center;gap:6px"><b>${fmt(b[1])}</b>${av(b[0], 20)}</span></div>`; })() : ''}`;
@@ -1484,10 +1511,10 @@
   // Satu baris transaksi (dipakai beranda & riwayat)
   function txHtml(r, i, src, showDate){
     // warna nominal = warna orang yang bayar (sama dengan avatar kecil di ikon)
-    const w = r.raw, owed = r.by==='Delpus' ? w.H : w.I;
+    const w = r.raw, owed = r.by==='B' ? w.H : w.I;
     const d = /^\d{4}-\d{2}-\d{2}$/.test(w.date) ? w.date.split('-').map(Number) : null;
     const dt = d ? d[2]+' '+MON[d[1]-1]+(showDate && d[0]!==new Date().getFullYear() ? ' '+d[0] : '') : '';
-    return `<button class="tx ${r.paid?'paid':''}" data-i="${i}" aria-label="${esc(r.desc)}, ${dt}, dibayar ${r.by}, bagian ${other(r.by)} ${fmt(owed)}${r.paid ? ', lunas' : ''}">
+    return `<button class="tx ${r.paid?'paid':''}" data-i="${i}" aria-label="${esc(r.desc)}, ${dt}, dibayar ${esc(NAME(r.by))}, bagian ${esc(NAME(other(r.by)))} ${fmt(owed)}${r.paid ? ', lunas' : ''}">
       ${cicBy(r.desc, r.by)}
       <div class="m"><div class="t1">${esc(r.desc)}</div><div class="t2 n">${dt}</div></div>
       <div class="e n"><b class="${r.paid?'':'c-'+r.by}">${fmt(owed)}</b>${r.paid ? '<small style="color:var(--green);display:flex;justify-content:flex-end"><span class="ms" aria-label="Lunas" style="font-size:16px">check_circle</span></small>' : ''}</div>
@@ -1498,13 +1525,13 @@
 
   // ---------- Riwayat ----------
   const HS = { all: [], q: '', st: '', by: '', cat: '', shown: 0, list: [] };
-  const HF = [['st','open','Belum lunas'],['st','paid','Lunas'],['by','Dimbo','Dimbo bayar'],['by','Delpus','Delpus bayar'],
+  const HF = [['st','open','Belum lunas'],['st','paid','Lunas'],['by','A','Dimbo bayar'],['by','B','Delpus bayar'],
               ['cat','Makan & minum','Makan'],['cat','Transport','Transport'],['cat','Belanja','Belanja'],['cat','Hiburan','Hiburan'],['cat','Olahraga','Olahraga'],['cat','Kesehatan','Kesehatan'],['cat','Lainnya','Lainnya'],['cat','Pelunasan','Pelunasan']];
   function initHF(){
     const list = HF.map(([g,v,l]) => [g, v, l]);
-    if (ME === 'Delpus') { const a = list[2]; list[2] = list[3]; list[3] = a; }   // avatar sendiri duluan
+    if (ME === 'B') { const a = list[2]; list[2] = list[3]; list[3] = a; }   // avatar sendiri duluan
     $('hf').innerHTML = list.map(([g,v,l]) => g === 'by'
-      ? `<button class="chip avc ${HS[g]===v?'on':''}" data-g="${g}" data-v="${v}" aria-label="${l}">${av(v, 24)}<span class="ms" aria-hidden="true" style="font-size:18px">payments</span></button>`
+      ? `<button class="chip avc ${HS[g]===v?'on':''}" data-g="${g}" data-v="${v}" aria-label="${esc(NAME(v))} bayar">${av(v, 24)}<span class="ms" aria-hidden="true" style="font-size:18px">payments</span></button>`
       : `<button class="chip ${HS[g]===v?'on':''}" data-g="${g}" data-v="${v}">${l}</button>`).join('');
     $('hf').querySelectorAll('.chip').forEach(b => b.onclick = () => { const g = b.dataset.g; HS[g] = HS[g] === b.dataset.v ? '' : b.dataset.v; filterHist(); });
   }
@@ -1513,7 +1540,7 @@
 
   function loadHist(){
     $('histList').innerHTML = '<section class="card"><div class="empty">Memuat…</div></section>';
-    google.script.run.withSuccessHandler(rows => { HS.all = rows || []; histStale = false; filterHist(); })
+    API.run.withSuccessHandler(rows => { HS.all = rows || []; histStale = false; filterHist(); })
       .withFailureHandler(e => errCard($('histList'), e, loadHist))
       .getHistory();
   }
@@ -1539,7 +1566,7 @@
       if (!sec || sec.dataset.k !== key){
         const [y, mm] = key.split('-').map(Number);
         const rowsM = HS.list.filter(x => (x.ym || x.raw.date.slice(0,7)) === key);
-        const tot = rowsM.reduce((a, x) => a + (isNaN(+x.raw.H) ? 0 : (x.by==='Delpus' ? x.raw.H : x.raw.I)), 0);
+        const tot = rowsM.reduce((a, x) => a + (isNaN(+x.raw.H) ? 0 : (x.by==='B' ? x.raw.H : x.raw.I)), 0);
         sec = document.createElement('section'); sec.className = 'card'; sec.dataset.k = key;
         sec.innerHTML = `<div class="mhead"><h2>${MONF[mm-1]} ${y}</h2><span class="n">${rowsM.length} transaksi · ${fmt(tot)}</span></div>`;
         box.appendChild(sec);
@@ -1556,7 +1583,7 @@
   let sheetRow = null;
   function openSheet(r){
     sheetRow = r;
-    const w = r.raw, deb = other(r.by), owed = r.by==='Delpus' ? w.H : w.I;
+    const w = r.raw, deb = other(r.by), owed = r.by==='B' ? w.H : w.I;
     $('shHd').innerHTML = `${cic(r.desc, 48)}<div style="min-width:0"><b>${esc(r.desc)}</b><span>${esc(r.date)}</span></div>`;
     $('shFacts').innerHTML = `<div><span>Dibayar</span>${av(r.by, 22)}</div>` +
       (w.G>0 ? `<div><span>Total</span><span>${fmt(w.G)}</span></div>` : '') +
@@ -1577,7 +1604,7 @@
     const k = catKey(desc), old = Object.assign({}, CATMAP), m = Object.assign({}, CATMAP);
     if (!name || name === autoCat(desc)[0]) delete m[k]; else m[k] = name;
     setCatMap(m); refreshCats(); after && after();
-    google.script.run
+    API.run
       .withSuccessHandler(x => { setCatMap(x.catMap); refreshCats(); after && after(); })
       .withFailureHandler(e => { setCatMap(old); refreshCats(); after && after(); snack(errMsg(e)); })
       .setCategory(desc, name || '');
@@ -1596,7 +1623,7 @@
   }
   function closeSheet(){
     const was = !!document.querySelector('.sheet.show');
-    $('scrim').classList.remove('show'); ['sheet','shareSheet','addSheet','meSheet','photoSheet','setSheet','cropSheet'].forEach(id => $(id).classList.remove('show'));
+    $('scrim').classList.remove('show'); ['sheet','shareSheet','addSheet','photoSheet','setSheet','cropSheet'].forEach(id => $(id).classList.remove('show'));
     document.body.classList.remove('sheeton');
     if (was && sheetFocus && sheetFocus.isConnected) sheetFocus.focus({ preventScroll: true });
     if (was) sheetFocus = null;
@@ -1653,18 +1680,18 @@
     $('editinfo').classList.remove('hide');
     $('date').value = w.date || todayIso();
     $('desc').value = w.desc;
-    setSeg('by','by', w.by==='Dimbo' ? 'Dimbo' : 'Delpus');
+    setSeg('by','by', w.by==='A' ? 'A' : 'B');
     if (w.G > 0){
       state.items = [];
-      if (w.D>0) state.items.push({ owner:'Dimbo', price:String(w.D), name:'' });
-      if (w.E>0) state.items.push({ owner:'Delpus', price:String(w.E), name:'' });
+      if (w.D>0) state.items.push({ owner:'A', price:String(w.D), name:'' });
+      if (w.E>0) state.items.push({ owner:'B', price:String(w.E), name:'' });
       if (!state.items.length) state.items.push({ owner:'Berdua', price:String(w.G), name:'' });
       $('fee').value = w.F ? String(w.F) : '';
       $('total').value = String(w.G);
       setSeg('mode','mode','split');
       renderMode(); renderItems();
     } else {
-      $('amount').value = fmtN(w.by==='Delpus' ? w.H : w.I);
+      $('amount').value = fmtN(w.by==='B' ? w.H : w.I);
       setSeg('mode','mode','direct');
       renderMode();
     }
@@ -1675,7 +1702,7 @@
   function rawPayload(w){
     const p = { date: w.date, desc: w.desc, by: w.by, mode: w.G > 0 ? 'split' : 'direct' };
     if (w.G > 0) Object.assign(p, { dimbo: w.D, delpus: w.E, fee: w.F, total: w.G });
-    else p.amount = w.by === 'Delpus' ? w.H : w.I;
+    else p.amount = w.by === 'B' ? w.H : w.I;
     return p;
   }
   const failSnack = e => snack(errMsg(e));
@@ -1683,12 +1710,12 @@
   function doDelete(){
     const del = $('shDel'), r = sheetRow;
     del.disabled = true; del.innerHTML = '<span class="spin"></span>';
-    google.script.run
+    API.run
       .withSuccessHandler(res=>{
         closeSheet();
         if (state.edit && state.edit.row > r.row) state.edit.row -= 1;
         renderInfo(res.info);
-        snack(`Dihapus: ${r.desc}`, 'Batalkan', () => google.script.run
+        snack(`Dihapus: ${r.desc}`, 'Batalkan', () => API.run
           .withSuccessHandler(x => { renderInfo(x.info); snack(`Dikembalikan: ${r.desc}`); }).withFailureHandler(failSnack)
           .restoreEntry(Object.assign(rawPayload(r.raw), { row: r.row })));
       })
@@ -1698,14 +1725,14 @@
 
   // Lunasi satu transaksi ini saja (tanpa urutan terlama dulu)
   function settleOne(){
-    const r = sheetRow, w = r.raw, owed = r.by === 'Delpus' ? w.H : w.I, payer = other(r.by), btn = $('shPay');
+    const r = sheetRow, w = r.raw, owed = r.by === 'B' ? w.H : w.I, payer = other(r.by), btn = $('shPay');
     if (!btn.classList.contains('arm')){ btn.classList.add('arm'); btn.innerHTML = `Yakin? ${av(payer, 22)}<span class="ms" aria-hidden="true" style="font-size:18px">arrow_forward</span>${av(r.by, 22)} ${fmt(owed)}`; return; }
     btn.disabled = true; btn.innerHTML = '<span class="spin"></span>';
-    google.script.run
+    API.run
       .withSuccessHandler(res => {
         closeSheet(); renderInfo(res.info); setPay(res.settle, true);
         const id = res.settle.log[0] && res.settle.log[0].row;
-        snack(`Lunas: ${r.desc}`, 'Batalkan', () => google.script.run
+        snack(`Lunas: ${r.desc}`, 'Batalkan', () => API.run
           .withSuccessHandler(x => { renderInfo(x.info); setPay(x.settle, true); snack('Pelunasan dibatalkan'); }).withFailureHandler(failSnack)
           .undoSettle(id));
       })
@@ -1718,20 +1745,22 @@
   // Setiap transaksi punya cid supaya server tidak mencatat dobel kalau terkirim dua kali.
   let Q = []; try { Q = JSON.parse(store.get('hl_queue') || '[]') || []; } catch (e) {}
   const saveQ = () => { store.set('hl_queue', JSON.stringify(Q)); paintQueue(); };
-  const isOffline = e => !navigator.onLine || /koneksi internet|failed to fetch|networkerror|load failed/i.test(String(e && e.message || e));
+  const isAuth = e => !!(e && e.code === 'auth');
+  const isOffline = e => isAuth(e) || !navigator.onLine || /koneksi internet|failed to fetch|networkerror|load failed/i.test(String(e && e.message || e));
   function queueEntry(payload){
     Q.push({ payload, t: Date.now() }); saveQ(); renderRecent();
-    snack('Tidak ada sinyal. Tersimpan di HP, dikirim otomatis saat online.');
+    snack(HLG.token() ? 'Tidak ada sinyal. Tersimpan di HP, dikirim otomatis saat online.' : 'Tersimpan di HP. Dikirim setelah tersambung ke Google.');
   }
   let flushing = false;
   function flushQueue(manual){
     if (flushing || !Q.length) return;
+    if (!HLG.token()){ if (manual) connectGoogle(() => flushQueue(true)); return; }
     if (!navigator.onLine){ if (manual) snack('Masih offline'); return; }
     const item = manual ? Q[0] : Q.find(x => !x.err);
     if (!item) return;
     if (manual) Q.forEach(x => delete x.err);
     flushing = true;
-    google.script.run
+    API.run
       .withSuccessHandler(res => {
         flushing = false; Q.splice(Q.indexOf(item), 1); saveQ(); renderInfo(res.info);
         if (Q.some(x => !x.err)) flushQueue(); else if (!Q.length) snack('Catatan offline sudah terkirim');
@@ -1771,21 +1800,21 @@
     }
     const prev = state.edit && state.edit.prev;
     const offline = () => { store.set('by', state.by); resetForm(); setView(lastTab); queueEntry(payload); };
-    if (!payload.editRow && !navigator.onLine) return offline();
+    if (!payload.editRow && (!navigator.onLine || !HLG.token())) return offline();
     const btn=$('save'); saving=true; btn.disabled=true; btn.innerHTML='<span class="spin"></span>';
     const done = ()=>{ saving=false; btn.disabled=false; btn.textContent='Simpan'; };
-    google.script.run
+    API.run
       .withSuccessHandler(res=>{
         done();
         if (!res.edited) store.set('by', state.by);
         resetForm();
         renderInfo(res.info);
         setView(lastTab);
-        if (res.edited) snack(`Diperbarui: ${desc}`, 'Batalkan', () => google.script.run
+        if (res.edited) snack(`Diperbarui: ${desc}`, 'Batalkan', () => API.run
           .withSuccessHandler(x => { renderInfo(x.info); snack('Perubahan dibatalkan'); }).withFailureHandler(failSnack)
           .addEntry(Object.assign({}, prev, { editRow: res.row, editKey: res.key })));
         else if (res.dup) snack(`Sudah tercatat: ${desc}`);
-        else snack(`Tersimpan: ${desc}`, 'Batalkan', () => google.script.run
+        else snack(`Tersimpan: ${desc}`, 'Batalkan', () => API.run
           .withSuccessHandler(x => { renderInfo(x.info); snack(`Dibatalkan: ${desc}`); }).withFailureHandler(failSnack)
           .deleteEntry(res.row, res.key));
       })
@@ -1801,7 +1830,7 @@
     document.querySelectorAll('#sMode button').forEach(b => b.classList.toggle('on', (b.dataset.v === 'all') === (ym === 'all')));
     $('mnav').classList.toggle('hide', ym === 'all');
     $('statsBody').innerHTML = '<section class="card"><div class="empty">Memuat…</div></section>';
-    google.script.run
+    API.run
       .withSuccessHandler(s=>{ statsStale=false; S=s; if (!s.all && s.ym) statsMonth = s.ym; renderStats(s); })
       .withFailureHandler(e => errCard($('statsBody'), e, () => loadStats(ym)))
       .getStats(ym || '');
@@ -1809,7 +1838,7 @@
   $('mPrev').onclick = () => S && loadStats(S.prevYm);
   $('mNext').onclick = () => S && loadStats(S.nextYm);
 
-  const PP = () => ME === 'Delpus' ? ['Delpus', 'Dimbo'] : ['Dimbo', 'Delpus'];   // yang membuka app duluan
+  const PP = () => ME === 'B' ? ['B', 'A'] : ['A', 'B'];   // yang membuka app duluan
   function donut(a, b){
     const R = 42, C = 2*Math.PI*R, t = a + b;
     const fa = t ? a/t : 0;
@@ -1839,7 +1868,7 @@
         <div class="donut">
           ${donut(c.del, c.dim)}
           <div class="lg2 n">
-            ${PP().map(p => `<div>${av(p, 32)}<div><b class="c-${p}">${fmt(p === 'Dimbo' ? c.dim : c.del)}</b>${p === 'Dimbo' ? c.nDim : c.nDel} transaksi</div></div>`).join('')}
+            ${PP().map(p => `<div>${av(p, 32)}<div><b class="c-${p}">${fmt(p === 'A' ? c.dim : c.del)}</b>${p === 'A' ? c.nDim : c.nDel} transaksi</div></div>`).join('')}
           </div>
         </div>
       </section>
@@ -1848,7 +1877,7 @@
         <div class="ch"><h2>Per bulan</h2><span>${esc(s.winLabel)}</span></div>
         <div class="cscroll" id="colScroll">
         <div class="cols" style="grid-template-columns:${colW}">${s.months.map(m => `<div class="c">
-          ${PP().map(p => `<i class="bg-${p}" style="width:${barW}px;height:${Math.max(3, (p === 'Dimbo' ? m.dim : m.del)/maxM*130)}px"></i>`).join('')}</div>`).join('')}</div>
+          ${PP().map(p => `<i class="bg-${p}" style="width:${barW}px;height:${Math.max(3, (p === 'A' ? m.dim : m.del)/maxM*130)}px"></i>`).join('')}</div>`).join('')}</div>
         <div class="cl n" style="grid-template-columns:${colW}">${s.months.map(m => `<span style="${m.key===s.ym?'color:var(--on);font-weight:600':''}">${esc(m.label)}<br>${jt(m.del+m.dim)}</span>`).join('')}</div>
         </div>
         <div style="display:flex;gap:18px;justify-content:center;align-items:center;margin-top:12px">${PP().map(p => `<span style="display:flex;align-items:center"><span class="dot bg-${p}"></span>${av(p, 20)}</span>`).join('')}</div>
@@ -1947,7 +1976,7 @@
     const done = () => { clearInterval(timer); $('vForm').classList.remove('reading'); scanBtns().forEach(b => { b.disabled = false; b.innerHTML = b._html; }); };
     let img;
     try { img = await shrink(f); } catch (err) { done(); return snack(err.message); }
-    google.script.run
+    API.run
       .withSuccessHandler(r => {
         if (token !== window._scanTok) return;   // sudah dibatalkan
         done();
@@ -1979,7 +2008,7 @@
 
   function loadPay(){
     $('payBody').innerHTML = '<section class="card"><div class="empty">Memuat…</div></section>';
-    google.script.run.withSuccessHandler(d => setPay(d, true)).withFailureHandler(e => errCard($('payBody'), e, loadPay)).getSettle();
+    API.run.withSuccessHandler(d => setPay(d, true)).withFailureHandler(e => errCard($('payBody'), e, loadPay)).getSettle();
   }
 
   $('assistBtn').onclick = () => {
@@ -1991,8 +2020,8 @@
     payStale = false;
     if (fresh) P.assist = false;
     P.rows = d.rows || []; P.log = d.log || [];
-    const T = P.rows.reduce((a, r) => a + (r.by==='Delpus' ? r.amt : -r.amt), 0);   // + = Dimbo utang
-    P.payer = T > 0.5 ? 'Dimbo' : T < -0.5 ? 'Delpus' : null;
+    const T = P.rows.reduce((a, r) => a + (r.by==='B' ? r.amt : -r.amt), 0);   // + = Dimbo utang
+    P.payer = T > 0.5 ? 'A' : T < -0.5 ? 'B' : null;
     P.to = P.payer ? other(P.payer) : null;
     P.total = Math.round(Math.abs(T));
     let c = 0;
@@ -2032,7 +2061,7 @@
     if (!P.payer){
       $('assistBtn').classList.add('hide');
       $('payTitle').textContent = 'Lunasi';
-      const a = ME === 'Delpus' ? 'Delpus' : 'Dimbo';
+      const a = ME === 'B' ? 'B' : 'A';
       body.innerHTML = `<section class="card zero"><span class="pair">${av(a, 40)}${av(other(a), 40)}</span><span class="stamp sm" style="animation:none">LUNAS</span></section>` + logCard();
       bindLog(); return;
     }
@@ -2044,7 +2073,7 @@
     $('shareBtn').classList.toggle('hide', ro);
     body.innerHTML = `
       <section class="card">
-        <div class="flow" role="img" aria-label="${P.payer} bayar ke ${P.to}, ${fmt(P.total)}">${av(P.payer, 40)}<span class="lane" aria-hidden="true"></span>${av(P.to, 40)}
+        <div class="flow" role="img" aria-label="${esc(NAME(P.payer))} bayar ke ${esc(NAME(P.to))}, ${fmt(P.total)}">${av(P.payer, 40)}<span class="lane" aria-hidden="true"></span>${av(P.to, 40)}
           <b class="n" style="margin:0 0 0 auto">${fmt(P.total)}</b></div>
         <div class="help">${P.rows.length} transaksi</div>
       </section>
@@ -2165,10 +2194,10 @@
     u.onclick = () => {
       if (!u.classList.contains('arm')){ u.classList.add('arm'); u.textContent = 'Yakin?'; return; }
       u.disabled = true; u.innerHTML = '<span class="spin" style="width:14px;height:14px"></span>';
-      google.script.run
+      API.run
         .withSuccessHandler(res => { renderInfo(res.info); setPay(res.settle, true); snack(`Dibatalkan: ${res.restored} transaksi kembali belum lunas`); })
         .withFailureHandler(e => { u.disabled = false; u.classList.remove('arm'); u.textContent = 'Batalkan'; snack(errMsg(e)); })
-        .undoSettle(+u.dataset.row);
+        .undoSettle(u.dataset.row);
     };
   }
 
@@ -2182,13 +2211,13 @@
     }
     go.disabled = true; go.innerHTML = '<span class="spin"></span>';
     const payer = P.payer, amount = P.amount, nk = P.k, until = untilLabel(P.k);
-    google.script.run
+    API.run
       .withSuccessHandler(res => {
         renderInfo(res.info);
         setPay(res.settle, true);
         setView('home');
         const id = res.settle.log[0] && res.settle.log[0].row;
-        snack(`Tercatat ${fmt(amount)}`, 'Batalkan', () => google.script.run
+        snack(`Tercatat ${fmt(amount)}`, 'Batalkan', () => API.run
           .withSuccessHandler(x => { closeSheet(); renderInfo(x.info); setPay(x.settle, true); snack('Pelunasan dibatalkan'); }).withFailureHandler(failSnack)
           .undoSettle(id));
         openShare(payer === ME ? 'Bukti bayar' : 'Konfirmasi terima', () => proofText(payer, amount, nk, until, res.diff, res.info.summary),
@@ -2245,12 +2274,13 @@
   $('shareBtn').onclick = () => openShare('Tagihan', billText, billCard, true);
 
   // ---------- Gambar (canvas) ----------
-  const PCOL = { Dimbo: '#3949AB', Delpus: '#C2410C' };
+  const PCOL = { A: '#3949AB', B: '#C2410C' };
   function faceImg(p){
     return new Promise(res => {
       const img = new Image();
       img.onload = () => res(img); img.onerror = () => res(null);
-      img.src = PHOTOS[p] || 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(FACE[p].replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" '));
+      if (!PHOTOS[p]) return res(null);
+      img.src = PHOTOS[p];
     });
   }
   // c = { title, date, from, to, amount, sub, sections:[{ head, rows:[{ l, r, col }] }] }
@@ -2276,7 +2306,9 @@
     // avatar → avatar
     const avDraw = (img, p, x, y, d) => {
       g.save(); g.beginPath(); g.arc(x + d/2, y + d/2, d/2, 0, Math.PI * 2); g.closePath(); g.fillStyle = PCOL[p]; g.fill(); g.clip();
-      if (img) g.drawImage(img, x, y, d, d); g.restore();
+      if (img) g.drawImage(img, x, y, d, d);
+      else { g.fillStyle = '#fff'; g.font = F(Math.round(d * .44), 700); g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(ini(p), x + d/2, y + d/2 + 1); }
+      g.restore();
       g.beginPath(); g.arc(x + d/2, y + d/2, d/2, 0, Math.PI * 2); g.lineWidth = 2.5; g.strokeStyle = PCOL[p]; g.stroke();
     };
     avDraw(fa, c.from, P, 62, 36);
@@ -2328,16 +2360,16 @@
   }
   // gambar bukti bayar
   function proofCard(payer, amount, k, sum){
-    const left = payer === 'Dimbo' ? digits(sum.netDimbo) : digits(sum.netDelpus);
-    const back = payer === 'Dimbo' ? digits(sum.netDelpus) : digits(sum.netDimbo);
-    const row = back > 0 ? { l: `Sisa utang ${other(payer)}`, r: fmtR(back) } : left > 0 ? { l: `Sisa utang ${payer}`, r: fmtR(left) } : { l: 'Semua lunas', r: '✓', col: '#137333' };
+    const left = payer === 'A' ? digits(sum.netA) : digits(sum.netB);
+    const back = payer === 'A' ? digits(sum.netB) : digits(sum.netA);
+    const row = back > 0 ? { l: `Sisa utang ${NAME(other(payer))}`, r: fmtR(back) } : left > 0 ? { l: `Sisa utang ${NAME(payer)}`, r: fmtR(left) } : { l: 'Semua lunas', r: '✓', col: '#137333' };
     return { date: todayLbl(), from: payer, to: other(payer), amount, sub: `Pembayaran · ${k} transaksi lunas`, sections: [{ head: 'Status', rows: [row] }] };
   }
 
   // Teks (untuk Salin teks): ringkas
   function billText(detail){
     const fmt = fmtR, n = P.rows.length, first = P.rows[0], last = P.rows[n-1];
-    const L = [`*Hutang Lu* · ${todayLbl()}`, `${P.payer} → ${P.to}: *${fmt(P.total)}*`, `${n} transaksi · ${shortLbl(first.label)} – ${shortLbl(last.label)}`];
+    const L = [`*Hutang Lu* · ${todayLbl()}`, `${NAME(P.payer)} → ${NAME(P.to)}: *${fmt(P.total)}*`, `${n} transaksi · ${shortLbl(first.label)} – ${shortLbl(last.label)}`];
     const months = [];
     P.rows.forEach(r => {
       const x = parseLbl(r.label), key = x.y * 12 + x.m;
@@ -2353,10 +2385,10 @@
   }
   function proofText(payer, amount, k, until, diff, sum){
     const fmt = fmtR;
-    const left = payer === 'Dimbo' ? digits(sum.netDimbo) : digits(sum.netDelpus);
-    const back = payer === 'Dimbo' ? digits(sum.netDelpus) : digits(sum.netDimbo);
-    return [`*Hutang Lu* · ${todayLbl()}`, `${payer} bayar *${fmt(amount)}* ke ${other(payer)} · ${k} transaksi lunas`,
-      back > 0 ? `Sisa utang ${other(payer)}: ${fmt(back)}` : left > 0 ? `Sisa utang ${payer}: ${fmt(left)}` : 'Semua lunas ✅'].join('\n');
+    const left = payer === 'A' ? digits(sum.netA) : digits(sum.netB);
+    const back = payer === 'A' ? digits(sum.netB) : digits(sum.netA);
+    return [`*Hutang Lu* · ${todayLbl()}`, `${NAME(payer)} bayar *${fmt(amount)}* ke ${NAME(other(payer))} · ${k} transaksi lunas`,
+      back > 0 ? `Sisa utang ${NAME(other(payer))}: ${fmt(back)}` : left > 0 ? `Sisa utang ${NAME(payer)}: ${fmt(left)}` : 'Semua lunas ✅'].join('\n');
   }
 
   // ---------- Wrapped: rekap setahun bergaya story ----------
@@ -2375,10 +2407,10 @@
     $('wr').classList.remove('hide'); ovlOpen(); WR.i = 0; WR.slides = [];
     const g = $('wrCv').getContext('2d'); g.setTransform(3, 0, 0, 3, 0, 0);
     wrBg(g, 0); wrText(g, 'Menyiapkan…', 180, 330, 16, 400, 'rgba(255,255,255,.8)', 'center'); $('wrBars').innerHTML = '';
-    google.script.run.withSuccessHandler(async D => {
+    API.run.withSuccessHandler(async D => {
       if (!D || !D.n) { closeWrapped(); return snack(`Belum ada transaksi di ${y}`); }
       WR.D = D;
-      const [a, b] = await Promise.all([faceImg('Dimbo'), faceImg('Delpus')]); WR.faces = { Dimbo: a, Delpus: b };
+      const [a, b] = await Promise.all([faceImg('A'), faceImg('B')]); WR.faces = { A: a, B: b };
       try { await Promise.all([document.fonts.load("40px 'Material Symbols Outlined'", 'handshake'), document.fonts.load('700 20px "Plus Jakarta Sans"'), document.fonts.load('400 20px "Plus Jakarta Sans"')]); } catch (e) {}
       WR.slides = wrSlides(D);
       $('wrBars').innerHTML = WR.slides.map(() => '<i></i>').join('');
@@ -2446,6 +2478,7 @@
   function wrAv(g, p, cx, cy, d){
     g.save(); g.beginPath(); g.arc(cx, cy, d / 2, 0, 7); g.closePath(); g.fillStyle = PCOL[p]; g.fill(); g.clip();
     if (WR.faces[p]) g.drawImage(WR.faces[p], cx - d / 2, cy - d / 2, d, d);
+    else { g.fillStyle = '#fff'; g.font = `700 ${Math.round(d * .44)}px Plus Jakarta Sans, system-ui, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(ini(p), cx, cy + 1); }
     g.restore();
     g.beginPath(); g.arc(cx, cy, d / 2, 0, 7); g.lineWidth = Math.max(3, d / 22); g.strokeStyle = PCOL[p]; g.stroke();
     g.beginPath(); g.arc(cx, cy, d / 2 + g.lineWidth / 2 + 1.5, 0, 7); g.lineWidth = 2; g.strokeStyle = 'rgba(255,255,255,.9)'; g.stroke();
@@ -2462,10 +2495,10 @@
   }
 
   function wrSlides(D){
-    const S = [], Y = D.year, A = D.by.Dimbo, B = D.by.Delpus, W = 360, C = W / 2;
+    const S = [], Y = D.year, A = D.by.A, B = D.by.B, W = 360, C = W / 2;
     // 1. pembuka
     S.push(g => {
-      wrAv(g, 'Dimbo', C - 34, 220, 92); wrAv(g, 'Delpus', C + 34, 220, 92);
+      wrAv(g, 'A', C - 34, 220, 92); wrAv(g, 'B', C + 34, 220, 92);
       wrText(g, 'Wrapped', C, 340, 46, 700, '#fff', 'center');
       wrText(g, String(Y), C, 436, 96, 800, '#fff', 'center');
       wrText(g, 'Tap untuk mulai', C, 590, 13, 400, 'rgba(255,255,255,.7)', 'center');
@@ -2479,17 +2512,17 @@
     });
     // 3. siapa paling sering nalangin
     S.push(g => {
-      const win = A.t >= B.t ? 'Dimbo' : 'Delpus', w = D.by[win];
+      const win = A.t >= B.t ? 'A' : 'B', w = D.by[win];
       wrText(g, 'Paling sering nalangin', C, 150, 22, 600, '#fff', 'center');
       wrText(g, 'workspace_premium', C, 205, 40, 400, '#FFD54F', 'center', true);
       wrAv(g, win, C, 300, 130);
-      wrText(g, win, C, 410, 32, 700, '#fff', 'center');
+      wrText(g, NAME(win), C, 410, 32, 700, '#fff', 'center');
       wrText(g, `${w.n} kali · ${rpJt(w.t)}`, C, 442, 17, 400, 'rgba(255,255,255,.85)', 'center');
       const tot = (A.t + B.t) || 1, bx = 40, bw = 280, pa = A.t / tot * bw;
-      g.fillStyle = PCOL.Dimbo; wrRR(g, bx, 510, Math.max(6, pa), 14, 7); g.fill();
-      g.fillStyle = PCOL.Delpus; wrRR(g, bx + pa, 510, Math.max(6, bw - pa), 14, 7); g.fill();
-      wrAv(g, 'Dimbo', bx + 12, 560, 26); wrText(g, rpJt(A.t), bx + 32, 566, 13, 500);
-      wrAv(g, 'Delpus', bx + bw - 12, 560, 26); wrText(g, rpJt(B.t), bx + bw - 32, 566, 13, 500, '#fff', 'right');
+      g.fillStyle = PCOL.A; wrRR(g, bx, 510, Math.max(6, pa), 14, 7); g.fill();
+      g.fillStyle = PCOL.B; wrRR(g, bx + pa, 510, Math.max(6, bw - pa), 14, 7); g.fill();
+      wrAv(g, 'A', bx + 12, 560, 26); wrText(g, rpJt(A.t), bx + 32, 566, 13, 500);
+      wrAv(g, 'B', bx + bw - 12, 560, 26); wrText(g, rpJt(B.t), bx + bw - 32, 566, 13, 500, '#fff', 'right');
     });
     // 4. langganan
     if (D.places.length) S.push(g => {
@@ -2546,7 +2579,7 @@
       const y2 = wrWrap(g, b.desc, 28, 240, 34, 700, 304, 40);
       wrText(g, fmtR(b.amt), 28, y2 + 64, 44, 700, '#FFD54F');
       wrText(g, `${dd} ${MONF[mm - 1]} ${yy}`, 28, y2 + 96, 16, 400, 'rgba(255,255,255,.8)');
-      wrAv(g, b.by, 52, y2 + 160, 48); wrText(g, `${b.by} yang bayar`, 86, y2 + 166, 16, 500);
+      wrAv(g, b.by, 52, y2 + 160, 48); wrText(g, `${NAME(b.by)} yang bayar`, 86, y2 + 166, 16, 500);
     });
     // 9. yang sudah lunas (dari status di sheet)
     if (D.paid && D.paid.n) S.push(g => {
@@ -2559,7 +2592,7 @@
     });
     // 10. penutup: ringkasan
     S.push(g => {
-      wrAv(g, 'Dimbo', C - 26, 150, 64); wrAv(g, 'Delpus', C + 26, 150, 64);
+      wrAv(g, 'A', C - 26, 150, 64); wrAv(g, 'B', C + 26, 150, 64);
       wrText(g, `${Y} kalian`, C, 236, 30, 700, '#fff', 'center');
       const box = (x, y, k, v) => {
         g.fillStyle = 'rgba(255,255,255,.12)'; wrRR(g, x, y, 146, 92, 16); g.fill();
@@ -2590,8 +2623,7 @@
   renderMode();
   renderCatPick();
   if (Q.length) renderRecent();
-  loadInfo();
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && INFO_AT) loadInfo(); });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && INFO_AT && ME && HLG.token()) loadInfo(); });
   // Petunjuk kecil (ikon !): tap untuk lihat, tap di mana saja untuk tutup
   const tipBox = document.body.appendChild(Object.assign(document.createElement('div'), { id: 'tipBox', role: 'tooltip' }));
   let tipOn = null;
@@ -2616,14 +2648,214 @@
     if (k === 'pay') return setView('pay');
     if (!/^(direct|split|scan)$/.test(k)) return;
     resetForm(); setSeg('mode','mode', k === 'direct' ? 'direct' : 'split'); renderMode(); setView('form');
+    if (k === 'scan' && !HL.geminiKey()) return snack('Isi kunci Gemini di Pengaturan untuk scan struk');
     if (k === 'scan') { const b = document.querySelector('#scanRow [data-src="scanCam"]'); if (b) { b.focus(); b.classList.add('pulse'); setTimeout(() => b.classList.remove('pulse'), 2400); } }   // kamera butuh tap
     else setTimeout(() => (k === 'direct' ? $('amount') : $('desc')).focus(), 80);
   }
-  initMe(() => {
-    setSeg('by','by', defBy()); if (lastInfo) renderInfo(lastInfo); paintStale();
-    try { localStorage.removeItem('hl_sav'); } catch (e) {}
+
+  // ---------- Masuk: Google → cari sheet → (buat / pilih / impor) → kamu yang mana → undang ----------
+  const SU = $('setup');
+  const back = fn => `<button class="ib back" id="suBack" aria-label="Kembali"><span class="ms" aria-hidden="true">arrow_back</span></button>`;
+  function su(html, onBack){
+    SU.innerHTML = `<div class="si">${onBack ? back() : ''}${html}</div>`;
+    SU.classList.remove('hide'); document.body.classList.add('setupon');
+    if (onBack) $('suBack').onclick = onBack;
+    const f = SU.querySelector('input'); if (f) setTimeout(() => f.focus(), 60);
+  }
+  function suDone(){ SU.classList.add('hide'); SU.innerHTML = ''; document.body.classList.remove('setupon'); }
+  const suBusy = msg => su(`<div class="busy"><span class="spin"></span>${esc(msg)}</div>`);
+  const suLink = () => location.origin + location.pathname + '#join=' + HL.sheetId();
+  // ID undangan dari link #join=…, disimpan sampai berhasil tersambung
+  function pendingJoin(){
+    const m = location.hash.match(/join=([A-Za-z0-9_-]{20,})/);
+    if (m) { store.set('hl_join', m[1]); history.replaceState(null, '', location.pathname + location.search); }
+    return store.get('hl_join');
+  }
+  function suWelcome(msg){
+    const inv = !!store.get('hl_join');
+    su(`<div class="slip"><div class="logo"><span class="ms f" aria-hidden="true">handshake</span></div><h1>Hutang Lu</h1>
+        <p>${inv ? 'Kamu diundang ke catatan utang bersama.' : 'Catat siapa nalangin siapa. Satu angka, berdua, tanpa debat.'}</p></div>
+      <p>Datanya tersimpan di <b>Google Drive kamu sendiri</b>. Hanya kamu dan orang yang kamu undang yang bisa membukanya.</p>
+      ${msg ? `<div class="err">${esc(msg)}</div>` : ''}
+      <div class="grow"></div>
+      <button class="btn fill" id="suLogin"><span class="ms" aria-hidden="true" style="font-size:20px">login</span>Masuk dengan Google</button>
+      <div class="fine"><a href="privacy.html">Privasi</a></div>`);
+    $('suLogin').onclick = async () => {
+      const b = $('suLogin'); b.disabled = true; b.innerHTML = '<span class="spin"></span>';
+      try { await HLG.signIn({ prompt: store.get('hl_email') ? '' : 'select_account' }); afterLogin(); }
+      catch (e) { suWelcome(e.message); }
+    };
+  }
+  function suFail(e){
+    if (isAuth(e)) return suWelcome('Sesi Google habis. Masuk lagi.');
+    su(`<h2>Ada masalah</h2><div class="err">${esc(e && e.message || e)}</div><div class="grow"></div>
+      <button class="btn fill" id="suRetry">Coba lagi</button><button class="btn line" id="suOut">Ganti akun</button>`);
+    $('suRetry').onclick = afterLogin;
+    $('suOut').onclick = () => { HLG.signOut(); store.del('hl_sid', 'hl_email'); HL.forget(); suWelcome(); };
+  }
+  let U = null;            // akun Google yang sedang masuk { email, name }
+  async function afterLogin(){
+    suBusy('Mencari data Hutang Lu…');
+    try {
+      U = await HLG.me(); store.set('hl_email', U.email); store.set('hl_gname', U.name);
+      const join = pendingJoin();
+      if (join) return suJoin(join);
+      const sid = HL.sheetId();
+      if (sid) { try { await HL.connect(sid); return pickMe(); } catch (e) { if (isAuth(e)) throw e; HL.forget(); store.del('hl_sid'); } }
+      const files = await HLG.findSheets();
+      if (files.length === 1) { await HL.connect(files[0].id); return pickMe(); }
+      if (files.length > 1) return suChoose(files);
+      suNone();
+    } catch (e) { suFail(e); }
+  }
+  function suChoose(files){
+    su(`<h2>Pilih catatan</h2><p>Akun ini punya lebih dari satu sheet Hutang Lu.</p>
+      ${files.map((f, i) => `<button class="pick" data-i="${i}"><span class="ms" aria-hidden="true">table_view</span><div class="m"><b>${esc(f.name)}</b>
+        <small>${f.ownedByMe ? 'Milikmu' : 'Dari ' + esc((f.owners && f.owners[0] && f.owners[0].displayName) || 'orang lain')} · diubah ${esc(new Date(f.modifiedTime).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }))}</small></div></button>`).join('')}`);
+    SU.querySelectorAll('.pick').forEach(b => b.onclick = async () => {
+      suBusy('Membuka…');
+      try { await HL.connect(files[+b.dataset.i].id); pickMe(); } catch (e) { suFail(e); }
+    });
+  }
+  function suNone(msg){
+    su(`<h2>Mulai catatan</h2><p>Belum ada sheet Hutang Lu di akun <b>${esc(U.email)}</b>.</p>
+      ${msg ? `<div class="err">${esc(msg)}</div>` : ''}
+      <button class="pick" id="suNew"><span class="ms" aria-hidden="true">add_circle</span><div class="m"><b>Buat baru</b><small>Sheet baru di Google Drive kamu</small></div></button>
+      <button class="pick" id="suOld"><span class="ms" aria-hidden="true">folder_open</span><div class="m"><b>Pakai sheet yang sudah ada</b><small>Sheet Hutang Lu, atau sheet utang versi lama</small></div></button>
+      <div class="grow"></div><div class="fine">Diundang pasangan? Buka link undangan darinya.</div>`);
+    $('suNew').onclick = () => suCreate();
+    $('suOld').onclick = pickExisting;
+  }
+  function suCreate(){
+    const first = String(U.name || '').split(' ')[0];
+    su(`<h2>Siapa saja?</h2><p>Nama yang tampil di app. Bisa diganti nanti di sheet.</p>
+      <div class="fld"><div class="lbl"><label for="suMe">Nama kamu</label></div><div class="inp"><input id="suMe" maxlength="24" autocomplete="given-name" value="${esc(first)}"></div></div>
+      <div class="fld"><div class="lbl"><label for="suPa">Nama pasangan</label></div><div class="inp"><input id="suPa" maxlength="24" autocomplete="off" enterkeyhint="done"></div></div>
+      <div class="grow"></div><button class="btn fill" id="suMake">Buat</button>`, () => suNone());
+    $('suPa').onkeydown = e => { if (e.key === 'Enter') $('suMake').click(); };
+    $('suMake').onclick = async () => {
+      const a = $('suMe').value.trim(), b = $('suPa').value.trim();
+      if (!a) return $('suMe').focus(); if (!b) return $('suPa').focus();
+      if (a.toLowerCase() === b.toLowerCase()) return snack('Nama kalian harus beda');
+      suBusy('Membuat sheet di Drive kamu…');
+      try { await HL.create([a, b], U.email); finish('A', true); } catch (e) { suFail(e); }
+    };
+  }
+  async function pickExisting(){
+    let doc;
+    try { doc = await HLG.pick({ title: 'Pilih sheet Hutang Lu atau sheet versi lama' }); } catch (e) { return suNone(e.message); }
+    if (!doc) return suNone();
+    suBusy('Memeriksa sheet…');
+    try {
+      const x = await HL.inspect(doc.id);
+      if (x.kind === 'hutanglu') { await HL.connect(doc.id); HLG.tagSheet(doc.id).catch(() => {}); return pickMe(); }
+      if (x.kind === 'legacy') return suImport(doc.id, x);
+      suNone(`"${x.title}" bukan sheet Hutang Lu. Pilih sheet lain, atau buat baru.`);
+    } catch (e) { suFail(e); }
+  }
+  // sheet versi lama (tab "Debt Tracker"): salin ke sheet baru, sheet lama tidak diubah
+  function suImport(id, x){
+    su(`<h2>Sheet lama ditemukan</h2>
+      <p><b>${esc(x.title)}</b> berisi ${x.n} transaksi. Hutang Lu akan menyalinnya ke sheet baru di Drive kamu. Sheet lama tidak diubah.</p>
+      <p style="margin-bottom:12px">Kamu yang mana?</p>
+      ${x.names.map(n => `<button class="pick" data-n="${esc(n)}"><span class="av A" style="width:40px;height:40px;font-size:17px"><b class="ini">${esc((n[0] || '?').toUpperCase())}</b></span><div class="m"><b>${esc(n)}</b></div></button>`).join('')}`, () => suNone());
+    SU.querySelectorAll('.pick').forEach(b => b.onclick = async () => {
+      suBusy(`Menyalin ${x.n} transaksi…`);
+      try { const r = await HL.importLegacy(id, U.email, b.dataset.n); finish(r.names.indexOf(b.dataset.n) === 1 ? 'B' : 'A', true); }
+      catch (e) { suFail(e); }
+    });
+  }
+  function suJoin(id){
+    su(`<div class="slip"><div class="logo"><span class="ms f" aria-hidden="true">mail</span></div><h1>Undangan</h1><p>Satu langkah lagi: buka sheet yang dibagikan ke kamu.</p></div>
+      <p>Google akan menampilkan sheet yang dibagikan ke <b>${esc(U.email)}</b>. Pilih sheet itu supaya Hutang Lu boleh membukanya.</p>
+      <div class="grow"></div><button class="btn fill" id="suOpen">Buka undangan</button><button class="btn line" id="suSkip">Bukan untuk saya</button>`);
+    $('suSkip').onclick = () => { store.del('hl_join'); afterLogin(); };
+    $('suOpen').onclick = async () => {
+      let doc;
+      try { doc = await HLG.pick({ fileId: id, title: 'Buka undangan Hutang Lu' }); } catch (e) { return snack(e.message); }
+      if (!doc) return;
+      suBusy('Membuka…');
+      try { await HL.connect(doc.id); store.del('hl_join'); pickMe(); }
+      catch (e) {
+        if (e.status === 404 || e.status === 403) {
+          su(`<h2>Undangan belum sampai</h2><p>Sheet ini belum dibagikan ke <b>${esc(U.email)}</b>. Minta pasanganmu mengundang email ini dari Pengaturan, lalu buka link undangannya lagi.</p>
+            <div class="grow"></div><button class="btn fill" id="suAgain">Coba lagi</button><button class="btn line" id="suSkip2">Batal</button>`);
+          $('suAgain').onclick = () => suJoin(id); $('suSkip2').onclick = () => { store.del('hl_join'); afterLogin(); };
+        } else suFail(e);
+      }
+    };
+  }
+  // cocokkan akun Google dengan anggota; kalau belum, tanya sekali
+  function pickMe(){
+    const s = HL.whoByEmail(U.email);
+    if (s) return finish(s);
+    const list = HL.members();
+    if (list.length < 2) return suFail(new Error('Tab Anggota di sheet ini belum berisi dua nama'));
+    const free = list.filter(m => !m.email);
+    if (free.length === 1) {          // biasanya: pasangan membuka undangan → otomatis jadi anggota yang belum punya akun
+      suBusy('Menyimpan…');
+      return HL.claim(free[0].key, U.email).then(() => finish(free[0].key), suFail);
+    }
+    su(`<h2>Kamu yang mana?</h2><p>Sekali saja. Akun <b>${esc(U.email)}</b> akan diingat sebagai orang ini.</p>
+      ${list.map(m => `<button class="pick" data-k="${m.key}" ${m.email ? 'disabled' : ''}><span class="av ${m.key}" style="width:40px;height:40px;font-size:17px"><b class="ini">${esc((m.name[0] || '?').toUpperCase())}</b></span>
+        <div class="m"><b>${esc(m.name)}</b>${m.email ? `<small>Sudah dipakai ${esc(m.email)}</small>` : ''}</div></button>`).join('')}`);
+    SU.querySelectorAll('.pick:not([disabled])').forEach(b => b.onclick = async () => {
+      suBusy('Menyimpan…');
+      try { await HL.claim(b.dataset.k, U.email); finish(b.dataset.k); } catch (e) { suFail(e); }
+    });
+  }
+  function finish(slot, invite){
+    ME = slot; store.set('me', slot);
+    HL.setMe(HL.meId(slot));
+    setMembers(HL.members());
+    lastInfo = null; CACHED_INFO = null; INFO_AT = 0; NEED_AUTH = false; paintStale();
+    $('who').innerHTML = '<div class="sk" style="width:150px;height:44px;border-radius:22px"></div>';
+    $('bigAmt').innerHTML = '<div class="sk" style="width:200px;height:44px"></div>';
+    $('recentList').innerHTML = '<div class="empty">Memuat…</div>';
+    applyMe(); setSeg('by', 'by', defBy());
+    suDone(); setView('home'); loadInfo();
+    const o = MEMS[other(slot)];
+    if (invite && !(o && o.email)) showInvite();
+  }
+  // undang pasangan: sheet dibagikan ke email Google-nya (Drive mengirim email berisi link undangan)
+  function showInvite(){
+    const o = other(ME), n = NAME(o);
+    su(`<h2>Ajak ${esc(n)}</h2><p>Masukkan email Google ${esc(n)}. Sheet ini dibagikan hanya ke email itu, lalu ${esc(n)} tinggal membuka link undangan.</p>
+      <div class="fld"><div class="inp"><span class="ms" aria-hidden="true" style="color:var(--on2);font-size:20px">mail</span><input id="suMail" type="email" inputmode="email" autocomplete="off" enterkeyhint="send" placeholder="nama@gmail.com" aria-label="Email ${esc(n)}"></div></div>
+      <div class="grow"></div>
+      <button class="btn fill" id="suSend"><span class="ms" aria-hidden="true" style="font-size:20px">send</span>Kirim undangan</button>
+      <button class="btn line" id="suLater">Nanti saja</button>`, suDone);
+    $('suLater').onclick = suDone;
+    $('suMail').onkeydown = e => { if (e.key === 'Enter') $('suSend').click(); };
+    $('suSend').onclick = async () => {
+      const em = $('suMail').value.trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) { $('suMail').focus(); return snack('Email belum benar'); }
+      if (em === store.get('hl_email')) return snack('Itu email kamu sendiri');
+      const b = $('suSend'); b.disabled = true; b.innerHTML = '<span class="spin"></span>';
+      try {
+        await HLG.share(HL.sheetId(), em, `${NAME(ME)} mengajak kamu mencatat utang bersama di Hutang Lu. Buka link ini di HP: ${suLink()}`);
+        su(`<h2>Undangan terkirim</h2><p>${esc(n)} akan menerima email dari Google di <b>${esc(em)}</b>. Kalau belum masuk, kirim link ini lewat WhatsApp. Link hanya bisa dibuka akun yang diundang.</p>
+          <div class="inp" style="margin-bottom:10px"><input id="suLinkT" readonly value="${esc(suLink())}" aria-label="Link undangan"></div>
+          <div class="grow"></div><button class="btn fill" id="suCopy"><span class="ms" aria-hidden="true" style="font-size:20px">content_copy</span>Salin link</button>
+          <button class="btn line" id="suOk">Selesai</button>`);
+        $('suCopy').onclick = async () => snack(await copyText(suLink()) ? 'Link disalin' : 'Gagal menyalin');
+        $('suOk').onclick = suDone;
+      } catch (e) { b.disabled = false; b.innerHTML = 'Kirim undangan'; snack(errMsg(e)); }
+    };
+  }
+
+  function boot(){
+    HLG.init().catch(() => {});        // muat login Google lebih awal supaya ketukan "Masuk" langsung membuka jendela
+    pendingJoin();
+    if (store.get('hl_join') || !HL.sheetId() || !ME) { HLG.token() ? afterLogin() : suWelcome(); return; }
+    HL.setMe(HL.meId(ME));
+    applyMe(); setSeg('by', 'by', defBy());
+    if (lastInfo) renderInfo(lastInfo);
+    if (HLG.token()) loadInfo(); else needAuth();
+    paintStale();
     if (SC) runShortcut(SC); else restoreDraft();
-  });
+  }
+  boot();
 </script>
 </body>
 </html>

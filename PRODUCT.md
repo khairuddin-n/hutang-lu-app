@@ -8,7 +8,7 @@ web
 
 ## Users
 
-Two people only: Dimbo and Delpus, a couple. Each opens the app with a personal link (`?u=dimbo` / `?u=delpus`) and sees everything from their own point of view. The typical moment is right after eating out or shopping together: one of them paid, and they log it on the spot on a phone. Less often they check who owes whom, settle up, or look back at stats and the yearly Wrapped.
+Couples. It started as Dimbo and Delpus's app, and since v2.0.0 anyone can use it from the public link. A person signs in with Google, creates (or picks) their sheet, and invites their partner by email. Each person sees everything from their own point of view. The typical moment is right after eating out or shopping together: one of them paid, and they log it on the spot on a phone. Less often they check who owes whom, settle up, or look back at stats and the yearly Wrapped.
 
 ## Product Purpose
 
@@ -25,17 +25,25 @@ A private two-person ledger built for one couple, not a group expense splitter. 
 ## Operating Context
 
 - Installable PWA (GitHub Pages), portrait, used on phones. App icon shortcuts: Langsung, Patungan, Scan struk, Bayar.
-- Data lives in a Google Sheet owned by the user, read and written through an Apps Script API (`doPost`, per-user token). The PWA is built from the `hutang-lu` Apps Script repo (`tools/build_pwa.py`) and pushed here.
-- Offline queue with client IDs for dedupe; service worker is network-first for the page.
+- No server. The browser signs in with Google Identity Services (scope `drive.file` only), then reads and writes a Google Sheet in the user's own Drive through the Sheets/Drive APIs. Google Cloud project "Hutang Lu" holds the OAuth client and a Picker-only API key (`config.js`).
+- Onboarding:
+  1. Sign in.
+  2. The app auto-finds sheets it created (`appProperties app=hutanglu`).
+  3. If none, the user can create a sheet, pick an existing one with Google Picker, or import the legacy "Debt Tracker" format into a new sheet. The legacy sheet is never modified.
+  4. The user is matched to a member by email, or asked "Kamu yang mana?".
+  5. The user invites their partner: the Drive share is restricted to the partner's email, and the link is `#join=<sheetId>`.
+- The Google token lasts about 1 hour. When it expires, the app shows cached data and a "Sambungkan" chip. Writes go to the offline queue (client IDs dedupe them) until the user reconnects.
+- Source lives directly in this repo (`index.html`, `data.js`, `google.js`, `config.js`). The old Apps Script repo `hutang-lu` is legacy; its build is disabled.
 
 ## Capabilities and Constraints
 
-- Entry types: direct ("Langsung", one pays for the other), split ("Patungan", itemized bill with per-item assignment), receipt scan ("Scan struk", Gemini then Drive OCR), payment ("Bayar").
+- Entry types: direct ("Langsung", one pays for the other), split ("Patungan", itemized bill with per-item assignment), receipt scan ("Scan struk", Gemini with the user's own key), payment ("Bayar").
 - Settlement pays oldest-first by any amount; over/under-payment becomes its own row, excluded from stats. Settlement log with undo.
 - Views: home (balance + recent), Riwayat (history by month), Statistik (totals, per month, categories, most frequent), Wrapped (yearly story slides on canvas), share as image.
 - Manual category per description, undo delete, profile photos, light/dark theme, client-side accent color.
-- Never change the Google Sheet structure or add tabs; app state lives in Script Properties.
-- Settings stay small: photo, theme, app color, data (Sheet/CSV/offline), app (reload/version).
+- Sheet schema v1 (tabs: Transaksi, Anggota, Pelunasan, Kategori, Meta). It is ready for more than two members: member ids, JSON `item`/`bagian`/`lunas`. The UI shows the first two members as slots A/B. Groups of more than 2 are planned but not built.
+- Receipt scan uses the user's own Gemini API key, stored on the device only. The scan UI is hidden without a key.
+- Settings stay small: photo, theme, app color, data (Sheet/CSV/offline/invite partner), app (scan key, reload, sign out, version).
 - The shared savings ("Tabungan") feature was rejected and removed; do not re-propose it.
 
 ## Brand Commitments
