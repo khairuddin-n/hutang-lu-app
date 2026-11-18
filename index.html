@@ -2721,7 +2721,7 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
     su(`<h2>Mulai catatan</h2><p>Belum ada sheet Hutang Lu di akun <b>${esc(U.email)}</b>.</p>
       ${msg ? `<div class="err">${esc(msg)}</div>` : ''}
       <button class="pick" id="suNew"><span class="ms" aria-hidden="true">add_circle</span><div class="m"><b>Buat baru</b><small>Sheet baru di Google Drive kamu</small></div></button>
-      <button class="pick" id="suOld"><span class="ms" aria-hidden="true">folder_open</span><div class="m"><b>Pakai sheet yang sudah ada</b><small>Sheet Hutang Lu, atau sheet utang versi lama</small></div></button>
+      <button class="pick" id="suOld"><span class="ms" aria-hidden="true">folder_open</span><div class="m"><b>Pakai sheet yang sudah ada</b><small>Milikmu atau yang dibagikan ke akun ini. Sheet Hutang Lu atau versi lama.</small></div></button>
       <div class="grow"></div><div class="fine">Diundang pasangan? Buka link undangan darinya.</div>`);
     $('suNew').onclick = () => suCreate();
     $('suOld').onclick = pickExisting;
@@ -2748,7 +2748,12 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
     suBusy('Memeriksa sheet…');
     try {
       const x = await HL.inspect(doc.id);
-      if (x.kind === 'hutanglu') { await HL.connect(doc.id); HLG.tagSheet(doc.id).catch(() => {}); return pickMe(); }
+      if (x.kind === 'hutanglu') {
+        const f = await HLG.fileInfo(doc.id).catch(() => null);
+        if (f && f.capabilities && f.capabilities.canEdit === false)
+          return suNone(`Akun ${U.email} hanya bisa melihat "${x.title}". Minta pemiliknya memberi akses Editor, lalu pilih lagi.`);
+        await HL.connect(doc.id); HLG.tagSheet(doc.id).catch(() => {}); return pickMe();
+      }
       if (x.kind === 'legacy') return suImport(doc.id, x);
       suNone(`"${x.title}" bukan sheet Hutang Lu. Pilih sheet lain, atau buat baru.`);
     } catch (e) { suFail(e); }

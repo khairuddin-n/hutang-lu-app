@@ -107,13 +107,19 @@
     await new Promise((res, rej) => gapi.load('picker', { callback: res, onerror: () => rej(new Error('Google Picker gagal dimuat')) }));
     return new Promise(res => {
       const P = google.picker;
-      const view = new P.DocsView(P.ViewId.SPREADSHEETS).setMode(P.DocsViewMode.LIST);
-      if (fileId) view.setFileIds(fileId);
-      new P.PickerBuilder()
+      const sv = () => new P.DocsView(P.ViewId.SPREADSHEETS).setMode(P.DocsViewMode.LIST);
+      const pb = new P.PickerBuilder()
         .setOAuthToken(token()).setDeveloperKey(C.apiKey).setAppId(C.appId)
         .setOrigin(location.protocol + '//' + location.host)
-        .setLocale('id').setTitle(title || 'Pilih sheet').addView(view)
-        .enableFeature(P.Feature.NAV_HIDDEN)
+        .setLocale('id').setTitle(title || 'Pilih sheet');
+      if (fileId) pb.addView(sv().setFileIds(fileId)).enableFeature(P.Feature.NAV_HIDDEN);
+      else {
+        // sheet bisa milik akun lain (misalnya dibuat pasangan, atau akun Google kedua) asal dibagikan ke akun ini
+        const mine = sv().setOwnedByMe(true), shared = sv().setOwnedByMe(false);
+        if (mine.setLabel) { mine.setLabel('Milikku'); shared.setLabel('Dibagikan ke saya'); }
+        pb.addView(mine).addView(shared);
+      }
+      pb
         .setCallback(d => {
           if (d.action === P.Action.PICKED) res(d.docs[0]);
           else if (d.action === P.Action.CANCEL) res(null);
