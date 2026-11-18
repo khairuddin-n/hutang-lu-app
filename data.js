@@ -1,44 +1,38 @@
-// Data Hutang Lu di Google Sheet milik pengguna (pengganti server Apps Script).
-// UI memanggil fungsi di sini lewat API.run.fungsi(...), bentuk datanya sama dengan versi lama.
+// Data Hutang Lu langsung di sheet "Debt Tracker" (format yang sama sejak awal, tanpa tab/kolom tambahan).
+// UI memanggil fungsi di sini lewat API.run.fungsi(...), bentuk datanya sama dengan versi Apps Script.
 //
-// Struktur sheet (siap untuk lebih dari dua anggota; tampilan saat ini dua orang):
-//   Transaksi : id | tanggal | keterangan | dibayar | jenis | nominal | item | ongkir | total | bagian | lunas | dibuat | oleh
-//               dibayar/oleh = id anggota. item, bagian, lunas = JSON per id anggota:
-//               item   {id: harga item miliknya}           (patungan)
-//               bagian {id: bagian masing-masing orang}     (yang bukan pembayar = utang ke pembayar)
-//               lunas  {id penghutang: id pelunasan}
-//   Anggota   : id | nama | email | foto | foto_v | dibuat
-//   Pelunasan : id | waktu | dari | ke | dibayar | ditutup | selisih | jumlah | sampai | transaksi | penyesuaian
-//   Kategori  : keterangan | kategori        (kategori pilihan manual per keterangan)
-//   Meta      : kunci | nilai
-//
-// Di UI, dua anggota pertama disebut slot 'A' dan 'B'.
+// Tab "Debt Tracker", baris 1 = judul:
+//   A Date | B Description | C Paid By | D <A> Items | E <B> Items | F Fee | G Total | H <A> Share | I <B> Share | J Status
+//   H & I berisi rumus (sama dengan versi lama); "Paid" di kolom J = lunas.
+//   Nama dua orang (slot 'A' dan 'B') diambil dari judul kolom H & I, misalnya "Dimbo Share".
+// Tab "Summary": rumus ringkasan untuk dibaca di sheet (app menghitung sendiri).
+// Data app yang tidak perlu terlihat (email anggota, kategori manual, riwayat pelunasan, foto) disimpan sebagai
+// developer metadata di dalam file: tidak muncul sebagai tab, baris, atau kolom.
 (function () {
   const G = window.HLG;
-  const SCHEMA = 1;
-  const TABS = {
-    Transaksi: ['id', 'tanggal', 'keterangan', 'dibayar', 'jenis', 'nominal', 'item', 'ongkir', 'total', 'bagian', 'lunas', 'dibuat', 'oleh'],
-    Anggota: ['id', 'nama', 'email', 'foto', 'foto_v', 'dibuat'],
-    Pelunasan: ['id', 'waktu', 'dari', 'ke', 'dibayar', 'ditutup', 'selisih', 'jumlah', 'sampai', 'transaksi', 'penyesuaian'],
-    Kategori: ['keterangan', 'kategori'],
-    Meta: ['kunci', 'nilai']
-  };
+  const TAB = 'Debt Tracker', SUM = 'Summary';
+  const Q = t => `'${t}'`;
+  const V2_TABS = ['Transaksi', 'Anggota', 'Pelunasan', 'Kategori', 'Meta'];     // tab percobaan v2.0–2.2 (dihapus)
   const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
   const MONF = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
   const RECENT = 8;
 
-  let SID = null, DB = null, TABID = {}, ME_ID = '';
+  let SID = null, DB = null, META = null, ME = '';
   try { SID = localStorage.getItem('hl_sid'); } catch (e) {}
 
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-  const J = s => { if (!s) return {}; if (typeof s === 'object') return s; try { const o = JSON.parse(s); return o && typeof o === 'object' ? o : {}; } catch (e) { return {}; } };
   const num = v => (typeof v === 'number' ? v : parseFloat(String(v || '').replace(',', '.')) || 0);
   const r2 = v => Math.round(v * 100) / 100;
   const pad = n => String(n).padStart(2, '0');
   const isoOf = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   const todayIso = () => isoOf(new Date());
   const label = iso => { const [y, m, d] = iso.split('-').map(Number); return `${d} ${MON[m - 1]} ${y}`; };
+  // tanggal sheet = nomor seri (hari sejak 30 Des 1899)
+  const BASE = Date.UTC(1899, 11, 30);
+  const serialToIso = n => { const d = new Date(BASE + Math.floor(n) * 864e5); return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`; };
+  const isoToSerial = iso => { const [y, m, d] = iso.split('-').map(Number); return Math.round((Date.UTC(y, m - 1, d) - BASE) / 864e5); };
   const stale = () => new Error('Data di sheet sudah berubah. Tarik ulang lalu coba lagi.');
+  const rowKey = (iso, desc, by) => [iso, String(desc).trim(), String(by).trim()].join('|');   // sama dengan versi Apps Script
 
   // ---------- Kategori (sama dengan CATS di index.html) ----------
   const CATS = [
@@ -52,109 +46,124 @@
   const ADJ = /^(Kelebihan bayar|Sisa pelunasan)\b/i;
   const catKey = d => String(d || '').trim().toLowerCase().replace(/\s+/g, ' ');
   const autoCat = desc => { for (const [n, re] of CATS) if (re.test(desc)) return n; return 'Makan & minum'; };
-  const cat = desc => DB.catMap[catKey(desc)] || autoCat(desc);
+  const cat = desc => md('hl_cat', {})[catKey(desc)] || autoCat(desc);
 
-  // ---------- Struktur sheet ----------
-  async function ensure(id) {
-    const meta = await G.meta(id);
-    const have = meta.sheets.map(s => s.properties);
-    const titles = new Set(have.map(p => p.title));
-    const req = [];
-    Object.keys(TABS).forEach((name, i) => {
-      if (titles.has(name)) return;
-      if (i === 0 && have.length === 1 && !TABS[have[0].title])   // "Sheet1" bawaan → Transaksi
-        req.push({ updateSheetProperties: { properties: { sheetId: have[0].sheetId, title: name, gridProperties: { frozenRowCount: 1 } }, fields: 'title,gridProperties.frozenRowCount' } });
-      else req.push({ addSheet: { properties: { title: name, gridProperties: { frozenRowCount: 1 } } } });
+  // ---------- Developer metadata (data app tersembunyi) ----------
+  // lokasi: hl_members, hl_cat, hl_cids → spreadsheet; hl_log → tab Debt Tracker; hl_photo_A/B → tab Summary
+  function readMeta(m) {
+    const out = { title: m.properties.title, tabs: {}, md: {} };
+    const take = (list, loc) => (list || []).forEach(x => {
+      if (!/^hl_/.test(x.metadataKey)) return;
+      let v = x.metadataValue; try { v = JSON.parse(v); } catch (e) {}
+      out.md[x.metadataKey] = { id: x.metadataId, value: v, loc };
     });
-    let tabs = have;
-    if (req.length) { await G.batch(id, req); tabs = (await G.meta(id)).sheets.map(s => s.properties); }
-    TABID = {}; tabs.forEach(p => { TABID[p.title] = p.sheetId; });
-
-    const names = Object.keys(TABS);
-    const r = await G.get(id, names.map(n => n + '!1:1').concat(['Meta!A2:B']));
-    const hdr = [];
-    names.forEach((n, i) => {
-      const h = (r.valueRanges[i].values || [])[0] || [];
-      if (h.length < TABS[n].length) hdr.push({ range: n + '!A1', values: [TABS[n]] });
+    take(m.developerMetadata, 'ss');
+    (m.sheets || []).forEach(s => {
+      const p = s.properties;
+      out.tabs[p.title] = { id: p.sheetId, rows: (p.gridProperties && p.gridProperties.rowCount) || 1000 };
+      take(s.developerMetadata, p.title);
     });
-    if (hdr.length) await G.put(id, hdr);
-    const metaRows = r.valueRanges[names.length].values || [];
-    if (!metaRows.some(x => x[0] === 'schema_version'))
-      await G.append(id, 'Meta', [['app', 'hutanglu'], ['schema_version', SCHEMA], ['dibuat', new Date().toISOString()]]);
+    return out;
+  }
+  const md = (k, def) => (META && META.md[k] ? META.md[k].value : def);
+  const mdLoc = k => (/^hl_log$/.test(k) ? TAB : /^hl_photo_/.test(k) ? (META.tabs[SUM] ? SUM : 'ss') : 'ss');
+  function mdReq(k, value) {
+    const v = JSON.stringify(value), cur = META.md[k];
+    if (cur) return { updateDeveloperMetadata: { dataFilters: [{ developerMetadataLookup: { metadataId: cur.id } }], developerMetadata: { metadataValue: v }, fields: 'metadataValue' } };
+    const loc = mdLoc(k);
+    return { createDeveloperMetadata: { developerMetadata: { metadataKey: k, metadataValue: v, visibility: 'DOCUMENT',
+      location: loc === 'ss' ? { spreadsheet: true } : { sheetId: META.tabs[loc].id } } } };
+  }
+  async function setMd(obj) {
+    const req = Object.keys(obj).map(k => mdReq(k, obj[k]));
+    if (req.length) await G.batch(SID, req);
   }
 
   // ---------- Baca semua data ----------
+  function namesFrom(head, rows) {
+    const strip = c => String(head[c] || '').replace(/\b(share|items?|bagian)\b/ig, '').trim();
+    let a = strip(7) || strip(3), b = strip(8) || strip(4);
+    if (!a || !b || a.toLowerCase() === b.toLowerCase()) {
+      const seen = [];
+      rows.forEach(x => { const n = String(x[2] || '').trim(); if (n && seen.indexOf(n) < 0) seen.push(n); });
+      a = seen[0] || 'Orang 1'; b = seen[1] || 'Orang 2';
+    }
+    return [a, b];
+  }
   async function load() {
     if (!SID) throw Object.assign(new Error('Belum tersambung ke sheet'), { code: 'nosheet' });
-    if (!TABID.Transaksi) await ensure(SID);
-    const r = await G.get(SID, ['Transaksi!A2:M', 'Anggota!A2:F', 'Pelunasan!A2:K', 'Kategori!A2:B']);
-    const v = i => r.valueRanges[i].values || [];
-    const members = [];
-    v(1).forEach((x, i) => { if (x[0]) members.push({ id: String(x[0]), name: String(x[1] || '').trim() || 'Tanpa nama', email: String(x[2] || '').trim().toLowerCase(), photo: String(x[3] || ''), pv: String(x[4] || '0'), row: i + 2 }); });
-    const slot = {}, ID = {};
-    members.slice(0, 2).forEach((m, i) => { const s = i ? 'B' : 'A'; slot[m.id] = s; ID[s] = m.id; });
+    const [m, r] = await Promise.all([G.meta(SID), G.get(SID, [Q(TAB) + '!A1:J1', Q(TAB) + '!A2:J'])]);
+    META = readMeta(m);
+    if (!META.tabs[TAB]) throw new Error(`Sheet "${META.title}" tidak punya tab "${TAB}"`);
+    const head = (r.valueRanges[0].values || [])[0] || [];
+    const rows = r.valueRanges[1].values || [];
+    const names = namesFrom(head, rows);
+    const slotOf = n => { n = String(n || '').trim().toLowerCase(); return n === names[0].toLowerCase() ? 'A' : n === names[1].toLowerCase() ? 'B' : ''; };
     const tx = [];
-    v(0).forEach((x, i) => {
-      const id = String(x[0] || ''), date = String(x[1] || '').trim(), by = String(x[3] || '');
-      if (!id || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !slot[by]) return;
-      tx.push({ row: i + 2, id, date, desc: String(x[2] || '').trim(), by, split: x[4] === 'patungan', amount: num(x[5]), items: J(x[6]),
-                fee: num(x[7]), total: num(x[8]), share: J(x[9]), paid: J(x[10]), created: String(x[11] || '') });
+    let last = 1;
+    rows.forEach((x, i) => {
+      const by = String(x[2] || '').trim();
+      if (by) last = i + 2;
+      const s = slotOf(by);
+      if (!s || typeof x[0] !== 'number') return;
+      const date = serialToIso(x[0]), desc = String(x[1] || '').trim();
+      tx.push({ row: i + 2, key: rowKey(date, desc, by), date, desc, byName: by, by: s,
+                D: num(x[3]), E: num(x[4]), F: num(x[5]), G: num(x[6]), H: num(x[7]), I: num(x[8]), paid: String(x[9] || '').trim() !== '' });
     });
-    const ord = tx.slice().sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : a.created < b.created ? -1 : a.created > b.created ? 1 : a.row - b.row);
-    const log = v(2).filter(x => x[0]).map((x, i) => ({ row: i + 2, id: String(x[0]), t: String(x[1] || ''), from: String(x[2] || ''), to: String(x[3] || ''),
-      paid: num(x[4]), cover: num(x[5]), diff: num(x[6]), n: num(x[7]), until: String(x[8] || ''), txs: (() => { try { return JSON.parse(x[9] || '[]'); } catch (e) { return []; } })(), adj: String(x[10] || '') }))
-      .sort((a, b) => a.t < b.t ? -1 : a.t > b.t ? 1 : a.row - b.row);
-    const catMap = {}, catRow = {};
-    v(3).forEach((x, i) => { const k = catKey(x[0]); if (k && CAT_NAMES.indexOf(x[1]) >= 0) { catMap[k] = x[1]; catRow[k] = i + 2; } });
-    DB = { members, slot, ID, tx, ord, log, catMap, catRow };
+    DB = { names, tx, last, gridRows: META.tabs[TAB].rows };
     return DB;
   }
 
-  // ---------- Bantuan per transaksi (dua anggota pertama) ----------
-  const sl = id => DB.slot[id];
-  const otherId = id => DB.ID[sl(id) === 'A' ? 'B' : 'A'];
-  const debtor = t => otherId(t.by);
-  const owed = t => num(t.share[debtor(t)]);
-  const isPaid = t => !!t.paid[debtor(t)];
-  const find = id => DB.tx.find(t => t.id === id);
-  function raw(t) {
-    const A = DB.ID.A, B = DB.ID.B;
-    return { date: t.date, desc: t.desc, by: sl(t.by), D: num(t.items[A]), E: num(t.items[B]), F: t.split ? t.fee : 0, G: t.split ? t.total : 0,
-             H: num(t.share[A]), I: num(t.share[B]) };
-  }
-  const txRow = t => ({ row: t.row, key: t.id, date: label(t.date), desc: t.desc, by: sl(t.by), paid: isPaid(t), ym: t.date.slice(0, 7), raw: raw(t) });
-
-  // satu baris Transaksi dari isi form (e.by = slot 'A'/'B')
-  function buildRow(e, old) {
-    if (!e || !e.desc || !e.by || !e.date) throw new Error('Data belum lengkap');
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(e.date)) throw new Error('Tanggal tidak valid');
-    const by = DB.ID[e.by], A = DB.ID.A, B = DB.ID.B;
-    if (!by || !A || !B) throw new Error('Pembayar tidak valid');
-    let items = '', amount = '', fee = '', total = '', share, jenis;
-    if (e.mode === 'split') {
-      const d = Number(e.dimbo) || 0, de = Number(e.delpus) || 0;
-      fee = Number(e.fee) || 0; total = Number(e.total) || 0;
-      if (d + de <= 0) throw new Error('Isi minimal satu item');
-      if (total <= 0) throw new Error('Total bayar belum diisi');
-      const sa = r2(fee / 2 + d / (d + de) * (total - fee));          // rumus sama dengan sheet lama
-      share = { [A]: sa, [B]: r2(total - sa) };
-      items = JSON.stringify({ [A]: d, [B]: de }); jenis = 'patungan';
-    } else {
-      const amt = Number(e.amount) || 0;
-      if (amt <= 0) throw new Error('Nominal belum diisi');
-      share = { [by]: 0, [by === A ? B : A]: amt };
-      amount = amt; jenis = 'langsung';
-    }
-    return [old ? old.id : String(e.cid || uid()).slice(0, 40), e.date, String(e.desc).trim().slice(0, 120), by, jenis, amount, items, fee || '', total || '',
-            JSON.stringify(share), '', old ? old.created : new Date().toISOString(), ME_ID || ''];
-  }
+  // ---------- Bantuan per transaksi ----------
+  const owed = t => (t.by === 'B' ? t.H : t.I);           // B bayar → bagian A (kolom H) jadi utang A, dan sebaliknya
+  const findRow = (row, key) => {                           // utamakan nomor baris; kalau sudah bergeser, cari dari isinya
+    const t = DB.tx.find(x => x.row === Number(row) && x.key === key);
+    return t || DB.tx.find(x => x.key === key && !x.paid) || null;
+  };
+  const raw = t => ({ date: t.date, desc: t.desc, by: t.by, D: t.D, E: t.E, F: t.F, G: t.G, H: t.H, I: t.I });
+  const txRow = t => ({ row: t.row, key: t.key, date: label(t.date), desc: t.desc, by: t.by, paid: t.paid, ym: t.date.slice(0, 7), raw: raw(t) });
   function verify(t) {
     if (!t) throw stale();
-    if (isPaid(t)) throw new Error('Transaksi ini sudah lunas, batalkan pelunasannya dulu.');
+    if (t.paid) throw new Error('Transaksi ini sudah lunas, batalkan pelunasannya dulu.');
   }
-  async function deleteRows(list) {          // list: [[tab, baris], ...]
-    const req = list.slice().sort((a, b) => b[1] - a[1])
-      .map(([tab, r]) => ({ deleteDimension: { range: { sheetId: TABID[tab], dimension: 'ROWS', startIndex: r - 1, endIndex: r } } }));
+
+  // Isi kolom A–I untuk satu baris (rumus H & I sama persis dengan sheet lama)
+  function cells(e, r) {
+    if (!e || !e.desc || !e.by || !e.date) throw new Error('Data belum lengkap');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(e.date)) throw new Error('Tanggal tidak valid');
+    if (e.by !== 'A' && e.by !== 'B') throw new Error('Pembayar tidak valid');
+    const name = DB.names[e.by === 'A' ? 0 : 1];
+    const desc = String(e.desc).trim().slice(0, 120).replace(/^[=+\-@']/, "'$&");   // jangan terbaca sebagai rumus
+    const fH = `=IF(C${r}="","",IFERROR((F${r}/2) + ((D${r}/(D${r}+E${r})) * (G${r}-F${r})), 0))`;
+    const fI = `=IF(C${r}="","",IF(G${r}>0, G${r}-H${r}, 0))`;
+    if (e.mode === 'split') {
+      const d = Number(e.dimbo) || 0, de = Number(e.delpus) || 0, fee = Number(e.fee) || 0, total = Number(e.total) || 0;
+      if (d + de <= 0) throw new Error('Isi minimal satu item');
+      if (total <= 0) throw new Error('Total bayar belum diisi');
+      return [isoToSerial(e.date), desc, name, d || '', de || '', fee || '', total, fH, fI];
+    }
+    const amt = Number(e.amount) || 0;
+    if (amt <= 0) throw new Error('Nominal belum diisi');
+    return [isoToSerial(e.date), desc, name, '', '', '', '', e.by === 'B' ? amt : fH, e.by === 'A' ? amt : fI];
+  }
+  const fmtCopy = (from, to) => ({ copyPaste: {
+    source: { sheetId: META.tabs[TAB].id, startRowIndex: from - 1, endRowIndex: from, startColumnIndex: 0, endColumnIndex: 10 },
+    destination: { sheetId: META.tabs[TAB].id, startRowIndex: to - 1, endRowIndex: to, startColumnIndex: 0, endColumnIndex: 10 },
+    pasteType: 'PASTE_FORMAT' } });
+  // tulis baris baru di bawah data terakhir; kembalikan nomor baris pertamanya
+  async function appendRows(list) {
+    const r = DB.last + 1;
+    const need = r + list.length - 1 - DB.gridRows, req = [];
+    if (need > 0) req.push({ appendDimension: { sheetId: META.tabs[TAB].id, dimension: 'ROWS', length: need + 50 } });
+    if (DB.last >= 2) list.forEach((_, i) => req.push(fmtCopy(DB.last, r + i)));
+    if (req.length) await G.batch(SID, req);
+    await G.put(SID, list.map((e, i) => ({ range: `${Q(TAB)}!A${r + i}:I${r + i}`, values: [cells(e, r + i)] })));
+    DB.last += list.length; DB.gridRows = Math.max(DB.gridRows, DB.last);
+    return r;
+  }
+  async function deleteRows(rows) {
+    const req = rows.slice().sort((a, b) => b - a)
+      .map(r => ({ deleteDimension: { range: { sheetId: META.tabs[TAB].id, dimension: 'ROWS', startIndex: r - 1, endIndex: r } } }));
     if (req.length) await G.batch(SID, req);
   }
 
@@ -162,11 +171,11 @@
   function monthInfo() {
     const now = new Date(), cur = isoOf(now).slice(0, 7), prev = isoOf(new Date(now.getFullYear(), now.getMonth() - 1, 1)).slice(0, 7);
     const m = { total: 0, n: 0, prev: 0, del: 0, dim: 0 };
-    DB.ord.forEach(t => {
+    DB.tx.forEach(t => {
       if (ADJ.test(t.desc)) return;
       const a = owed(t); if (a <= 0) return;
       const k = t.date.slice(0, 7);
-      if (k === cur) { m.total += a; m.n++; m[sl(t.by) === 'B' ? 'del' : 'dim'] += a; }
+      if (k === cur) { m.total += a; m.n++; m[t.by === 'B' ? 'del' : 'dim'] += a; }
       else if (k === prev) m.prev += a;
     });
     m.del = Math.round(m.del); m.dim = Math.round(m.dim);
@@ -174,27 +183,28 @@
   }
   function suggest() {
     const m = {};
-    DB.ord.slice(-150).forEach(t => {
-      if (t.split || ADJ.test(t.desc)) return;
+    DB.tx.slice(-150).forEach(t => {
+      if (t.G > 0 || ADJ.test(t.desc)) return;
       const a = owed(t); if (a <= 0) return;
       const k = catKey(t.desc), x = m[k] || (m[k] = { desc: t.desc, n: 0 });
-      x.n++; x.by = sl(t.by); x.amount = a; x.desc = t.desc;
+      x.n++; x.by = t.by; x.amount = a; x.desc = t.desc;
     });
     return Object.values(m).filter(x => x.n >= 2).sort((a, b) => b.n - a.n).slice(0, 6).map(x => ({ desc: x.desc, by: x.by, amount: x.amount }));
   }
   function members() {
-    return DB.members.slice(0, 2).map((m, i) => ({ key: i ? 'B' : 'A', id: m.id, name: m.name, email: m.email }));
+    const em = md('hl_members', {});
+    return DB.names.map((n, i) => { const k = i ? 'B' : 'A'; return { key: k, id: k, name: n, email: String(em[k] || '') }; });
   }
+  const photoVer = () => { const v = s => { const p = md('hl_photo_' + s, null); return p && p.v ? String(p.v) : '0'; }; return { A: v('A'), B: v('B') }; };
   function info() {
     let a = 0;                                   // > 0: A utang ke B
-    DB.ord.forEach(t => { if (!isPaid(t)) a += (sl(t.by) === 'B' ? 1 : -1) * owed(t); });
+    DB.tx.forEach(t => { if (!t.paid) a += (t.by === 'B' ? 1 : -1) * owed(t); });
     a = Math.round(a);
-    const pv = s => { const m = DB.members.find(x => x.id === DB.ID[s]); return m ? m.pv : '0'; };
     return {
-      recent: DB.ord.slice(-RECENT).reverse().map(txRow),
-      month: monthInfo(), suggest: suggest(), catMap: DB.catMap,
+      recent: DB.tx.slice(-RECENT).reverse().map(txRow),
+      month: monthInfo(), suggest: suggest(), catMap: md('hl_cat', {}),
       sheetUrl: 'https://docs.google.com/spreadsheets/d/' + SID + '/edit',
-      photoVer: { A: pv('A'), B: pv('B') },
+      photoVer: photoVer(),
       summary: { netA: Math.max(0, a), netB: Math.max(0, -a) },
       members: members()
     };
@@ -203,108 +213,116 @@
   // ---------- Transaksi ----------
   async function addEntry(e) {
     await load();
-    if (e.cid && !e.editKey && DB.tx.some(t => t.id === String(e.cid))) return { dup: true, edited: false, info: info() };
-    let id;
+    const cids = md('hl_cids', []);
+    if (e.cid && !e.editKey && cids.indexOf(String(e.cid)) >= 0) return { dup: true, edited: false, info: info() };
+    let row;
     if (e.editKey) {
-      const t = find(String(e.editKey)); verify(t);
-      const row = buildRow(e, t); id = row[0];
-      await G.put(SID, [{ range: `Transaksi!A${t.row}:M${t.row}`, values: [row] }]);
-    } else {
-      const row = buildRow(e); id = row[0];
-      await G.append(SID, 'Transaksi', [row]);
-    }
-    if (e.cat) await setCat(e.desc, e.cat);
+      const t = findRow(e.editRow, String(e.editKey)); verify(t);
+      row = t.row;
+      await G.put(SID, [{ range: `${Q(TAB)}!A${row}:I${row}`, values: [cells(e, row)] }]);
+    } else row = await appendRows([e]);
+    const mdw = {};
+    if (e.cid && !e.editKey) mdw.hl_cids = cids.concat([String(e.cid).slice(0, 40)]).slice(-60);
+    if (e.cat) { const c = setCatMap(e.desc, e.cat); if (c) mdw.hl_cat = c; }
+    await setMd(mdw);
     await load();
-    const t = find(id);
-    return { row: t ? t.row : 0, key: id, edited: !!e.editKey, info: info() };
+    const t = DB.tx.find(x => x.row === row);
+    return { row, key: t ? t.key : '', edited: !!e.editKey, info: info() };
   }
+  // batal hapus: kembalikan ke posisi barisnya semula
   async function restoreEntry(e) {
-    const x = Object.assign({}, e); delete x.row; delete x.editKey; delete x.editRow; delete x.cid;
     await load();
-    await G.append(SID, 'Transaksi', [buildRow(x)]);
+    const r = Number(e.row) || 0;
+    if (r >= 2 && r <= DB.last) {
+      await G.batch(SID, [{ insertDimension: { range: { sheetId: META.tabs[TAB].id, dimension: 'ROWS', startIndex: r - 1, endIndex: r }, inheritFromBefore: r > 2 } }, fmtCopy(r + 1, r)]);
+      await G.put(SID, [{ range: `${Q(TAB)}!A${r}:I${r}`, values: [cells(e, r)] }]);
+    } else await appendRows([e]);
     await load();
     return { info: info() };
   }
   async function deleteEntry(row, key) {
     await load();
-    const t = find(String(key)); verify(t);
-    await deleteRows([['Transaksi', t.row]]);
+    const t = findRow(row, String(key)); verify(t);
+    await deleteRows([t.row]);
     await load();
     return { info: info() };
   }
   async function getInfo() { await load(); return info(); }
-  async function getHistory() { await load(); return DB.ord.slice().reverse().map(txRow); }
+  async function getHistory() { await load(); return DB.tx.slice().reverse().map(txRow); }
 
-  // ---------- Kategori ----------
-  async function setCat(desc, name) {
-    const k = catKey(desc);
-    if (!k) return;
+  // ---------- Kategori manual (per keterangan) ----------
+  function setCatMap(desc, name) {
+    const k = catKey(desc); if (!k) return null;
     if (name && CAT_NAMES.indexOf(name) < 0) throw new Error('Kategori tidak dikenal');
-    const row = DB.catRow[k];
-    if (!name || name === autoCat(desc)) { if (row) await deleteRows([['Kategori', row]]); }
-    else if (row) await G.put(SID, [{ range: `Kategori!A${row}:B${row}`, values: [[k, name]] }]);
-    else await G.append(SID, 'Kategori', [[k, name]]);
+    const m = Object.assign({}, md('hl_cat', {}));
+    if (!name || name === autoCat(desc)) delete m[k]; else m[k] = name;
+    if (JSON.stringify(m).length > 20000) throw new Error('Kategori manual sudah terlalu banyak');
+    return m;
   }
-  async function setCategory(desc, name) { await load(); await setCat(desc, name); await load(); return { catMap: DB.catMap }; }
+  async function setCategory(desc, name) {
+    await load();
+    const m = setCatMap(desc, name);
+    if (m) await setMd({ hl_cat: m });
+    await load();
+    return { catMap: md('hl_cat', {}) };
+  }
 
   // ---------- Pelunasan ----------
   // Yang ditandai lunas selalu transaksi TERLAMA dulu; dua arah saling mengurangi.
-  // Selisih transfer dicatat sebagai baris baru: lebih bayar → "Kelebihan bayar", kurang → "Sisa pelunasan".
+  // Selisih transfer jadi baris baru: lebih bayar → "Kelebihan bayar", kurang → "Sisa pelunasan".
+  // Riwayat pelunasan (maks 10) di metadata; hanya yang terakhir bisa dibatalkan.
   function settleData() {
-    const rows = DB.ord.filter(t => !isPaid(t)).map(t => ({ row: t.row, key: t.id, date: t.date, label: label(t.date), desc: t.desc, by: sl(t.by), amt: r2(owed(t)) }));
-    const log = DB.log.slice(-5).reverse().map(l => ({ row: l.id, payer: sl(l.from) || 'A', paid: l.paid, n: l.n, diff: l.diff,
+    const rows = DB.tx.filter(t => !t.paid).map(t => ({ row: t.row, key: t.key, date: t.date, label: label(t.date), desc: t.desc, by: t.by, amt: r2(owed(t)) }));
+    const log = md('hl_log', []).slice(-5).reverse().map(l => ({ row: l.id, payer: l.payer, paid: l.paid, n: l.n, diff: l.diff,
       when: l.t ? label(isoOf(new Date(l.t))) : '' }));
     return { rows, log };
   }
   async function getSettle() { await load(); return settleData(); }
-
   async function settle(p) {
     await load();
-    const payer = DB.ID[p && p.payer];
-    if (!payer) throw new Error('Pembayar tidak valid');
+    if (!p || (p.payer !== 'A' && p.payer !== 'B')) throw new Error('Pembayar tidak valid');
     const amount = Math.round(Number(p.amount) || 0);
     if (amount <= 0) throw new Error('Nominal belum diisi');
-    const toSlot = p.payer === 'A' ? 'B' : 'A', to = DB.ID[toSlot];
-    const list = (p.rows || []).map(x => find(String(x.key)));
+    const to = p.payer === 'A' ? 'B' : 'A';
+    const list = (p.rows || []).map(x => findRow(x.row, String(x.key)));
     let net = 0, last = '';
-    list.forEach(t => { verify(t); net += (t.by === payer ? -1 : 1) * owed(t); if (t.date >= last) last = t.date; });
+    list.forEach(t => { verify(t); net += (t.by === p.payer ? -1 : 1) * owed(t); if (t.date >= last) last = t.date; });
     net = Math.round(net);
     if (Math.abs(net - Math.round(Number(p.cover) || 0)) > 1) throw stale();
-    const sid = uid();
-    const data = list.map(t => ({ range: `Transaksi!K${t.row}`, values: [[JSON.stringify(Object.assign({}, t.paid, { [debtor(t)]: sid }))]] }));
-    if (data.length) await G.put(SID, data);
+    if (list.length) await G.put(SID, list.map(t => ({ range: `${Q(TAB)}!J${t.row}`, values: [['Paid']] })), true);
     const diff = amount - net;
-    let adj = '';
+    let adj = null;
     if (Math.abs(diff) >= 1) {
-      const row = buildRow(diff > 0 ? { mode: 'direct', date: todayIso(), desc: 'Kelebihan bayar', by: p.payer, amount: diff }
-                                    : { mode: 'direct', date: todayIso(), desc: 'Sisa pelunasan', by: toSlot, amount: -diff });
-      adj = row[0];
-      await G.append(SID, 'Transaksi', [row]);
+      const e = diff > 0 ? { mode: 'direct', date: todayIso(), desc: 'Kelebihan bayar', by: p.payer, amount: diff }
+                         : { mode: 'direct', date: todayIso(), desc: 'Sisa pelunasan', by: to, amount: -diff };
+      const r = await appendRows([e]);
+      adj = [r, rowKey(e.date, e.desc, DB.names[e.by === 'A' ? 0 : 1])];
     }
-    await G.append(SID, 'Pelunasan', [[sid, new Date().toISOString(), payer, to, amount, net, diff, list.length, last ? label(last) : '', JSON.stringify(list.map(t => t.id)), adj]]);
+    const id = uid();
+    const log = md('hl_log', []).concat([{ id, t: Date.now(), payer: p.payer, paid: amount, cover: net, diff, n: list.length,
+      until: last ? label(last) : '', rows: list.map(t => [t.row, t.key]), adj }]).slice(-10);
+    await setMd({ hl_log: log });
     await load();
     return { info: info(), settle: settleData(), net, diff };
   }
   async function undoSettle(id) {
     await load();
-    const last = DB.log[DB.log.length - 1];
-    if (!last) throw new Error('Belum ada pelunasan');
-    if (String(id) !== last.id) throw new Error('Hanya pelunasan terakhir yang bisa dibatalkan');
-    const data = []; let restored = 0;
-    DB.tx.forEach(t => {
-      const ks = Object.keys(t.paid).filter(k => t.paid[k] === last.id);
-      if (!ks.length) return;
-      const np = Object.assign({}, t.paid); ks.forEach(k => delete np[k]);
-      data.push({ range: `Transaksi!K${t.row}`, values: [[Object.keys(np).length ? JSON.stringify(np) : '']] });
-      restored++;
-    });
-    if (data.length) await G.put(SID, data);
-    const del = [['Pelunasan', last.row]];
-    const a = last.adj && find(last.adj);
-    if (a) del.push(['Transaksi', a.row]);
-    await deleteRows(del);
+    const log = md('hl_log', []), lastLog = log[log.length - 1];
+    if (!lastLog) throw new Error('Belum ada pelunasan');
+    if (String(id) !== String(lastLog.id) || !lastLog.rows) throw new Error('Hanya pelunasan terakhir yang bisa dibatalkan');
+    const used = {};
+    const find = (row, key, paid) => {
+      const ok = t => !used[t.row] && t.key === key && t.paid === paid;
+      const t = DB.tx.find(x => x.row === row && ok(x)) || DB.tx.find(ok);
+      if (t) used[t.row] = 1;
+      return t;
+    };
+    const targets = lastLog.rows.map(([r, k]) => find(r, k, true)).filter(Boolean);
+    if (targets.length) await G.put(SID, targets.map(t => ({ range: `${Q(TAB)}!J${t.row}`, values: [['']] })), true);
+    if (lastLog.adj) { const a = find(lastLog.adj[0], lastLog.adj[1], false); if (a) await deleteRows([a.row]); }
+    await setMd({ hl_log: log.slice(0, -1) });
     await load();
-    return { info: info(), settle: settleData(), restored };
+    return { info: info(), settle: settleData(), restored: targets.length };
   }
 
   // ---------- Statistik ----------
@@ -320,7 +338,7 @@
     const blank = () => ({ del: 0, dim: 0, nDel: 0, nDim: 0 });
     const months = {}, places = {}, cats = {};
     let first = null, lastK = null, count = 0, winTotal = 0;
-    DB.ord.forEach(t => {
+    DB.tx.forEach((t, i) => {
       if (!t.desc || ADJ.test(t.desc)) return;
       const amt = owed(t); if (amt <= 0) return;
       count++;
@@ -328,14 +346,14 @@
       if (!first || k < first) first = k;
       if (!lastK || k > lastK) lastK = k;
       const m = months[k] || (months[k] = blank());
-      if (sl(t.by) === 'B') { m.del += amt; m.nDel++; } else { m.dim += amt; m.nDim++; }
+      if (t.by === 'B') { m.del += amt; m.nDel++; } else { m.dim += amt; m.nDim++; }
       if (!inWin(k)) return;
       winTotal += amt;
       const key = catKey(t.desc), p = places[key] || (places[key] = { name: t.desc, n: 0, total: 0 });
       p.n++; p.total += amt;
       const c = cat(t.desc), cc = cats[c] || (cats[c] = { total: 0, items: [] });
       const [, mm, dd] = t.date.split('-').map(Number);
-      cc.total += amt; cc.items.push([t.date + t.created, dd + ' ' + MON[mm - 1], t.desc, sl(t.by), amt]);
+      cc.total += amt; cc.items.push([t.date + String(i).padStart(6, '0'), dd + ' ' + MON[mm - 1], t.desc, t.by, amt]);
     });
     if (!count) return { empty: true };
     const lbl = k => MON[Number(k.split('-')[1]) - 1];
@@ -365,19 +383,19 @@
     const W = { year: y, n: 0, total: 0, by: { A: { n: 0, t: 0 }, B: { n: 0, t: 0 } }, months: Array(12).fill(0), mN: Array(12).fill(0),
                 dow: Array(7).fill(0), big: null, paid: { n: 0, t: 0 } };
     const places = {}, cats = {}, days = {};
-    DB.ord.forEach(t => {
+    DB.tx.forEach(t => {
       const [ty, tm, td] = t.date.split('-').map(Number);
       if (ty !== y || !t.desc || ADJ.test(t.desc)) return;
       const amt = owed(t); if (amt <= 0) return;
-      const d = new Date(ty, tm - 1, td), s = sl(t.by);
+      const d = new Date(ty, tm - 1, td);
       W.n++; W.total += amt;
-      if (isPaid(t)) { W.paid.n++; W.paid.t += amt; }
-      W.by[s].n++; W.by[s].t += amt;
+      if (t.paid) { W.paid.n++; W.paid.t += amt; }
+      W.by[t.by].n++; W.by[t.by].t += amt;
       W.months[tm - 1] += amt; W.mN[tm - 1]++; W.dow[d.getDay()]++;
       days[t.date] = 1;
       const k = catKey(t.desc), p = places[k] || (places[k] = { name: t.desc, n: 0, t: 0 }); p.n++; p.t += amt;
       const c = cat(t.desc), cc = cats[c] || (cats[c] = { name: c, n: 0, t: 0 }); cc.n++; cc.t += amt;
-      if (!W.big || amt > W.big.amt) W.big = { desc: t.desc, amt, by: s, date: t.date };
+      if (!W.big || amt > W.big.amt) W.big = { desc: t.desc, amt, by: t.by, date: t.date };
     });
     W.days = Object.keys(days).length;
     W.places = Object.values(places).sort((a, b) => b.n - a.n || b.t - a.t).slice(0, 3);
@@ -385,19 +403,19 @@
     return W;
   }
 
-  // ---------- Foto profil (di tab Anggota, satu sel ≤ 50.000 karakter) ----------
+  // ---------- Foto profil (metadata, ≤ 12.000 karakter per foto) ----------
   function photos() {
     const out = { photos: {}, ver: {} };
-    ['A', 'B'].forEach(s => { const m = DB.members.find(x => x.id === DB.ID[s]); out.photos[s] = m ? m.photo : ''; out.ver[s] = m ? m.pv : '0'; });
+    ['A', 'B'].forEach(s => { const p = md('hl_photo_' + s, null); out.photos[s] = (p && p.u) || ''; out.ver[s] = (p && p.v) ? String(p.v) : '0'; });
     return out;
   }
   async function getPhotos() { await load(); return photos(); }
   async function setPhoto(url, slot) {
-    if (url && (!/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(url) || url.length > 49000)) throw new Error('Foto terlalu besar');
+    if (url && (!/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(url) || url.length > 12000)) throw new Error('Foto terlalu besar');
     await load();
-    const m = DB.members.find(x => x.id === (slot ? DB.ID[slot] : ME_ID));
-    if (!m) throw new Error('Akun ini belum terhubung ke anggota');
-    await G.put(SID, [{ range: `Anggota!D${m.row}:E${m.row}`, values: [[url || '', String(Date.now())]] }]);
+    const s = slot || ME;
+    if (s !== 'A' && s !== 'B') throw new Error('Akun ini belum terhubung ke anggota');
+    await setMd({ ['hl_photo_' + s]: { u: url || '', v: Date.now() } });
     await load();
     return photos();
   }
@@ -457,7 +475,7 @@
     } catch (e) { return { ok: false, code: 0, error: 'Hasil Gemini tidak bisa dibaca' }; }
   }
   async function scanReceipt(img) {
-    if (G.relay) return G.relayCall('scanReceipt', [img]);          // HP lama: scan lewat Apps Script seperti dulu
+    if (G.relay) return G.relayCall('scanReceipt', [img]);          // HP jembatan: scan lewat Apps Script seperti dulu
     const key = geminiKey();
     if (!key) return { ok: false, error: 'Isi kunci Gemini di Pengaturan dulu' };
     if (!img || !img.data) throw new Error('Gambar kosong');
@@ -476,119 +494,125 @@
     return res;
   }
 
-  // ---------- Sambung / buat / impor sheet ----------
-  async function connect(id) {
-    SID = id; TABID = {};
-    await ensure(id);
+  // ---------- Sambung / buat sheet ----------
+  // Bersihkan tab percobaan v2.0–2.2 (kalau ada): transaksi yang sempat dicatat di sana dipindah ke Debt Tracker dulu.
+  async function dropV2() {
+    const have = V2_TABS.filter(t => META.tabs[t]);
+    if (!have.length) return;
+    if (META.tabs.Transaksi && META.tabs.Anggota) {
+      const r = await G.get(SID, [Q('Transaksi') + '!A2:M', Q('Anggota') + '!A2:C']);
+      const mem = {}, em = Object.assign({}, md('hl_members', {}));
+      (r.valueRanges[1].values || []).forEach(x => {
+        const n = String(x[1] || '').trim().toLowerCase();
+        const s = n === DB.names[0].toLowerCase() ? 'A' : n === DB.names[1].toLowerCase() ? 'B' : '';
+        if (s) { mem[x[0]] = s; if (x[2] && !em[s]) em[s] = String(x[2]).toLowerCase(); }
+      });
+      const ids = Object.keys(mem), idA = ids.find(i => mem[i] === 'A'), idB = ids.find(i => mem[i] === 'B');
+      const keys = new Set(DB.tx.map(t => t.key));
+      const add = [];
+      (r.valueRanges[0].values || []).forEach(x => {
+        const by = mem[x[3]], date = String(x[1] || '');
+        if (!by || !/^\d{4}-\d{2}-\d{2}$/.test(date) || /^impor-/.test(String(x[11] || ''))) return;
+        if (keys.has(rowKey(date, String(x[2] || '').trim(), DB.names[by === 'A' ? 0 : 1]))) return;
+        let items = {}; try { items = JSON.parse(x[6] || '{}'); } catch (e) {}
+        add.push(x[4] === 'patungan'
+          ? { mode: 'split', date, desc: x[2], by, dimbo: num(items[idA]), delpus: num(items[idB]), fee: num(x[7]), total: num(x[8]) }
+          : { mode: 'direct', date, desc: x[2], by, amount: num(x[5]) });
+      });
+      if (add.length) await appendRows(add);
+      if (JSON.stringify(em) !== JSON.stringify(md('hl_members', {}))) await setMd({ hl_members: em });
+    }
+    await G.batch(SID, have.map(t => ({ deleteSheet: { sheetId: META.tabs[t].id } })));
     await load();
+  }
+  async function connect(id) {
+    SID = id;
+    await load();
+    await dropV2();
     try { localStorage.setItem('hl_sid', id); } catch (e) {}
     return DB;
   }
-  // cocokkan email login dengan anggota; kembalikan slot 'A'/'B' atau ''
   function whoByEmail(email) {
-    const m = DB.members.slice(0, 2).find(x => x.email && x.email === String(email || '').toLowerCase());
-    return m ? sl(m.id) : '';
+    const em = md('hl_members', {}), e = String(email || '').toLowerCase();
+    return e && em.A === e ? 'A' : e && em.B === e ? 'B' : '';
   }
   async function claim(slot, email) {
     await load();
-    const m = DB.members.find(x => x.id === DB.ID[slot]);
-    if (!m) throw new Error('Anggota tidak ditemukan');
-    if (m.email && m.email !== email) throw new Error('Nama ini sudah dipakai akun Google lain');
-    await G.put(SID, [{ range: `Anggota!C${m.row}`, values: [[email]] }]);
+    const em = Object.assign({}, md('hl_members', {}));
+    if (em[slot] && em[slot] !== email) throw new Error('Nama ini sudah dipakai akun Google lain');
+    em[slot] = email;
+    await setMd({ hl_members: em });
     await load();
   }
-  async function rename(slot, name) {
-    await load();
-    const m = DB.members.find(x => x.id === DB.ID[slot]);
-    name = String(name || '').trim().slice(0, 24);
-    if (!m || !name) return;
-    await G.put(SID, [{ range: `Anggota!B${m.row}`, values: [[name]] }]);
-    await load();
-  }
+  // Sheet baru untuk pengguna baru: format yang sama persis (Debt Tracker + Summary), rapi dan siap dibaca
   async function create(names, email) {
+    const [a, b] = names.map(n => String(n).trim().slice(0, 24));
     const f = await G.createSheet('Hutang Lu');
-    await connect(f.id);
-    const now = new Date().toISOString();
-    await G.append(f.id, 'Anggota', names.map((n, i) => [uid() + i, String(n).trim().slice(0, 24), i === 0 ? email : '', '', '0', now]));
+    SID = f.id;
+    let m = readMeta(await G.meta(SID));
+    const first = Object.values(m.tabs)[0].id;
+    const money = { numberFormat: { type: 'CURRENCY', pattern: '"Rp"#,##0' } };
+    const colW = (c0, c1, px) => ({ updateDimensionProperties: { range: { sheetId: first, dimension: 'COLUMNS', startIndex: c0, endIndex: c1 }, properties: { pixelSize: px }, fields: 'pixelSize' } });
+    await G.batch(SID, [
+      { updateSheetProperties: { properties: { sheetId: first, title: TAB, gridProperties: { frozenRowCount: 1, rowCount: 500, columnCount: 10 } }, fields: 'title,gridProperties.frozenRowCount,gridProperties.rowCount,gridProperties.columnCount' } },
+      { addSheet: { properties: { title: SUM, gridProperties: { rowCount: 20, columnCount: 4 } } } },
+      { repeatCell: { range: { sheetId: first, startRowIndex: 0, endRowIndex: 1 }, cell: { userEnteredFormat: { textFormat: { bold: true }, backgroundColor: { red: .93, green: .95, blue: .94 } } }, fields: 'userEnteredFormat(textFormat,backgroundColor)' } },
+      { repeatCell: { range: { sheetId: first, startRowIndex: 1, startColumnIndex: 0, endColumnIndex: 1 }, cell: { userEnteredFormat: { numberFormat: { type: 'DATE', pattern: 'd mmm yyyy' } } }, fields: 'userEnteredFormat.numberFormat' } },
+      { repeatCell: { range: { sheetId: first, startRowIndex: 1, startColumnIndex: 3, endColumnIndex: 9 }, cell: { userEnteredFormat: money }, fields: 'userEnteredFormat.numberFormat' } },
+      colW(0, 1, 110), colW(1, 2, 220), colW(2, 3, 90), colW(3, 9, 110), colW(9, 10, 70)
+    ]);
+    m = readMeta(await G.meta(SID));
+    const D = Q(TAB);
+    await G.put(SID, [
+      { range: `${D}!A1:J1`, values: [['Date', 'Description', 'Paid By', a + ' Items', b + ' Items', 'Fee', 'Total', a + ' Share', b + ' Share', 'Status']] },
+      { range: `${Q(SUM)}!A1:B5`, values: [
+        ['Ringkasan', 'Belum lunas'],
+        [`Utang ${a}`, `=SUMIFS(${D}!H2:H, ${D}!C2:C, "${b}", ${D}!J2:J, "<>Paid")`],
+        [`Utang ${b}`, `=SUMIFS(${D}!I2:I, ${D}!C2:C, "${a}", ${D}!J2:J, "<>Paid")`],
+        [`${a} harus bayar`, '=MAX(0, B2-B3)'],
+        [`${b} harus bayar`, '=MAX(0, B3-B2)']] }
+    ]);
+    const sumId = m.tabs[SUM].id;
+    await G.batch(SID, [
+      { repeatCell: { range: { sheetId: sumId, startRowIndex: 1, endRowIndex: 5, startColumnIndex: 1, endColumnIndex: 2 }, cell: { userEnteredFormat: money }, fields: 'userEnteredFormat.numberFormat' } },
+      { repeatCell: { range: { sheetId: sumId, startRowIndex: 0, endRowIndex: 1 }, cell: { userEnteredFormat: { textFormat: { bold: true } } }, fields: 'userEnteredFormat.textFormat' } },
+      { updateDimensionProperties: { range: { sheetId: sumId, dimension: 'COLUMNS', startIndex: 0, endIndex: 2 }, properties: { pixelSize: 160 }, fields: 'pixelSize' } }
+    ]);
     await load();
-    return f.id;
+    await setMd({ hl_members: { A: email, B: '' } });
+    await load();
+    try { localStorage.setItem('hl_sid', SID); } catch (e) {}
+    return SID;
   }
-  // Lihat isi sheet yang dipilih lewat Picker: format Hutang Lu, format lama (tab "Debt Tracker"), atau tidak dikenal
+  // Isi sheet yang dipilih lewat Picker
   async function inspect(id) {
-    const meta = await G.meta(id);
-    const titles = meta.sheets.map(s => s.properties.title);
-    if (titles.indexOf('Transaksi') >= 0 && titles.indexOf('Anggota') >= 0) return { kind: 'hutanglu', title: meta.properties.title };
-    if (titles.indexOf('Debt Tracker') >= 0) {
-      const r = await G.get(id, ['Debt Tracker!A1:J1', 'Debt Tracker!A2:J']);
-      const head = (r.valueRanges[0].values || [])[0] || [];
-      const rows = (r.valueRanges[1].values || []).filter(x => typeof x[0] === 'number' && String(x[2] || '').trim());
-      // tab baru tidak boleh bentrok dengan tab yang sudah ada di file lama
-      const clash = Object.keys(TABS).filter(t => titles.indexOf(t) >= 0);
-      return { kind: 'legacy', title: meta.properties.title, n: rows.length, names: rows.length ? legacyNames(head, rows) : [], clash };
-    }
-    return { kind: 'unknown', title: meta.properties.title };
+    const m = readMeta(await G.meta(id));
+    return { kind: m.tabs[TAB] ? 'hutanglu' : 'unknown', title: m.title };
   }
-  // Salin sheet format lama ke sheet Hutang Lu baru. Sheet lama tidak diubah sama sekali.
-  // Kolom D/H milik orang pertama, E/I milik orang kedua. Namanya dicari dari judul kolom H & I ("Dimbo Share").
-  function legacyNames(head, src) {
-    const seen = [];
-    src.forEach(x => { const n = String(x[2]).trim(); if (seen.indexOf(n) < 0) seen.push(n); });
-    const pickFor = col => seen.find(n => String(head[col] || '').toLowerCase().indexOf(n.toLowerCase()) >= 0);
-    const fromHead = col => String(head[col] || '').replace(/\b(share|items?|bagian|item)\b/ig, '').trim();   // "Dimbo Share" → "Dimbo"
-    let a = pickFor(7) || pickFor(3) || fromHead(7) || fromHead(3), b = pickFor(8) || pickFor(4) || fromHead(8) || fromHead(4);
-    if (!a || !b || a.toLowerCase() === b.toLowerCase()) { a = seen[0]; b = seen[1]; }
-    return [a, b || 'Pasangan'].filter(Boolean);
-  }
-  // inPlace = tab baru ditambahkan ke file lama itu sendiri (tab "Debt Tracker" & lainnya tidak diubah, jadi arsip);
-  // kalau tidak, isinya disalin ke file Hutang Lu baru.
-  async function importLegacy(srcId, email, meName, inPlace) {
-    const r = await G.get(srcId, ['Debt Tracker!A1:J1', 'Debt Tracker!A2:J']);
-    const head = (r.valueRanges[0].values || [])[0] || [];
-    const src = (r.valueRanges[1].values || []).filter(x => typeof x[0] === 'number' && String(x[2] || '').trim());
-    if (!src.length) throw new Error('Tidak ada transaksi di sheet lama');
-    const names = legacyNames(head, src);
-    if (inPlace) {
-      const meta = await G.meta(srcId), titles = meta.sheets.map(x => x.properties.title);
-      const clash = Object.keys(TABS).filter(t => titles.indexOf(t) >= 0);
-      if (clash.length) throw new Error('File ini sudah punya tab ' + clash.join(', ') + '. Pakai "Salin ke file baru".');
-    }
-    const f = inPlace ? { id: srcId } : await G.createSheet('Hutang Lu');
-    await connect(f.id);
-    if (inPlace) await G.tagSheet(f.id).catch(() => {});
-    const now = new Date().toISOString(), ids = [uid() + 'a', uid() + 'b'];
-    await G.append(f.id, 'Anggota', names.slice(0, 2).map((n, i) => [ids[i], n, n === meName ? email : '', '', '0', now]));
-    const idOf = n => ids[names.indexOf(n)];
-    const base = new Date(1899, 11, 30);
-    const out = [];
-    src.forEach((x, i) => {
-      const by = idOf(String(x[2]).trim()); if (!by) return;
-      const d = new Date(base.getTime() + Math.round(x[0]) * 864e5 + 12 * 3600e3);
-      const D = num(x[3]), E = num(x[4]), F = num(x[5]), Gt = num(x[6]), H = num(x[7]), I = num(x[8]);
-      const other = by === ids[0] ? ids[1] : ids[0], split = Gt > 0;
-      const share = { [ids[0]]: r2(H), [ids[1]]: r2(I) };
-      if (!split) share[by] = 0;
-      const paid = String(x[9] || '').trim() ? { [other]: 'impor' } : {};
-      out.push([uid() + i, isoOf(d), String(x[1] || '').trim().slice(0, 120), by, split ? 'patungan' : 'langsung', split ? '' : r2(by === ids[1] ? H : I),
-                split ? JSON.stringify({ [ids[0]]: D, [ids[1]]: E }) : '', split ? F || '' : '', split ? Gt : '', JSON.stringify(share),
-                Object.keys(paid).length ? JSON.stringify(paid) : '', 'impor-' + String(i).padStart(6, '0'), '']);
-    });
-    for (let i = 0; i < out.length; i += 400) await G.append(f.id, 'Transaksi', out.slice(i, i + 400));
+  // HP jembatan: pindahkan kategori & foto lama (Script Properties) ke metadata, sekali saja
+  async function importOldState(st, shrink) {
     await load();
-    return { id: f.id, n: out.length, names: names.slice(0, 2) };
+    const w = {};
+    if (st && st.catMap && !META.md.hl_cat && Object.keys(st.catMap).length) w.hl_cat = st.catMap;
+    if (st && st.photos) for (const s of ['A', 'B']) {
+      const u = st.photos[DB.names[s === 'A' ? 0 : 1]];
+      if (u && !META.md['hl_photo_' + s]) { const small = await shrink(u); if (small) w['hl_photo_' + s] = { u: small, v: Date.now() }; }
+    }
+    if (Object.keys(w).length) { await setMd(w); await load(); }
   }
 
   const FNS = { getInfo, getHistory, getStats, getSettle, addEntry, deleteEntry, restoreEntry, setCategory, getWrapped, getPhotos, setPhoto, settle, undoSettle, scanReceipt };
   window.HL = {
     call: (fn, args) => { const f = FNS[fn]; if (!f) return Promise.reject(new Error('Perintah tidak dikenal: ' + fn)); return f.apply(null, args || []); },
-    connect, create, inspect, importLegacy, claim, rename, whoByEmail,
+    connect, create, inspect, claim, whoByEmail, importOldState,
     members: () => (DB ? members() : []),
-    setMe: id => { ME_ID = id || ''; },
-    meId: slot => (DB && DB.ID[slot]) || '',
+    setMe: slot => { ME = slot || ''; },
+    meId: slot => slot || '',
     sheetId: () => SID,
-    forget: () => { SID = null; DB = null; TABID = {}; },
+    forget: () => { SID = null; DB = null; META = null; },
     geminiKey,
     canScan: () => !!(G.relay || geminiKey()),
     setPhotoOf: (slot, url) => setPhoto(url, slot),
-    photoOf: slot => { const m = DB && DB.members.find(x => x.id === DB.ID[slot]); return m ? m.photo : ''; }
+    photoOf: slot => { const p = md('hl_photo_' + slot, null); return (p && p.u) || ''; }
   };
 })();

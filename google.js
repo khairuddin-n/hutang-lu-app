@@ -128,26 +128,25 @@
     });
   }
 
+  // Semua panggilan Sheets lewat satu pintu: path = bagian setelah /spreadsheets/{id}
+  let sheetsCall = (id, path, method, body) => api(`${SHEETS}/${enc(id)}${path}`, { method: method || 'GET', body });
+
   // ---------- Mode jembatan: HP lama dengan link pribadi (#k=...), tanpa login Google ----------
-  // Operasi sheet dikirim ke Apps Script (Relay.js) yang terpasang di sheet itu sendiri.
+  // Panggilan Sheets diteruskan apa adanya ke Apps Script (Relay.js) yang terpasang di sheet itu sendiri.
   function useRelay(url, key) {
     const call = (fn, args) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ fn, args, k: key }) })
       .then(r => r.json(), () => { throw new Error('Tidak ada koneksi internet'); })
       .then(j => { if (!j.ok) throw new Error(j.error); return j.data; });
-    const rel = (op, a) => call('relay', [op, a]);
+    sheetsCall = (id, path, method, body) => call('relay', [{ path, method: method || 'GET', body }]);
     Object.assign(window.HLG, {
       relay: true, relayCall: call,
       token: () => 'relay', init: async () => {}, signIn: async () => 'relay', forget() {}, signOut() {},
       whoami: () => call('whoami', []),
-      meta: () => rel('meta', {}),
-      get: (id, ranges) => rel('get', { ranges }),
-      append: (id, tab, rows) => rel('append', { tab, rows }),
-      put: (id, data) => rel('put', { data }),
-      batch: (id, requests) => rel('batch', { requests }),
       tagSheet: async () => ({})
     });
   }
 
+  const FIELDS = 'properties.title,developerMetadata,sheets(properties(sheetId,title,gridProperties(rowCount,columnCount)),developerMetadata)';
   window.HLG = {
     useRelay: (url, key) => useRelay(url, key),
     AuthError, init, signIn, signOut, token, forget, api, pick,
@@ -161,12 +160,11 @@
     tagSheet: id => api(`${DRIVE}/files/${enc(id)}?fields=id`, { method: 'PATCH', body: { appProperties: { app: 'hutanglu' } } }),
     share: (id, email, msg) => api(`${DRIVE}/files/${enc(id)}/permissions?sendNotificationEmail=true&emailMessage=${enc(msg)}&fields=id`,
       { method: 'POST', body: { type: 'user', role: 'writer', emailAddress: email } }),
-    meta: id => api(`${SHEETS}/${enc(id)}?fields=properties.title,sheets.properties(sheetId,title)`),
-    get: (id, ranges) => api(`${SHEETS}/${enc(id)}/values:batchGet?${ranges.map(r => 'ranges=' + enc(r)).join('&')}` +
-                             `&valueRenderOption=UNFORMATTED_VALUE&dateTimeRenderOption=SERIAL_NUMBER`),
-    append: (id, tab, rows) => api(`${SHEETS}/${enc(id)}/values/${enc(tab + '!A1')}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
-      { method: 'POST', body: { values: rows } }),
-    put: (id, data) => api(`${SHEETS}/${enc(id)}/values:batchUpdate`, { method: 'POST', body: { valueInputOption: 'RAW', data } }),
-    batch: (id, requests) => api(`${SHEETS}/${enc(id)}:batchUpdate`, { method: 'POST', body: { requests } })
+    // judul, tab, ukuran grid, dan developer metadata (data app yang tidak terlihat di sheet)
+    meta: id => sheetsCall(id, `?fields=${enc(FIELDS)}`),
+    get: (id, ranges) => sheetsCall(id, `/values:batchGet?${ranges.map(r => 'ranges=' + enc(r)).join('&')}&valueRenderOption=UNFORMATTED_VALUE&dateTimeRenderOption=SERIAL_NUMBER`),
+    // USER_ENTERED: rumus & angka terbaca seperti diketik di sheet
+    put: (id, data, raw) => sheetsCall(id, '/values:batchUpdate', 'POST', { valueInputOption: raw ? 'RAW' : 'USER_ENTERED', data }),
+    batch: (id, requests) => sheetsCall(id, ':batchUpdate', 'POST', { requests })
   };
 })();

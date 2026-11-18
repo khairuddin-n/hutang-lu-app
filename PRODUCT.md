@@ -29,11 +29,11 @@ A private two-person ledger built for one couple, not a group expense splitter. 
 - Onboarding:
   1. Sign in.
   2. The app auto-finds sheets it created (`appProperties app=hutanglu`).
-  3. If none, the user can create a sheet, pick an existing one with Google Picker, or import the legacy "Debt Tracker" format into a new sheet. The legacy sheet is never modified.
+  3. If none, the user can create a sheet (clean Debt Tracker + Summary), or pick an existing sheet with a "Debt Tracker" tab via Google Picker and use it directly.
   4. The user is matched to a member by email, or asked "Kamu yang mana?".
   5. The user invites their partner: the Drive share is restricted to the partner's email, and the link is `#join=<sheetId>`.
 - The Google token lasts about 1 hour. When it expires, the app shows cached data and a "Sambungkan" chip. Writes go to the offline queue (client IDs dedupe them) until the user reconnects.
-- Source lives directly in this repo (`index.html`, `data.js`, `google.js`, `config.js`). The old Apps Script repo `hutang-lu` is legacy; its build is disabled.
+- Source lives directly in this repo (`index.html`, `data.js`, `google.js`, `config.js`). The Apps Script repo `hutang-lu` stays deployed as "API PWA" only as a relay (`Relay.js`): phones with the old private link (`#k=`) keep working without Google sign-in (Delpus).
 
 ## Capabilities and Constraints
 
@@ -41,7 +41,7 @@ A private two-person ledger built for one couple, not a group expense splitter. 
 - Settlement pays oldest-first by any amount; over/under-payment becomes its own row, excluded from stats. Settlement log with undo.
 - Views: home (balance + recent), Riwayat (history by month), Statistik (totals, per month, categories, most frequent), Wrapped (yearly story slides on canvas), share as image.
 - Manual category per description, undo delete, profile photos, light/dark theme, client-side accent color.
-- Sheet schema v1 (tabs: Transaksi, Anggota, Pelunasan, Kategori, Meta). It is ready for more than two members: member ids, JSON `item`/`bagian`/`lunas`. The UI shows the first two members as slots A/B. Groups of more than 2 are planned but not built.
+- The sheet IS the product: one tab "Debt Tracker" (Date, Description, Paid By, <A> Items, <B> Items, Fee, Total, <A> Share, <B> Share, Status) plus "Summary". Never add tabs, columns or ID fields. Hidden app data (member emails, manual categories, settlement log, photos) lives in developer metadata. New users get the same clean format.
 - Receipt scan uses the user's own Gemini API key, stored on the device only. The scan UI is hidden without a key.
 - Settings stay small: photo, theme, app color, data (Sheet/CSV/offline/invite partner), app (scan key, reload, sign out, version).
 - The shared savings ("Tabungan") feature was rejected and removed; do not re-propose it.

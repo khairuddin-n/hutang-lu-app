@@ -824,7 +824,7 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
   const RELAY = !!store.get('hl_key') && !store.get('hl_email');
   if (RELAY) {
     HLG.useRelay(HL_CONFIG.relayUrl, store.get('hl_key'));
-    if (store.get('hl_relay') !== '2') { store.del('hl_me', 'me', 'hl_info', 'hl_photos', 'hl_photover', 'hl_cats', 'hl_queue', 'hl_sheet', 'hl_sav', 'hl_mems', 'hl_sid'); store.set('hl_relay', '2'); }
+    if (store.get('hl_relay') !== '3') { store.del('hl_me', 'me', 'hl_info', 'hl_photos', 'hl_photover', 'hl_cats', 'hl_queue', 'hl_sheet', 'hl_sav', 'hl_mems', 'hl_sid'); store.set('hl_relay', '3'); }
   } else if (!store.get('hl_sid')) store.del('hl_key', 'hl_me', 'me', 'hl_info', 'hl_photos', 'hl_photover', 'hl_cats', 'hl_queue', 'hl_sheet', 'hl_sav', 'hl_mems');
   const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   // Dua anggota pertama di sheet = slot 'A' dan 'B'. Nama tampil dari tab Anggota (disimpan juga di HP).
@@ -1196,10 +1196,10 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
   $('cropCancel').onclick = () => { closeSheet(); openSettings(); };
   $('cropOk').onclick = () => {
     if (!CR.w) return;
-    const S = 200, c = document.createElement('canvas'); c.width = c.height = S;
+    const S = 144, c = document.createElement('canvas'); c.width = c.height = S;
     const g = c.getContext('2d'); g.imageSmoothingQuality = 'high';
     g.drawImage($('cropImg'), -CR.x / CR.s, -CR.y / CR.s, CR.V / CR.s, CR.V / CR.s, 0, 0, S, S);
-    let q = .9, u; do { u = c.toDataURL('image/jpeg', q); q -= .08; } while (u.length > 45000 && q > .3);
+    let q = .85, u; do { u = c.toDataURL('image/jpeg', q); q -= .08; } while (u.length > 11500 && q > .2);
     savePhoto(u, $('cropOk'));
   };
   $('phDel').onclick = () => savePhoto('', $('phDel'));
@@ -2711,8 +2711,9 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
       const sid = HL.sheetId();
       if (sid) { try { await HL.connect(sid); return pickMe(); } catch (e) { if (isAuth(e)) throw e; HL.forget(); store.del('hl_sid'); } }
       const files = await HLG.findSheets();
-      if (files.length === 1) { await HL.connect(files[0].id); return pickMe(); }
-      if (files.length > 1) return suChoose(files);
+      for (const f of files) {
+        try { await HL.connect(f.id); return pickMe(); } catch (e) { if (isAuth(e)) throw e; HL.forget(); store.del('hl_sid'); }
+      }
       suNone();
     } catch (e) { suFail(e); }
   }
@@ -2729,7 +2730,7 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
     su(`<h2>Mulai catatan</h2><p>Belum ada sheet Hutang Lu di akun <b>${esc(U.email)}</b>.</p>
       ${msg ? `<div class="err">${esc(msg)}</div>` : ''}
       <button class="pick" id="suNew"><span class="ms" aria-hidden="true">add_circle</span><div class="m"><b>Buat baru</b><small>Sheet baru di Google Drive kamu</small></div></button>
-      <button class="pick" id="suOld"><span class="ms" aria-hidden="true">folder_open</span><div class="m"><b>Pakai sheet yang sudah ada</b><small>Milikmu atau yang dibagikan ke akun ini. Sheet Hutang Lu atau versi lama.</small></div></button>
+      <button class="pick" id="suOld"><span class="ms" aria-hidden="true">folder_open</span><div class="m"><b>Pakai sheet yang sudah ada</b><small>Sheet dengan tab "Debt Tracker", milikmu atau yang dibagikan ke akun ini</small></div></button>
       <div class="grow"></div><div class="fine">Diundang pasangan? Buka link undangan darinya.</div>`);
     $('suNew').onclick = () => suCreate();
     $('suOld').onclick = pickExisting;
@@ -2751,46 +2752,17 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
   }
   async function pickExisting(){
     let doc;
-    try { doc = await HLG.pick({ title: 'Pilih sheet Hutang Lu atau sheet versi lama' }); } catch (e) { return suNone(e.message); }
+    try { doc = await HLG.pick({ title: 'Pilih sheet Hutang Lu' }); } catch (e) { return suNone(e.message); }
     if (!doc) return suNone();
     suBusy('Memeriksa sheet…');
     try {
       const x = await HL.inspect(doc.id);
-      if (x.kind === 'hutanglu') {
-        const f = await HLG.fileInfo(doc.id).catch(() => null);
-        if (f && f.capabilities && f.capabilities.canEdit === false)
-          return suNone(`Akun ${U.email} hanya bisa melihat "${x.title}". Minta pemiliknya memberi akses Editor, lalu pilih lagi.`);
-        await HL.connect(doc.id); HLG.tagSheet(doc.id).catch(() => {}); return pickMe();
-      }
-      if (x.kind === 'legacy') return suImport(doc.id, x);
-      suNone(`"${x.title}" bukan sheet Hutang Lu. Pilih sheet lain, atau buat baru.`);
+      if (x.kind !== 'hutanglu') return suNone(`"${x.title}" bukan sheet Hutang Lu (tidak ada tab "Debt Tracker"). Pilih sheet lain, atau buat baru.`);
+      const f = await HLG.fileInfo(doc.id).catch(() => null);
+      if (f && f.capabilities && f.capabilities.canEdit === false)
+        return suNone(`Akun ${U.email} hanya bisa melihat "${x.title}". Minta pemiliknya memberi akses Editor, lalu pilih lagi.`);
+      await HL.connect(doc.id); HLG.tagSheet(doc.id).catch(() => {}); pickMe();
     } catch (e) { suFail(e); }
-  }
-  // sheet versi lama (tab "Debt Tracker"): pakai file itu (tab baru ditambahkan, tab lama jadi arsip) atau salin ke file baru
-  async function suImport(id, x){
-    let canEdit = true;
-    try { const f = await HLG.fileInfo(id); canEdit = !(f.capabilities && f.capabilities.canEdit === false); } catch (e) {}
-    const inPlaceOk = canEdit && !x.clash.length;
-    let who = '';
-    const draw = () => su(`<h2>Sheet lama ditemukan</h2>
-      <p><b>${esc(x.title)}</b> berisi ${x.n} transaksi.</p>
-      <p style="margin-bottom:12px">Kamu yang mana?</p>
-      ${x.names.map(n => `<button class="pick ${who === n ? 'on' : ''}" data-n="${esc(n)}" aria-pressed="${who === n}"><span class="av ${x.names.indexOf(n) ? 'B' : 'A'}" style="width:40px;height:40px;font-size:17px"><b class="ini">${esc((n[0] || '?').toUpperCase())}</b></span><div class="m"><b>${esc(n)}</b></div>${who === n ? '<span class="ms f" aria-hidden="true" style="color:var(--acc)">check_circle</span>' : ''}</button>`).join('')}
-      <div class="grow"></div>
-      ${who ? `<p style="margin:16px 0 0;font-size:14px">${inPlaceOk ? '<b>Pakai file ini:</b> tab baru ditambahkan ke file itu, tab lama dibiarkan sebagai arsip. ' : ''}<b>Salin ke file baru:</b> file lama tidak disentuh sama sekali.${!canEdit ? ' Akun ini hanya bisa melihat file lama, jadi hanya bisa disalin.' : x.clash.length ? ' File ini sudah punya tab ' + esc(x.clash.join(', ')) + ', jadi hanya bisa disalin.' : ''}</p>
-        ${inPlaceOk ? '<button class="btn fill" id="suInPlace">Pakai file ini</button>' : ''}
-        <button class="btn ${inPlaceOk ? 'line' : 'fill'}" id="suCopyNew">Salin ke file baru</button>` : ''}`, () => suNone());
-    const go = async inPlace => {
-      suBusy(inPlace ? `Menyiapkan file lama (${x.n} transaksi)…` : `Menyalin ${x.n} transaksi…`);
-      try { const r = await HL.importLegacy(id, U.email, who, inPlace); finish(r.names.indexOf(who) === 1 ? 'B' : 'A', true); }
-      catch (e) { suFail(e); }
-    };
-    const bind = () => {
-      SU.querySelectorAll('.pick[data-n]').forEach(b => b.onclick = () => { who = b.dataset.n; draw(); bind(); });
-      if ($('suInPlace')) $('suInPlace').onclick = () => go(true);
-      if ($('suCopyNew')) $('suCopyNew').onclick = () => go(false);
-    };
-    draw(); bind();
   }
   function suJoin(id){
     su(`<div class="slip"><div class="logo"><span class="ms f" aria-hidden="true">mail</span></div><h1>Undangan</h1><p>Satu langkah lagi: buka sheet yang dibagikan ke kamu.</p></div>
@@ -2886,30 +2858,26 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
       if (SC) runShortcut(SC); else restoreDraft();
     } catch (e) { if (lastInfo) { INFO_AT = INFO_AT || Date.now(); paintStale(); snack(errMsg(e)); } else heroError(e); }
   }
-  // foto profil lama (Script Properties) → tab Anggota, sekali saja, kalau di sheet belum ada foto
+  // kategori & foto lama (Script Properties) → metadata sheet, sekali saja
   async function oldPhotos(){
-    if (store.get('hl_oldphotos')) return;
+    if (store.get('hl_oldstate') === '1') return;
     try {
-      const r = await HLG.relayCall('getPhotos', []);
-      for (const s of ['A', 'B']) {
-        const url = r && r.photos && r.photos[NAME(s)];
-        if (!url || HL.photoOf(s)) continue;
-        const small = await shrinkPhoto(url);
-        if (small) await HL.setPhotoOf(s, small);
-      }
-      store.set('hl_oldphotos', '1');
+      const st = await HLG.relayCall('legacyState', []);
+      await HL.importOldState(st, shrinkPhoto);
+      store.set('hl_oldstate', '1');
       API.run.withSuccessHandler(x => { setPhotos(x.photos); store.set('hl_photover', JSON.stringify(x.ver)); }).getPhotos();
+      if (st && st.catMap) setCatMap(Object.assign({}, st.catMap, CATMAP));
     } catch (e) {}
   }
   function shrinkPhoto(url){
     return new Promise(res => {
       const img = new Image();
       img.onload = () => {
-        const S = 200, c = document.createElement('canvas'); c.width = c.height = S;
+        const S = 144, c = document.createElement('canvas'); c.width = c.height = S;
         const k = Math.min(img.width, img.height), g = c.getContext('2d');
         g.drawImage(img, (img.width - k) / 2, (img.height - k) / 2, k, k, 0, 0, S, S);
-        let q = .9, u; do { u = c.toDataURL('image/jpeg', q); q -= .08; } while (u.length > 45000 && q > .3);
-        res(u.length <= 49000 ? u : null);
+        let q = .85, u; do { u = c.toDataURL('image/jpeg', q); q -= .08; } while (u.length > 11500 && q > .2);
+        res(u.length <= 12000 ? u : null);
       };
       img.onerror = () => res(null);
       img.src = url;
