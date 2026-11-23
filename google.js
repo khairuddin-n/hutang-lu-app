@@ -160,6 +160,10 @@
     tagSheet: id => api(`${DRIVE}/files/${enc(id)}?fields=id`, { method: 'PATCH', body: { appProperties: { app: 'hutanglu' } } }),
     share: (id, email, msg) => api(`${DRIVE}/files/${enc(id)}/permissions?sendNotificationEmail=true&emailMessage=${enc(msg)}&fields=id`,
       { method: 'POST', body: { type: 'user', role: 'writer', emailAddress: email } }),
+    // email akun lain yang sudah punya akses ke file ini (untuk mengisi otomatis email undangan)
+    sharedWith: id => api(`${DRIVE}/files/${enc(id)}/permissions?fields=permissions(type,role,emailAddress)`)
+      .then(r => (r.permissions || []).filter(p => p.type === 'user' && p.emailAddress && p.role !== 'owner')
+        .map(p => String(p.emailAddress).toLowerCase())),
     // judul, tab, ukuran grid, dan developer metadata (data app yang tidak terlihat di sheet)
     meta: id => sheetsCall(id, `?fields=${enc(FIELDS)}`),
     get: (id, ranges) => sheetsCall(id, `/values:batchGet?${ranges.map(r => 'ranges=' + enc(r)).join('&')}&valueRenderOption=UNFORMATTED_VALUE&dateTimeRenderOption=SERIAL_NUMBER`),

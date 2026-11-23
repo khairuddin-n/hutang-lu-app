@@ -2838,20 +2838,35 @@ if ('serviceWorker' in navigator) window.addEventListener('load', () => navigato
     const o = MEMS[other(slot)];
     if (invite && !(o && o.email)) showInvite();
   }
+  // pilih email dari kontak HP (Chrome Android; iPhone belum mendukung)
+  const PICK_OK = !!(navigator.contacts && navigator.contacts.select);
   // undang pasangan: sheet dibagikan ke email Google-nya (Drive mengirim email berisi link undangan)
   function showInvite(){
     const o = other(ME), n = NAME(o);
     su(`<h2>Ajak ${esc(n)}</h2><p>Masukkan email Google ${esc(n)}. Sheet ini dibagikan hanya ke email itu, lalu ${esc(n)} tinggal membuka link undangan.</p>
-      <div class="fld"><div class="inp"><span class="ms" aria-hidden="true" style="color:var(--on2);font-size:20px">mail</span><input id="suMail" type="email" inputmode="email" autocomplete="off" enterkeyhint="send" placeholder="nama@gmail.com" aria-label="Email ${esc(n)}"></div></div>
+      <div class="fld"><div class="inp"><span class="ms" aria-hidden="true" style="color:var(--on2);font-size:20px">mail</span><input id="suMail" type="email" inputmode="email" autocomplete="off" enterkeyhint="send" placeholder="nama@gmail.com" aria-label="Email ${esc(n)}">${PICK_OK ? `<button type="button" id="suPick" aria-label="Pilih dari kontak" style="background:none;border:0;padding:6px;margin-right:-6px;color:var(--on2);display:flex"><span class="ms" aria-hidden="true" style="font-size:22px">contacts</span></button>` : ''}</div></div>
       <div class="grow"></div>
       <button class="btn fill" id="suSend"><span class="ms" aria-hidden="true" style="font-size:20px">send</span>Kirim undangan</button>
       <button class="btn line" id="suLater">Nanti saja</button>`, suDone);
     $('suLater').onclick = suDone;
+    // isi otomatis: email yang terakhir diketik untuk sheet ini, lalu akun yang sudah diberi akses ke sheet
+    const mine = store.get('hl_email'), sid = HL.sheetId(), memo = 'hl_inv_' + sid;
+    const fill = em => { const f = $('suMail'); if (f && !f.value && em && em !== mine) f.value = em; };
+    fill(store.get(memo));
+    HLG.sharedWith(sid).then(l => { const x = l.filter(e => e !== mine); if (x.length === 1) fill(x[0]); }).catch(() => {});
+    if (PICK_OK) $('suPick').onclick = async () => {
+      try {
+        const [c] = await navigator.contacts.select(['email'], { multiple: false });
+        const em = c && (c.email || []).find(e => /gmail\.com$/i.test(e)) || (c && c.email && c.email[0]);
+        if (em) $('suMail').value = em.trim().toLowerCase(); else if (c) snack('Kontak ini belum punya email');
+      } catch (e) {}
+    };
     $('suMail').onkeydown = e => { if (e.key === 'Enter') $('suSend').click(); };
     $('suSend').onclick = async () => {
       const em = $('suMail').value.trim().toLowerCase();
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) { $('suMail').focus(); return snack('Email belum benar'); }
       if (em === store.get('hl_email')) return snack('Itu email kamu sendiri');
+      store.set(memo, em);
       const b = $('suSend'); b.disabled = true; b.innerHTML = '<span class="spin"></span>';
       try {
         await HLG.share(HL.sheetId(), em, `${NAME(ME)} mengajak kamu mencatat utang bersama di Hutang Lu. Buka link ini di HP: ${suLink()}`);
