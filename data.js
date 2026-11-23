@@ -31,6 +31,22 @@
   const BASE = Date.UTC(1899, 11, 30);
   const serialToIso = n => { const d = new Date(BASE + Math.floor(n) * 864e5); return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`; };
   const isoToSerial = iso => { const [y, m, d] = iso.split('-').map(Number); return Math.round((Date.UTC(y, m - 1, d) - BASE) / 864e5); };
+  // isi kolom tanggal → ISO; terima nomor seri, atau teks "2026-11-20", "20/11/2026", "20 Nov 2026". Kosong/tak terbaca → ''
+  const MON_ID = { jan: 1, feb: 2, mar: 3, apr: 4, mei: 5, may: 5, jun: 6, jul: 7, agu: 8, agt: 8, aug: 8, sep: 9, okt: 10, oct: 10, nov: 11, des: 12, dec: 12 };
+  const okIso = (y, m, d) => { if (y < 100) y += 2000; const t = new Date(Date.UTC(y, m - 1, d));
+    return t.getUTCFullYear() === y && t.getUTCMonth() === m - 1 && t.getUTCDate() === d ? `${y}-${pad(m)}-${pad(d)}` : ''; };
+  function dateOf(v) {
+    if (typeof v === 'number') return v > 0 ? serialToIso(v) : '';
+    const s = String(v == null ? '' : v).trim();
+    if (!s) return '';
+    let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (m) return okIso(+m[1], +m[2], +m[3]);
+    m = s.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})$/);
+    if (m) return okIso(+m[3], +m[2], +m[1]);
+    m = s.match(/^(\d{1,2})\s+([a-z]{3})[a-z]*\.?\s+(\d{2,4})$/i);
+    if (m && MON_ID[m[2].toLowerCase()]) return okIso(+m[3], MON_ID[m[2].toLowerCase()], +m[1]);
+    return '';
+  }
   const stale = () => new Error('Data di sheet sudah berubah. Tarik ulang lalu coba lagi.');
   const rowKey = (iso, desc, by) => [iso, String(desc).trim(), String(by).trim()].join('|');   // sama dengan versi Apps Script
 
@@ -101,12 +117,16 @@
     const slotOf = n => { n = String(n || '').trim().toLowerCase(); return n === names[0].toLowerCase() ? 'A' : n === names[1].toLowerCase() ? 'B' : ''; };
     const tx = [];
     let last = 1;
+    // tanggal kosong → ikut tanggal baris di atasnya (kalau paling atas, ikut baris di bawahnya; kalau tak ada sama sekali, hari ini)
+    const dates = rows.map(x => dateOf(x[0]));
+    let carry = dates.find(Boolean) || todayIso();
+    dates.forEach((d, i) => { if (d) carry = d; else dates[i] = carry; });
     rows.forEach((x, i) => {
       const by = String(x[2] || '').trim();
       if (by) last = i + 2;
       const s = slotOf(by);
-      if (!s || typeof x[0] !== 'number') return;
-      const date = serialToIso(x[0]), desc = String(x[1] || '').trim();
+      if (!s) return;
+      const date = dates[i], desc = String(x[1] || '').trim();
       tx.push({ row: i + 2, key: rowKey(date, desc, by), date, desc, byName: by, by: s,
                 D: num(x[3]), E: num(x[4]), F: num(x[5]), G: num(x[6]), H: num(x[7]), I: num(x[8]), paid: String(x[9] || '').trim() !== '' });
     });
